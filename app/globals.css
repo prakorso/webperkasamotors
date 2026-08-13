@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/*
+ * Perkasa Motors design tokens.
+ * Source of truth: the Google Stitch "Perkasa Motors Premium Showroom" project.
+ * Single, deliberately light theme — matches the approved brand direction.
+ * Do not add rounded-* utilities to brand surfaces; sharp 0px corners are the default.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* -- Color: black / white base, single red accent -- */
+  --color-ink: #1a1c1c; /* primary text */
+  --color-paper: #f9f9f9; /* page background */
+  --color-surface: #ffffff; /* card / panel background */
+  --color-surface-muted: #eeeeee; /* subtle fill */
+  --color-border: #e0e0e0; /* editorial neutral border */
+  --color-muted: #5f5e5e; /* secondary text */
+  --color-muted-2: #8b8b8b; /* tertiary text */
+
+  --color-primary: #d71920; /* CTA / accent fill */
+  --color-primary-ink: #ffffff; /* text on primary */
+  --color-primary-hover: #121212; /* brand hover state: red -> near-black */
+  --color-accent-deep: #ae0011; /* secondary red, links / small accents */
+
+  /* Semantic (kept distinct from the brand accent) */
+  --color-success: #2b6e4f;
+  --color-success-bg: #e8f4ee;
+  --color-warning: #a8590c;
+  --color-warning-bg: #fdf1e2;
+  --color-info: #2a5a86;
+  --color-info-bg: #e9f1f8;
+
+  /* -- Typography -- */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, sans-serif;
+
+  /* Desktop hero (lg: and up) */
+  --text-display-lg: 4.5rem; /* 72px */
+  --text-display-lg--line-height: 5rem; /* 80px */
+  --text-display-lg--letter-spacing: -0.04em;
+  --text-display-lg--font-weight: 700;
+
+  /* Tablet hero (md: only) */
+  --text-display-md: 3.5rem; /* 56px */
+  --text-display-md--line-height: 3.75rem; /* 60px */
+  --text-display-md--letter-spacing: -0.03em;
+  --text-display-md--font-weight: 700;
+
+  /* Mobile hero */
+  --text-display-sm: 2.5rem; /* 40px */
+  --text-display-sm--line-height: 2.75rem; /* 44px */
+  --text-display-sm--letter-spacing: -0.02em;
+  --text-display-sm--font-weight: 700;
+
+  --text-headline-lg: 2rem; /* 32px */
+  --text-headline-lg--line-height: 2.5rem;
+  --text-headline-lg--letter-spacing: -0.01em;
+  --text-headline-lg--font-weight: 600;
+
+  --text-headline-sm: 1.5rem; /* 24px */
+  --text-headline-sm--line-height: 2rem;
+  --text-headline-sm--font-weight: 600;
+
+  --text-body-lg: 1.125rem; /* 18px */
+  --text-body-lg--line-height: 1.75rem;
+
+  --text-body: 1rem; /* 16px */
+  --text-body--line-height: 1.5rem;
+
+  --text-label: 0.75rem; /* 12px */
+  --text-label--line-height: 1rem;
+  --text-label--letter-spacing: 0.1em;
+  --text-label--font-weight: 700;
+
+  /* -- Spacing: spacious editorial scale (public site) -- */
+  --spacing-element: 1rem; /* 16px */
+  --spacing-gutter: 1.5rem; /* 24px */
+  --spacing-margin: 4rem; /* 64px, desktop page margin */
+  --spacing-section: 7.5rem; /* 120px, desktop section rhythm */
+
+  /* -- Layout -- */
+  --container-max: 90rem; /* 1440px */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
+/* Visible focus state everywhere — never removed for a "cleaner" look. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

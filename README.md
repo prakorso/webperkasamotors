@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Perkasa Motors Platform
 
-## Getting Started
+Public website + internal admin console for Perkasa Motors, built on
+Next.js and (from Phase 2 onward) Supabase.
 
-First, run the development server:
+**Status: Phase 1 — application foundation.** There is no database
+connection yet. Every vehicle, lead, and content record on screen comes
+from `lib/mock/`, routed through `lib/data/` so the UI never has to
+change when Phase 2 swaps that layer for real Supabase queries.
+
+## Stack
+
+- Next.js 16 (App Router), TypeScript (strict), Tailwind CSS v4
+- Fonts: Space Grotesk (display/headings), Inter (body/UI) via `next/font`
+- Hand-authored UI primitives in `components/ui/`, styled in the shadcn
+  pattern (the shadcn CLI needs an interactive terminal this environment
+  didn't have — see the Phase 1 report for detail)
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Public site: <http://localhost:3000> · Admin console: <http://localhost:3000/admin>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+  (public)/     — public website routes (/, /cars, /motorcycles, /about, …)
+  (admin)/      — admin console routes (/admin/*)
+components/
+  public/       — public site components
+  admin/        — admin console components
+  ui/           — shared primitives (Button, Badge, Input, …)
+lib/
+  types/        — domain types (Vehicle, SocialContent, Lead)
+  mock/         — fixture data — the ONLY place hardcoded records live
+  data/         — data-access layer every screen actually imports from
+  utils/        — formatting + class-name helpers
+```
 
-## Learn More
+## Environment
 
-To learn more about Next.js, take a look at the following resources:
+Copy `.env.example` to `.env.local`. All values are currently blank —
+Supabase is not connected in Phase 1. See `.env.example` for what each
+variable is for.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Local development server |
+| `npm run build` | Production build |
+| `npm run start` | Serve a production build locally |
+| `npm run lint` | ESLint |
 
-## Deploy on Vercel
+## Design reference
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Visual direction comes from the Google Stitch "Perkasa Motors Premium
+Showroom" project — not reproduced screen-for-screen, but re-implemented
+as componentized, responsive React. Design tokens live in `app/globals.css`.
