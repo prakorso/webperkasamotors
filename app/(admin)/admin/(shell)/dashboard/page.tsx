@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { StatCard } from "@/components/admin/stat-card";
 import { getAllVehiclesForAdmin } from "@/lib/data/vehicles";
 import { getAllLeadsForAdmin } from "@/lib/data/leads";
-import { vehicleTitle } from "@/lib/utils/format";
+import { vehicleTitle, leadInterestLabel } from "@/lib/utils/format";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -50,9 +50,7 @@ export default async function AdminDashboardPage() {
                 <div>
                   <p className="font-body text-[13px] text-ink">
                     <span className="font-semibold">{lead.customerName}</span> —{" "}
-                    {lead.interestedVehicleId
-                      ? vehicleTitle(vehicles.find((v) => v.id === lead.interestedVehicleId)!)
-                      : "General inquiry"}
+                    {leadInterestLabel(lead, vehicles)}
                   </p>
                   <p className="font-body text-[12px] text-muted">{lead.status}</p>
                 </div>

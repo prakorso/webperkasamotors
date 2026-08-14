@@ -15,7 +15,7 @@ export default async function AdminInventoryPage() {
     <div>
       <PageHeader
         title="Vehicle Inventory"
-        description={`${vehicles.length} vehicles — mock data, not yet backed by Supabase.`}
+        description={`${vehicles.length} vehicle${vehicles.length === 1 ? "" : "s"} — all statuses, including drafts and archived.`}
         action={
           <Link href="/admin/inventory/new" className={buttonVariants({ variant: "primary" })}>
             <Plus size={16} aria-hidden />

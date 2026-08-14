@@ -1,30 +1,26 @@
 import "server-only";
 import type { Vehicle, VehicleMedia, VehicleType } from "@/lib/types";
-import { MOCK_VEHICLES, MOCK_VEHICLE_MEDIA } from "@/lib/mock/vehicles";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
 
 /**
- * Vehicle data access.
+ * Vehicle data access — read-only. Mutations (create/update/archive) live
+ * in lib/actions/vehicles.ts as their own whole-file "use server" module;
+ * see that file's header for why Server Actions can't share a module with
+ * plain "server-only" reads (same reason as lib/actions/site-settings.ts
+ * in Batch 2).
  *
- * PHASE 2B: the public read functions below (getFeaturedVehicles,
- * getVehiclesByType, getVehicleBySlug, getVehicleMedia, getRelatedVehicles)
- * read from Supabase (public.vehicles / public.vehicle_media) via the
- * anon/publishable client. Row Level Security — see
- * supabase/migrations/*_rls_policies.sql — is what actually restricts
- * what these queries can see; there's no application-level visibility
- * filter left in this file for them.
+ * The public functions (getFeaturedVehicles, getVehiclesByType,
+ * getVehicleBySlug, getVehicleMedia, getRelatedVehicles) read via the
+ * anon/publishable client — RLS (supabase/migrations/*_rls_policies.sql)
+ * is what actually restricts what they can see.
  *
- * The three admin-only functions at the bottom still read from
- * lib/mock/vehicles.ts. That's deliberate, not leftover: there is no admin
- * auth yet (see docs/PHASE-2-SUPABASE-PLAN.md section E), so the only
- * Supabase client available here is anon-keyed — and the RLS policy above
- * means an anon query can never return a DRAFT or unpublished vehicle,
- * full stop. Pointing the admin functions at Supabase today would make
- * /admin/inventory silently show an incomplete list with no error. They
- * switch over once the admin write/auth phase lands a real staff session.
- *
- * Every function signature is unchanged from Phase 1 — no importing page
- * or component changed for this swap.
+ * BATCH 3A: the three admin-only functions now read via the session
+ * client instead of lib/mock — a real staff session exists (Batch 2's
+ * admin auth), and the "staff can read all vehicles" RLS policy lets an
+ * authenticated, active staff member see every vehicle regardless of
+ * publish state. lib/mock/vehicles.ts remains as local-dev fixture data
+ * only; nothing in app/ or components/ reads it anymore.
  */
 
 const VEHICLE_MEDIA_BUCKET = "vehicle-media";
@@ -185,23 +181,60 @@ export async function getRelatedVehicles(
 }
 
 // ---------------------------------------------------------------------------
-// Admin-only — still mock. See file header for why.
+// Admin-only — session-authenticated. RLS's "staff can read all vehicles" /
+// "staff can read all media" policies (supabase/migrations/*_rls_policies.sql)
+// are what actually allow these to see DRAFT/ARCHIVED/unpublished rows —
+// an inactive or signed-out caller gets the same publicly-visible subset
+// the anon functions above return, never an error, since RLS just filters
+// rows rather than rejecting the query.
 // ---------------------------------------------------------------------------
 
-/** Admin-only: every vehicle regardless of public visibility. */
+/** Admin-only: every vehicle regardless of public visibility, newest first. */
 export async function getAllVehiclesForAdmin(): Promise<Vehicle[]> {
-  return MOCK_VEHICLES;
+  const supabase = await getSupabaseSessionClient();
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select(VEHICLE_COLUMNS)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`getAllVehiclesForAdmin: ${error.message}`);
+  return (data as unknown as VehicleRow[]).map(mapVehicleRow);
 }
 
 export async function getVehicleByIdForAdmin(id: string): Promise<Vehicle | null> {
-  return MOCK_VEHICLES.find((v) => v.id === id) ?? null;
+  const supabase = await getSupabaseSessionClient();
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select(VEHICLE_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`getVehicleByIdForAdmin: ${error.message}`);
+  return data ? mapVehicleRow(data as unknown as VehicleRow) : null;
 }
 
-/**
- * Admin-only: every media item across every vehicle, grouped by vehicle
- * (each vehicle's items already appear together, in sortOrder, in the
- * source data).
- */
+/** Admin-only: every media item across every vehicle, grouped by vehicle then sortOrder. */
 export async function getAllVehicleMediaForAdmin(): Promise<VehicleMedia[]> {
-  return [...MOCK_VEHICLE_MEDIA];
+  const supabase = await getSupabaseSessionClient();
+  const { data, error } = await supabase
+    .from("vehicle_media")
+    .select(MEDIA_COLUMNS)
+    .order("vehicle_id", { ascending: true })
+    .order("sort_order", { ascending: true });
+
+  if (error) throw new Error(`getAllVehicleMediaForAdmin: ${error.message}`);
+  return (data as unknown as VehicleMediaRow[]).map(mapVehicleMediaRow);
+}
+
+/** Admin-only: every media item for one vehicle, in order — used by the Inventory edit page's media manager. */
+export async function getVehicleMediaForAdmin(vehicleId: string): Promise<VehicleMedia[]> {
+  const supabase = await getSupabaseSessionClient();
+  const { data, error } = await supabase
+    .from("vehicle_media")
+    .select(MEDIA_COLUMNS)
+    .eq("vehicle_id", vehicleId)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw new Error(`getVehicleMediaForAdmin: ${error.message}`);
+  return (data as unknown as VehicleMediaRow[]).map(mapVehicleMediaRow);
 }

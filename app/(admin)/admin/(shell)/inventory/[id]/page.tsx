@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { VehicleForm } from "@/components/admin/vehicle-form";
-import { getVehicleByIdForAdmin } from "@/lib/data/vehicles";
+import { VehicleMediaManager } from "@/components/admin/vehicle-media-manager";
+import { getVehicleByIdForAdmin, getVehicleMediaForAdmin } from "@/lib/data/vehicles";
 import { vehicleTitle } from "@/lib/utils/format";
 
 export async function generateMetadata(
@@ -18,13 +19,19 @@ export default async function EditVehiclePage(props: PageProps<"/admin/inventory
   const vehicle = await getVehicleByIdForAdmin(id);
   if (!vehicle) notFound();
 
+  const media = await getVehicleMediaForAdmin(vehicle.id);
+
   return (
-    <div>
-      <PageHeader
-        title={vehicleTitle(vehicle)}
-        description={`${vehicle.stockNumber} — visual edit shell, Phase 2 connects this to Supabase.`}
-      />
-      <VehicleForm vehicle={vehicle} />
+    <div className="flex flex-col gap-8">
+      <div>
+        <PageHeader title={vehicleTitle(vehicle)} description={vehicle.stockNumber} />
+        <VehicleForm vehicle={vehicle} />
+      </div>
+
+      <div>
+        <h2 className="mb-4 font-display text-headline-sm text-ink">Photos</h2>
+        <VehicleMediaManager vehicleId={vehicle.id} initialMedia={media} />
+      </div>
     </div>
   );
 }
