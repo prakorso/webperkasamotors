@@ -26,6 +26,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
     exteriorColor: "Isle of Man Green",
     condition: "USED",
     status: "AVAILABLE",
+    isPublished: true,
     isFeatured: true,
     description:
       "A one-owner M4 Competition finished in Isle of Man Green over a full merino leather interior. Full BMW service history, carbon ceramic brakes, and adaptive M suspension.",
@@ -51,6 +52,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
     exteriorColor: "Obsidian Black",
     condition: "USED",
     status: "AVAILABLE",
+    isPublished: true,
     isFeatured: true,
     description:
       "C300 AMG Line with the Night Package and Burmester surround sound. Immaculate condition, dealer-maintained.",
@@ -73,6 +75,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
     exteriorColor: "GT Silver Metallic",
     condition: "USED",
     status: "RESERVED",
+    isPublished: true,
     isFeatured: true,
     description:
       "992-generation Carrera S with PDK, Sport Chrono Package, and PASM sport suspension.",
@@ -95,6 +98,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
     exteriorColor: "Pearl White",
     condition: "USED",
     status: "AVAILABLE",
+    isPublished: true,
     isFeatured: true,
     description:
       "Executive-spec Alphard with captain seats, rear entertainment, and full dealer records.",
@@ -117,6 +121,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
     exteriorColor: "Ducati Red",
     condition: "USED",
     status: "AVAILABLE",
+    isPublished: true,
     isFeatured: false,
     description:
       "Low-mileage Panigale V4 S with Öhlins electronic suspension and full Akrapovič exhaust.",
@@ -139,6 +144,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
     exteriorColor: "Kalamata Metallic Matt",
     condition: "USED",
     status: "SOLD",
+    isPublished: true,
     isFeatured: false,
     description:
       "Fully-equipped GS Adventure with the touring and comfort packages, ready for long-distance riding.",

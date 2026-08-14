@@ -1,21 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, Search, X } from "lucide-react";
-import { PUBLIC_NAV_LINKS } from "./nav-links";
+import type { NavigationItem } from "@/lib/types";
+
+interface MobileNavProps {
+  links: NavigationItem[];
+  cta?: NavigationItem;
+}
 
 /**
  * Client component: the interactive hamburger/menu behavior shared by the
  * tablet (search + menu) and mobile (logo + search + hamburger) header
  * compositions. Desktop never renders this — it shows the full nav inline.
+ *
+ * PHASE 2C: links/cta come from SiteHeader (which fetches them server-side
+ * via lib/data/navigation.ts) as props, rather than this component
+ * importing a hardcoded array — the type import above is type-only, so it
+ * doesn't pull lib/data's "server-only" module into the client bundle.
  */
-export function MobileNav() {
+export function MobileNav({ links, cta }: MobileNavProps) {
   const [open, setOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the panel when it opens, and let Escape close it and
+  // return focus to the toggle — the panel previously had neither.
+  useEffect(() => {
+    if (!open) return;
+    panelRef.current?.focus();
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   return (
     <>
       <button
+        ref={toggleRef}
         type="button"
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
@@ -29,26 +56,32 @@ export function MobileNav() {
       {open && (
         <div
           id="mobile-nav-panel"
-          className="absolute inset-x-0 top-full border-t border-border bg-surface lg:hidden"
+          ref={panelRef}
+          tabIndex={-1}
+          className="absolute inset-x-0 top-full border-t border-border bg-surface xl:hidden"
         >
           <nav aria-label="Primary" className="flex flex-col px-6 py-4">
-            {PUBLIC_NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <Link
-                key={link.href}
+                key={link.id}
                 href={link.href}
                 onClick={() => setOpen(false)}
+                target={link.isExternal ? "_blank" : undefined}
+                rel={link.isExternal ? "noopener noreferrer" : undefined}
                 className="border-b border-border py-4 font-body text-body-lg text-ink last:border-b-0 hover:text-primary"
               >
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/contact"
-              onClick={() => setOpen(false)}
-              className="mt-4 flex h-11 items-center justify-center bg-primary font-body text-label uppercase tracking-[0.1em] text-primary-ink"
-            >
-              Hubungi Kami
-            </Link>
+            {cta && (
+              <Link
+                href={cta.href}
+                onClick={() => setOpen(false)}
+                className="mt-4 flex h-11 items-center justify-center bg-primary font-body text-label uppercase tracking-[0.1em] text-primary-ink"
+              >
+                {cta.label}
+              </Link>
+            )}
           </nav>
         </div>
       )}

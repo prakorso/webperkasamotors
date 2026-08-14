@@ -4,11 +4,8 @@ import type { SocialContent } from "@/lib/types";
 const TYPE_LABEL: Record<string, string> = {
   STOCK: "Stock",
   REVIEW: "Review",
+  REEL: "Reel",
   FEATURE: "Feature",
-  TESTIMONIAL: "Testimonial",
-  EDUCATION: "Education",
-  PROMOTION: "Promotion",
-  LIFESTYLE: "Lifestyle",
   NEWS: "News",
   OTHER: "Content",
 };

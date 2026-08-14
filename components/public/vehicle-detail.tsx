@@ -36,12 +36,12 @@ export function VehicleDetail({
 
   return (
     <div className="mx-auto max-w-container px-6 py-10 md:px-8 lg:px-margin lg:py-16">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
-        <div className="lg:col-span-7">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-8 lg:grid-cols-12 lg:gap-12">
+        <div className="md:col-span-1 lg:col-span-7">
           <VehicleGallery media={media} />
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="md:col-span-1 lg:col-span-5">
           <VehicleStatusBadge status={vehicle.status} />
           <h1 className="mt-4 font-display text-headline-lg text-ink lg:text-display-sm">
             {title}

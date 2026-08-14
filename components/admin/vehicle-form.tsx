@@ -84,6 +84,10 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
           <Label htmlFor="stockNumber">Stock Number</Label>
           <Input id="stockNumber" name="stockNumber" defaultValue={vehicle?.stockNumber} required />
         </div>
+        <div>
+          <Label htmlFor="location">Location</Label>
+          <Input id="location" name="location" defaultValue={vehicle?.location} placeholder="e.g. Jakarta Showroom" />
+        </div>
       </Fieldset>
 
       <Fieldset title="Pricing &amp; Status">
@@ -101,7 +105,19 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
             <option value="ARCHIVED">Archived</option>
           </select>
         </div>
-        <div className="flex items-center gap-2 md:col-span-2">
+        <div className="flex items-center gap-2">
+          <input
+            id="isPublished"
+            name="isPublished"
+            type="checkbox"
+            defaultChecked={vehicle?.isPublished ?? false}
+            className="h-4 w-4 accent-primary"
+          />
+          <Label htmlFor="isPublished" className="mb-0">
+            Published (visible on the public site)
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
           <input
             id="isFeatured"
             name="isFeatured"

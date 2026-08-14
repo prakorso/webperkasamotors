@@ -36,8 +36,17 @@ export interface Vehicle {
   transmission: Transmission;
   fuelType: FuelType;
   exteriorColor?: string;
+  /** Showroom / lot the unit is physically at. Optional — single-location
+   *  today, but every listing already implies "where is this car" as a
+   *  question a buyer asks, so the field exists ahead of a second location. */
+  location?: string;
   condition: "NEW" | "USED";
   status: VehicleStatus;
+  /** Distinct from `status`: a vehicle can be AVAILABLE internally while
+   *  still withheld from the public site (e.g. pending photography). Public
+   *  data-access functions must require both isPublished and a public
+   *  status — see isPubliclyVisible() in lib/data/vehicles.ts. */
+  isPublished: boolean;
   isFeatured: boolean;
   description: string;
   /** Short highlight specs shown on the vehicle card and detail hero. */

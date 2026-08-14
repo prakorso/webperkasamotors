@@ -29,7 +29,7 @@ export const MOCK_SOCIAL_CONTENT: SocialContent[] = [
   {
     id: "sc3",
     vehicleId: "v3",
-    contentType: "TESTIMONIAL",
+    contentType: "REVIEW",
     status: "PUBLISHED",
     caption: "\"Seamless process from viewing to delivery.\" — Porsche 911 buyer.",
     permalink: "#",

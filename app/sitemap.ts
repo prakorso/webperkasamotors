@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getVehiclesByType } from "@/lib/data/vehicles";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// See app/layout.tsx for why this fallback is the production URL, not localhost.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://webperkasamotors.netlify.app";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [cars, motorcycles] = await Promise.all([

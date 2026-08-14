@@ -1,20 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { ADMIN_NAV_ITEMS } from "./nav-items";
 import { useAdminShell } from "./admin-shell-context";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import type { AdminProfile } from "@/lib/supabase/server-session";
+import { Logo } from "@/components/brand/logo";
+import type { WebsiteSettings } from "@/lib/types";
 
 /**
  * Desktop (lg:+): always visible, fixed, 240px.
  * Tablet/mobile: off-canvas, toggled from Topbar — a dense application
  * shell, not a scaled-down version of the public site's editorial layout.
  */
-export function Sidebar() {
+export function Sidebar({
+  profile,
+  settings,
+}: {
+  profile: AdminProfile;
+  settings: WebsiteSettings;
+}) {
   const pathname = usePathname();
+  const router = useRouter();
   const { sidebarOpen, setSidebarOpen } = useAdminShell();
+
+  async function handleSignOut() {
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.push("/admin/login");
+    router.refresh();
+  }
 
   return (
     <>
@@ -33,7 +51,12 @@ export function Sidebar() {
       >
         <div className="flex h-16 items-center border-b border-border px-6">
           <Link href="/admin/dashboard" className="whitespace-nowrap">
-            <span className="font-display text-headline-sm text-primary">Perkasa Motors</span>
+            <Logo
+              companyName={settings.companyName}
+              logoUrl={settings.logoUrl}
+              textClassName="text-headline-sm text-primary"
+              imageClassName="h-7"
+            />
             <span className="block font-body text-[11px] uppercase tracking-[0.1em] text-muted">
               Admin Console
             </span>
@@ -68,13 +91,17 @@ export function Sidebar() {
         </nav>
 
         <div className="border-t border-border p-3">
-          <Link
-            href="/admin/login"
-            className="flex items-center gap-3 px-3 py-2.5 font-body text-[13px] text-muted hover:text-ink"
+          <p className="truncate px-3 pb-2 font-body text-[12px] text-muted" title={profile.email}>
+            {profile.fullName || profile.email}
+          </p>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 px-3 py-2.5 font-body text-[13px] text-muted hover:text-ink"
           >
             <LogOut size={18} aria-hidden />
             Sign Out
-          </Link>
+          </button>
         </div>
       </aside>
     </>

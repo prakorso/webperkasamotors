@@ -33,5 +33,9 @@ export interface Lead {
   source: LeadSource;
   status: LeadStatus;
   assignedStaffName?: string;
+  /** Internal follow-up notes added by staff — never shown to the
+   *  submitter. Not populated by any current form; added so the admin
+   *  Leads screen has somewhere to write once it's interactive. */
+  notes?: string;
   createdAt: string;
 }

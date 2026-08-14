@@ -5,6 +5,7 @@ import {
   Users,
   Newspaper,
   Image as ImageIcon,
+  Globe,
   Settings,
 } from "lucide-react";
 
@@ -17,8 +18,9 @@ export interface AdminNavItem {
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/inventory", label: "Inventory", icon: Car },
+  { href: "/admin/media", label: "Media", icon: ImageIcon },
   { href: "/admin/leads", label: "Leads", icon: Users },
   { href: "/admin/content", label: "Content", icon: Newspaper },
-  { href: "/admin/media", label: "Media", icon: ImageIcon },
+  { href: "/admin/website", label: "Website", icon: Globe },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
