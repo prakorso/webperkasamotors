@@ -78,12 +78,55 @@ export async function updateWebsiteSettings(
   return { error: null };
 }
 
-export type SiteAssetField = "logo" | "favicon" | "ogImage";
+export interface UpdateHeroSettingsInput {
+  heroEyebrow: string | null;
+  heroHeadline: string | null;
+  heroDescription: string | null;
+  heroCtaLabel: string | null;
+  heroCtaUrl: string | null;
+  heroIsActive: boolean;
+}
+
+/**
+ * Staff-only, same pattern as updateWebsiteSettings — separate function
+ * because it's a separate admin form (Website > Homepage > Hero), scoped
+ * to just the hero_* columns so saving Hero never has to also submit
+ * every other Website Settings field.
+ */
+export async function updateHeroSettings(
+  input: UpdateHeroSettingsInput
+): Promise<{ error: string | null }> {
+  const supabase = await getSupabaseSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { error } = await supabase
+    .from("website_settings")
+    .update({
+      hero_eyebrow: input.heroEyebrow,
+      hero_headline: input.heroHeadline,
+      hero_description: input.heroDescription,
+      hero_cta_label: input.heroCtaLabel,
+      hero_cta_url: input.heroCtaUrl,
+      hero_is_active: input.heroIsActive,
+      updated_by: user.id,
+    })
+    .eq("id", 1);
+
+  if (error) return { error: error.message };
+  revalidatePath("/", "layout");
+  return { error: null };
+}
+
+export type SiteAssetField = "logo" | "favicon" | "ogImage" | "heroImage";
 
 const ASSET_COLUMN: Record<SiteAssetField, string> = {
   logo: "logo_storage_path",
   favicon: "favicon_storage_path",
   ogImage: "seo_og_image_storage_path",
+  heroImage: "hero_image_storage_path",
 };
 
 /**

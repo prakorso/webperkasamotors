@@ -8,6 +8,7 @@ const TABS = [
   { href: "/admin/website", label: "General" },
   { href: "/admin/website/navigation", label: "Header & Navigation" },
   { href: "/admin/website/footer", label: "Footer" },
+  { href: "/admin/website/homepage", label: "Homepage" },
 ];
 
 export function WebsiteSubnav() {

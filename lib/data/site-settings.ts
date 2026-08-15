@@ -41,13 +41,22 @@ const SAFE_DEFAULTS: WebsiteSettings = {
   footerDescription: "Premium automotive digital showroom. Presisi, Performa, Perkasa.",
   whatsappLeadTemplate: null,
   whatsappLeadNumber: null,
+  heroEyebrow: null,
+  heroHeadline: null,
+  heroDescription: null,
+  heroImageUrl: null,
+  heroCtaLabel: null,
+  heroCtaUrl: null,
+  heroIsActive: true,
 };
 
 const SETTINGS_COLUMNS =
   "company_name, tagline, logo_storage_path, favicon_storage_path, phone, whatsapp, " +
   "email, address, instagram_url, facebook_url, tiktok_url, youtube_url, seo_title, " +
   "seo_description, seo_og_image_storage_path, default_cta_label, default_cta_url, " +
-  "copyright_text, footer_description, whatsapp_lead_template, whatsapp_lead_number";
+  "copyright_text, footer_description, whatsapp_lead_template, whatsapp_lead_number, " +
+  "hero_eyebrow, hero_headline, hero_description, hero_image_storage_path, " +
+  "hero_cta_label, hero_cta_url, hero_is_active";
 
 interface SettingsRow {
   company_name: string;
@@ -71,6 +80,13 @@ interface SettingsRow {
   footer_description: string | null;
   whatsapp_lead_template: string | null;
   whatsapp_lead_number: string | null;
+  hero_eyebrow: string | null;
+  hero_headline: string | null;
+  hero_description: string | null;
+  hero_image_storage_path: string | null;
+  hero_cta_label: string | null;
+  hero_cta_url: string | null;
+  hero_is_active: boolean;
 }
 
 function resolvePublicUrl(storagePath: string | null): string | null {
@@ -103,6 +119,13 @@ function mapSettingsRow(row: SettingsRow): WebsiteSettings {
     footerDescription: row.footer_description,
     whatsappLeadTemplate: row.whatsapp_lead_template,
     whatsappLeadNumber: row.whatsapp_lead_number,
+    heroEyebrow: row.hero_eyebrow,
+    heroHeadline: row.hero_headline,
+    heroDescription: row.hero_description,
+    heroImageUrl: resolvePublicUrl(row.hero_image_storage_path),
+    heroCtaLabel: row.hero_cta_label,
+    heroCtaUrl: row.hero_cta_url,
+    heroIsActive: row.hero_is_active,
   };
 }
 

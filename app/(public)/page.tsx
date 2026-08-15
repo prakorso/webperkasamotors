@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { ShieldCheck, BadgeCheck, Sparkles } from "lucide-react";
-import { Hero } from "@/components/public/hero";
+import { Hero, DEFAULT_HERO, type HeroContent } from "@/components/public/hero";
 import { SectionHeading } from "@/components/public/section-heading";
 import { VehicleCard } from "@/components/public/vehicle-card";
 import { getFeaturedVehicles, getVehicleMedia } from "@/lib/data/vehicles";
+import { getWebsiteSettings } from "@/lib/data/site-settings";
 
 export default async function HomePage() {
-  const featured = await getFeaturedVehicles(4);
+  const [featured, settings] = await Promise.all([getFeaturedVehicles(4), getWebsiteSettings()]);
   const featuredWithMedia = await Promise.all(
     featured.map(async (vehicle) => ({
       vehicle,
@@ -14,9 +15,24 @@ export default async function HomePage() {
     }))
   );
 
+  // Inactive, or no headline, falls back to the original hardcoded hero —
+  // resolved here, once, rather than inside Hero itself, so the component
+  // stays a plain "render what I'm given" presentational piece.
+  const hero: HeroContent =
+    settings.heroIsActive && settings.heroHeadline?.trim()
+      ? {
+          eyebrow: settings.heroEyebrow,
+          headline: settings.heroHeadline,
+          description: settings.heroDescription,
+          imageUrl: settings.heroImageUrl,
+          ctaLabel: settings.heroCtaLabel?.trim() || DEFAULT_HERO.ctaLabel,
+          ctaUrl: settings.heroCtaUrl?.trim() || DEFAULT_HERO.ctaUrl,
+        }
+      : DEFAULT_HERO;
+
   return (
     <>
-      <Hero />
+      <Hero {...hero} />
 
       <section className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
         <div className="flex items-end justify-between">

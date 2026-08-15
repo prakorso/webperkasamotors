@@ -33,4 +33,16 @@ export interface WebsiteSettings {
    *  to `whatsapp`, so leaving this unset means General and Lead
    *  WhatsApp are the same number. */
   whatsappLeadNumber: string | null;
+  /** Homepage hero — see supabase/migrations/20260815040000_homepage_cms.sql.
+   *  heroIsActive false, or heroHeadline null/empty, means the public
+   *  homepage falls back to its hardcoded default hero
+   *  (components/public/hero.tsx's DEFAULT_HERO) — resolved in
+   *  app/(public)/page.tsx, not inside the Hero component itself. */
+  heroEyebrow: string | null;
+  heroHeadline: string | null;
+  heroDescription: string | null;
+  heroImageUrl: string | null;
+  heroCtaLabel: string | null;
+  heroCtaUrl: string | null;
+  heroIsActive: boolean;
 }
