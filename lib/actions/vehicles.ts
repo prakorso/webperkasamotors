@@ -18,7 +18,6 @@ import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
  */
 
 export interface VehicleInput {
-  stockNumber: string;
   vehicleType: VehicleType;
   brand: string;
   model: string;
@@ -53,9 +52,11 @@ const CURRENT_YEAR = new Date().getFullYear();
  * matches the database column itself, which is `not null default ''`,
  * not a hard non-empty requirement — this function used to be stricter
  * than the schema; now it isn't.
+ *
+ * stockNumber is not validated here either — it's not part of
+ * VehicleInput at all anymore. See generateStockNumber below.
  */
 function validateVehicleInput(input: VehicleInput): string | null {
-  if (!input.stockNumber.trim()) return "Stock number is required.";
   if (!input.brand.trim()) return "Brand is required.";
   if (!input.model.trim()) return "Model is required.";
   if (!Number.isInteger(input.year) || input.year < 1980 || input.year > CURRENT_YEAR + 1) {
@@ -67,16 +68,15 @@ function validateVehicleInput(input: VehicleInput): string | null {
 }
 
 /**
- * Row fields shared by create and update. Deliberately excludes `slug` —
- * it's not part of VehicleInput at all anymore (see the form: there's no
- * slug field for staff to fill in). createVehicle generates and inserts
- * it separately, once, on the way in; updateVehicle's UPDATE statement
- * therefore never includes a `slug` key and so never touches the existing
- * value — see updateVehicle's comment for why that's deliberate.
+ * Row fields shared by create and update. Deliberately excludes `slug`
+ * and `stock_number` — neither is part of VehicleInput at all anymore
+ * (see the form: no field for either). createVehicle generates and
+ * inserts both separately, once, on the way in; updateVehicle never
+ * touches stock_number, and only touches slug when the vehicle's public
+ * identity actually changed (see updateVehicle's own comment).
  */
 function toRow(input: VehicleInput) {
   return {
-    stock_number: input.stockNumber.trim(),
     vehicle_type: input.vehicleType,
     brand: input.brand.trim(),
     model: input.model.trim(),
@@ -102,7 +102,7 @@ function toRow(input: VehicleInput) {
 /** Friendlier message for the two UNIQUE constraints (stock_number, slug) than raw Postgres error text. */
 function friendlyConstraintError(message: string): string {
   if (message.includes("vehicles_stock_number_key")) {
-    return "That stock number is already in use by another vehicle.";
+    return "Generated stock number collided with an existing one — this should be extremely rare; try saving again.";
   }
   if (message.includes("vehicles_slug_key")) {
     return "Generated slug collided with an existing one — this should be extremely rare; try saving again.";
@@ -111,19 +111,23 @@ function friendlyConstraintError(message: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Slug generation — createVehicle only. A vehicle's slug is its public URL
-// identifier (vehicles.slug, unique — supabase/migrations/*_tables.sql),
-// so it's generated once at creation and never touched again: editing
-// brand/model/variant/year later must not change it, or every existing
-// link to that vehicle (bookmarks, shared links, search engine index)
-// breaks. There's no admin UI to regenerate it — that's deliberate, not a
-// missing feature.
+// Slug generation. A vehicle's slug is its public URL identifier
+// (vehicles.slug, unique — supabase/migrations/*_tables.sql). Unlike the
+// original design, it's no longer permanently frozen at creation: it now
+// follows the vehicle's identity (brand/model/variant/year) and its
+// catalogue path follows vehicle_type, so an edited vehicle's URL stays
+// accurate. What makes this safe for existing links is
+// vehicle_url_history (supabase/migrations/20260815050100_vehicle_url_
+// history.sql) — every (vehicle_type, slug) a vehicle has ever had is
+// recorded there, and the public /cars/[slug] and /motorcycles/[slug]
+// routes 308-redirect a historical URL to the vehicle's current one
+// instead of 404ing.
 // ---------------------------------------------------------------------------
 
 function slugify(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // strip diacritics — "é" -> "e"
+    .replace(/[̀-ͯ]/g, "") // strip diacritics — "é" -> "e"
     .toLowerCase()
     .replace(/[/,&_.]+/g, " ") // treat common separators as word breaks, not deletions -- "A/C" -> "a c", not "ac"
     .replace(/[^a-z0-9\s-]/g, "") // drop anything that isn't alphanumeric/space/hyphen
@@ -132,7 +136,12 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, ""); // trim leading/trailing hyphens
 }
 
-function buildSlugBase(input: Pick<VehicleInput, "brand" | "model" | "variant" | "year">): string {
+function buildSlugBase(input: {
+  brand: string;
+  model: string;
+  variant: string | null;
+  year: number;
+}): string {
   const parts = [input.brand, input.model, input.variant, String(input.year)].filter(
     (part): part is string => Boolean(part && part.trim())
   );
@@ -146,7 +155,7 @@ async function generateUniqueSlug(
 ): Promise<string> {
   let candidate = base;
   let suffix = 2;
-  // A staff member creating vehicles one at a time never loops more than
+  // A staff member editing vehicles one at a time never loops more than
   // once or twice in practice; this only runs longer if many vehicles
   // share the exact same brand/model/variant/year.
   for (;;) {
@@ -175,9 +184,20 @@ export async function createVehicle(
   }
   const slug = await generateUniqueSlug(supabase, slugBase);
 
+  // Atomic, concurrency-safe — nextval() under the hood
+  // (supabase/migrations/20260815050000_vehicle_stock_number_generation.sql).
+  // Never a frontend MAX()+1: two staff creating vehicles at the same
+  // moment can never receive the same number.
+  const { data: stockNumberResult, error: stockNumberError } = await supabase.rpc(
+    "generate_stock_number",
+    { v_type: input.vehicleType }
+  );
+  if (stockNumberError) return { error: stockNumberError.message };
+  const stockNumber = stockNumberResult as unknown as string;
+
   const { data, error } = await supabase
     .from("vehicles")
-    .insert({ ...toRow(input), slug, created_by: user.id })
+    .insert({ ...toRow(input), slug, stock_number: stockNumber, created_by: user.id })
     .select("id")
     .single();
 
@@ -190,11 +210,21 @@ export async function createVehicle(
 }
 
 /**
- * Never touches `slug` — toRow() doesn't include it, so this UPDATE
- * statement doesn't set that column at all, regardless of how far
- * brand/model/variant/year drift from what the slug was generated from.
- * That's the whole point: an existing public URL must never break because
- * someone corrected a typo in the model name.
+ * stock_number is never included in the update payload — like the
+ * original slug design, it's assigned once at creation and stays fixed
+ * even if the vehicle's type is edited later, since it may already
+ * correspond to real paperwork/asset tags.
+ *
+ * slug DOES change here now, but only when it needs to: this fetches the
+ * vehicle's current brand/model/variant/year/vehicle_type/slug first,
+ * recomputes what the slug *base* would be for both the old and new
+ * identity, and only regenerates when either the identity-derived base
+ * changed or vehicle_type changed (which moves the catalogue path even
+ * if the slug text itself wouldn't). Editing price/status/description/
+ * etc. never touches the slug. Whenever the effective URL does change,
+ * the *previous* (vehicle_type, slug) is recorded into
+ * vehicle_url_history before the row is updated, so the old URL keeps
+ * resolving via a redirect instead of 404ing.
  */
 export async function updateVehicle(
   id: string,
@@ -209,7 +239,56 @@ export async function updateVehicle(
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
-  const { error } = await supabase.from("vehicles").update(toRow(input)).eq("id", id);
+  const { data: currentData, error: currentError } = await supabase
+    .from("vehicles")
+    .select("brand, model, variant, year, slug, vehicle_type")
+    .eq("id", id)
+    .maybeSingle();
+  if (currentError) return { error: currentError.message };
+  if (!currentData) return { error: "Vehicle not found." };
+
+  const current = currentData as unknown as {
+    brand: string;
+    model: string;
+    variant: string | null;
+    year: number;
+    slug: string;
+    vehicle_type: VehicleType;
+  };
+
+  const oldBase = buildSlugBase(current);
+  const newBase = buildSlugBase(input);
+  const identityChanged = oldBase !== newBase;
+  const typeChanged = current.vehicle_type !== input.vehicleType;
+
+  const rowUpdate: Record<string, unknown> = toRow(input);
+
+  if (identityChanged || typeChanged) {
+    // Record the URL this vehicle is about to stop answering to, before
+    // it stops answering to it. ignoreDuplicates so re-editing back to a
+    // name it already had once (bouncing between two names) can't fail
+    // this on the unique(vehicle_type, slug) constraint.
+    const { error: historyError } = await supabase
+      .from("vehicle_url_history")
+      .upsert(
+        { vehicle_id: id, vehicle_type: current.vehicle_type, slug: current.slug },
+        { onConflict: "vehicle_type,slug", ignoreDuplicates: true }
+      );
+    // A history-recording failure must never block the actual vehicle
+    // update — it's bookkeeping for redirects, not the primary write.
+    if (historyError) {
+      console.error("[updateVehicle] Failed to record vehicle_url_history:", historyError);
+    }
+  }
+
+  if (identityChanged) {
+    if (!newBase) {
+      return { error: "Could not generate a URL from Brand, Model, and Year — check those fields." };
+    }
+    rowUpdate.slug = await generateUniqueSlug(supabase, newBase);
+  }
+
+  const { error } = await supabase.from("vehicles").update(rowUpdate).eq("id", id);
 
   if (error) {
     return { error: error.code === "23505" ? friendlyConstraintError(error.message) : error.message };

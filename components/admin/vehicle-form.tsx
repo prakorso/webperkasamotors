@@ -41,7 +41,6 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
   const isEdit = Boolean(vehicle);
 
   const [form, setForm] = useState({
-    stockNumber: vehicle?.stockNumber ?? "",
     brand: vehicle?.brand ?? "",
     model: vehicle?.model ?? "",
     variant: vehicle?.variant ?? "",
@@ -78,7 +77,6 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
     setError(null);
 
     const input: VehicleInput = {
-      stockNumber: form.stockNumber,
       vehicleType: form.vehicleType,
       brand: form.brand,
       model: form.model,
@@ -181,15 +179,25 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
             <option value="USED">Used</option>
           </select>
         </div>
-        <div>
-          <Label htmlFor="stockNumber">Stock Number</Label>
-          <Input
-            id="stockNumber"
-            value={form.stockNumber}
-            onChange={(e) => set("stockNumber", e.target.value)}
-            required
-          />
-        </div>
+        {isEdit && vehicle ? (
+          <div>
+            <Label className="mb-2 block">Stock Number</Label>
+            <p className="flex h-11 items-center border border-border bg-surface-muted px-3 font-body text-body text-muted">
+              {vehicle.stockNumber}
+            </p>
+            <p className="mt-1.5 font-body text-[12px] text-muted-2">
+              Generated automatically when created — CAR-/MOT- numbers never repeat and never
+              change, even if Vehicle Type is edited later.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <Label className="mb-2 block">Stock Number</Label>
+            <p className="flex h-11 items-center border border-border bg-surface-muted px-3 font-body text-body text-muted-2">
+              Assigned automatically on save
+            </p>
+          </div>
+        )}
         {isEdit && vehicle && (
           <div>
             <Label className="mb-2 block">Public URL</Label>
@@ -202,7 +210,8 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
               /{vehicle.vehicleType === "CAR" ? "cars" : "motorcycles"}/{vehicle.slug}
             </a>
             <p className="mt-1.5 font-body text-[12px] text-muted-2">
-              Generated automatically when created — it never changes, so existing links keep working.
+              Generated automatically from Brand, Model, Variant, Year, and Vehicle Type — updates
+              automatically if you edit those. Older URLs keep working and redirect here.
             </p>
           </div>
         )}

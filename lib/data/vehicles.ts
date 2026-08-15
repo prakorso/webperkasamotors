@@ -151,6 +151,54 @@ export async function getVehicleBySlug(slug: string): Promise<Vehicle | null> {
   return data ? mapVehicleRow(data as unknown as VehicleRow) : null;
 }
 
+export interface VehicleRedirectTarget {
+  vehicleType: VehicleType;
+  slug: string;
+}
+
+/**
+ * Looks up whether (vehicleType, slug) matches a vehicle's *previous*
+ * identity — used by /cars/[slug] and /motorcycles/[slug] when the
+ * direct lookup misses, so a renamed or re-typed vehicle's old URL
+ * 308-redirects to its current one instead of 404ing (see
+ * lib/actions/vehicles.ts:updateVehicle for where history rows come
+ * from). Returns null if there's no history match, or if the vehicle it
+ * pointed to is no longer publicly visible — RLS on `vehicles` already
+ * filters that second query the same way every other public read here
+ * is filtered, so an archived/unpublished target correctly falls
+ * through to a genuine 404 rather than redirecting to a page that would
+ * 404 anyway.
+ */
+export async function getVehicleRedirectTarget(
+  vehicleType: VehicleType,
+  slug: string
+): Promise<VehicleRedirectTarget | null> {
+  const supabase = getSupabaseServerClient();
+  const { data: historyRow, error: historyError } = await supabase
+    .from("vehicle_url_history")
+    .select("vehicle_id")
+    .eq("vehicle_type", vehicleType)
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (historyError) throw new Error(`getVehicleRedirectTarget: ${historyError.message}`);
+  if (!historyRow) return null;
+
+  const vehicleId = (historyRow as unknown as { vehicle_id: string }).vehicle_id;
+
+  const { data: vehicleRow, error: vehicleError } = await supabase
+    .from("vehicles")
+    .select("slug, vehicle_type")
+    .eq("id", vehicleId)
+    .maybeSingle();
+
+  if (vehicleError) throw new Error(`getVehicleRedirectTarget: ${vehicleError.message}`);
+  if (!vehicleRow) return null;
+
+  const row = vehicleRow as unknown as { slug: string; vehicle_type: VehicleType };
+  return { vehicleType: row.vehicle_type, slug: row.slug };
+}
+
 export async function getVehicleMedia(vehicleId: string): Promise<VehicleMedia[]> {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase

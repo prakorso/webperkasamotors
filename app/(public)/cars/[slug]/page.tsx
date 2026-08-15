@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { VehicleDetail } from "@/components/public/vehicle-detail";
 import {
   getVehicleBySlug,
   getVehicleMedia,
   getRelatedVehicles,
+  getVehicleRedirectTarget,
 } from "@/lib/data/vehicles";
 import { getSocialContentForVehicle } from "@/lib/data/social-content";
 import { vehicleTitle, formatIDR } from "@/lib/utils/format";
@@ -27,7 +28,20 @@ export async function generateMetadata(
 export default async function CarDetailPage(props: PageProps<"/cars/[slug]">) {
   const { slug } = await props.params;
   const vehicle = await getVehicleBySlug(slug);
-  if (!vehicle || vehicle.vehicleType !== "CAR") notFound();
+
+  // Miss, or this exact slug now belongs to a vehicle of a different
+  // type — either way, check whether (CAR, slug) matches a vehicle's
+  // *previous* identity before giving up. Covers both a rename (slug
+  // text changed) and a type change (this vehicle used to be a Car at
+  // this same slug, and now isn't).
+  if (!vehicle || vehicle.vehicleType !== "CAR") {
+    const redirectTarget = await getVehicleRedirectTarget("CAR", slug);
+    if (redirectTarget) {
+      const path = redirectTarget.vehicleType === "CAR" ? "/cars" : "/motorcycles";
+      permanentRedirect(`${path}/${redirectTarget.slug}`);
+    }
+    notFound();
+  }
 
   const [media, related, socialContent] = await Promise.all([
     getVehicleMedia(vehicle.id),
