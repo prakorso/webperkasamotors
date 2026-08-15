@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getFooterSettings } from "@/lib/data/footer";
+import { FacebookIcon, InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/icons/social-icons";
 
 /**
  * PHASE 2C: fully database-driven (Footer Manager, via lib/data/footer.ts)
@@ -60,56 +61,63 @@ export async function SiteFooter() {
             )}
 
             {hasSocial && (
-              <ul className="mt-6 flex flex-wrap gap-x-4 gap-y-1 font-body text-[13px] uppercase tracking-[0.06em] text-paper/80">
-                {footer.instagramUrl && (
-                  <li>
-                    <a
-                      href={footer.instagramUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-primary"
-                    >
-                      Instagram
-                    </a>
-                  </li>
-                )}
-                {footer.facebookUrl && (
-                  <li>
-                    <a
-                      href={footer.facebookUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-primary"
-                    >
-                      Facebook
-                    </a>
-                  </li>
-                )}
-                {footer.tiktokUrl && (
-                  <li>
-                    <a
-                      href={footer.tiktokUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-primary"
-                    >
-                      TikTok
-                    </a>
-                  </li>
-                )}
-                {footer.youtubeUrl && (
-                  <li>
-                    <a
-                      href={footer.youtubeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-primary"
-                    >
-                      YouTube
-                    </a>
-                  </li>
-                )}
-              </ul>
+              <div className="mt-6">
+                <p className="font-body text-label uppercase tracking-[0.1em] text-muted-2">Social</p>
+                <ul className="mt-4 flex items-center gap-4">
+                  {footer.instagramUrl && (
+                    <li>
+                      <a
+                        href={footer.instagramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Instagram"
+                        className="block text-paper/80 transition-colors hover:text-primary"
+                      >
+                        <InstagramIcon />
+                      </a>
+                    </li>
+                  )}
+                  {footer.facebookUrl && (
+                    <li>
+                      <a
+                        href={footer.facebookUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Facebook"
+                        className="block text-paper/80 transition-colors hover:text-primary"
+                      >
+                        <FacebookIcon />
+                      </a>
+                    </li>
+                  )}
+                  {footer.tiktokUrl && (
+                    <li>
+                      <a
+                        href={footer.tiktokUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="TikTok"
+                        className="block text-paper/80 transition-colors hover:text-primary"
+                      >
+                        <TiktokIcon />
+                      </a>
+                    </li>
+                  )}
+                  {footer.youtubeUrl && (
+                    <li>
+                      <a
+                        href={footer.youtubeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="YouTube"
+                        className="block text-paper/80 transition-colors hover:text-primary"
+                      >
+                        <YoutubeIcon />
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </div>
             )}
           </div>
 
