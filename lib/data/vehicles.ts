@@ -1,5 +1,4 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Vehicle, VehicleMedia, VehicleType } from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
@@ -240,38 +239,3 @@ export async function getVehicleMediaForAdmin(vehicleId: string): Promise<Vehicl
   return (data as unknown as VehicleMediaRow[]).map(mapVehicleMediaRow);
 }
 
-/**
- * vehicleId -> primary vehicle_media public URL, batched into one query.
- * Used by the Content domain's display-image fallback
- * (lib/data/social-content.ts) — a content item without its own
- * thumbnail falls back to its linked vehicle's cover photo, per the
- * post-Batch 3B revision: content is a social-media-to-vehicle link, not
- * a media CMS, so it never depends on its own uploaded image existing.
- *
- * Takes the caller's Supabase client rather than picking one itself: the
- * right RLS scope depends on the caller. The public content path
- * (already-visible vehicles only) passes the anon client; the admin
- * content path passes the session client, so staff also see fallback
- * images for draft/unpublished vehicles' linked content.
- */
-export async function getPrimaryVehicleImages(
-  supabase: SupabaseClient,
-  vehicleIds: string[]
-): Promise<Record<string, string>> {
-  if (vehicleIds.length === 0) return {};
-
-  const { data, error } = await supabase
-    .from("vehicle_media")
-    .select("vehicle_id, storage_path")
-    .in("vehicle_id", vehicleIds)
-    .eq("is_primary", true);
-
-  if (error) throw new Error(`getPrimaryVehicleImages: ${error.message}`);
-
-  const rows = data as unknown as Array<{ vehicle_id: string; storage_path: string }>;
-  const map: Record<string, string> = {};
-  for (const row of rows) {
-    map[row.vehicle_id] = supabase.storage.from(VEHICLE_MEDIA_BUCKET).getPublicUrl(row.storage_path).data.publicUrl;
-  }
-  return map;
-}

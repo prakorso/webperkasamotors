@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { SocialContent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { createContent, updateContent, deleteContent, type ContentInput } from "@/lib/actions/content";
+import { updateContent, deleteContent, type ContentInput } from "@/lib/actions/content";
 
 const SELECT_CLASS =
   "h-11 w-full border border-border bg-surface px-3 font-body text-body text-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary";
@@ -26,28 +26,32 @@ export interface VehicleOption {
   label: string;
 }
 
-interface ContentFormProps {
-  content?: SocialContent;
-  vehicleOptions: VehicleOption[];
-}
-
 /**
- * Real create/edit, backed by lib/actions/content.ts. Delete (visible only
- * when editing) really removes the row — see that action's own comment for
- * why content, unlike vehicles, doesn't route through a soft-archive state.
+ * Edit-only — the Content Library's correction path, not a creation
+ * form. Creation happens exclusively via the "paste a URL" workflow on
+ * the vehicle's Inventory page (components/admin/vehicle-social-content
+ * .tsx, lib/actions/content.ts's addSocialContent); there is no
+ * "Create Content" button anywhere this form is reachable from.
+ *
+ * Status collapses to a single Active/Hidden toggle rather than the raw
+ * 4-value enum — Active writes PUBLISHED, Hidden writes IGNORED. The
+ * database still has INBOX/CLASSIFIED (no migration was made to remove
+ * them; this is a UI simplification, not a schema change), so a legacy
+ * row sitting in either of those states simply shows as Hidden here,
+ * which is accurate — RLS already treats anything other than PUBLISHED
+ * as non-public.
  */
-export function ContentForm({ content, vehicleOptions }: ContentFormProps) {
+export function ContentForm({ content, vehicleOptions }: { content: SocialContent; vehicleOptions: VehicleOption[] }) {
   const router = useRouter();
-  const isEdit = Boolean(content);
 
   const [form, setForm] = useState({
-    vehicleId: content?.vehicleId ?? "",
-    contentType: content?.contentType ?? "STOCK",
-    status: content?.status ?? "INBOX",
-    caption: content?.caption ?? "",
-    permalink: content?.permalink ?? "",
-    instagramMediaId: content?.instagramMediaId ?? "",
-    postedAt: content?.postedAt ? content.postedAt.slice(0, 10) : "",
+    vehicleId: content.vehicleId ?? "",
+    permalink: content.permalink,
+    active: content.status === "PUBLISHED",
+    caption: content.caption,
+    contentType: content.contentType,
+    postedAt: content.postedAt ? content.postedAt.slice(0, 10) : "",
+    instagramMediaId: content.instagramMediaId ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -67,31 +71,24 @@ export function ContentForm({ content, vehicleOptions }: ContentFormProps) {
     const input: ContentInput = {
       vehicleId: form.vehicleId || null,
       contentType: form.contentType,
-      status: form.status,
+      status: form.active ? "PUBLISHED" : "IGNORED",
       caption: form.caption,
       permalink: form.permalink,
       instagramMediaId: form.instagramMediaId || null,
       postedAt: form.postedAt || null,
     };
 
-    const result =
-      isEdit && content ? await updateContent(content.id, input) : await createContent(input);
-
+    const result = await updateContent(content.id, input);
     setSaving(false);
     if (result.error) {
       setError(result.error);
       return;
     }
     setSaved(true);
-    if (!isEdit && "id" in result && result.id) {
-      router.push(`/admin/content/${result.id}`);
-    } else {
-      router.refresh();
-    }
+    router.refresh();
   }
 
   async function handleDelete() {
-    if (!content) return;
     if (!confirm("Delete this content item? This cannot be undone.")) return;
     setDeleting(true);
     setError(null);
@@ -107,15 +104,6 @@ export function ContentForm({ content, vehicleOptions }: ContentFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <Fieldset title="Content">
-        <div className="md:col-span-2">
-          <Label htmlFor="caption">Caption</Label>
-          <Textarea
-            id="caption"
-            rows={3}
-            value={form.caption}
-            onChange={(e) => set("caption", e.target.value)}
-          />
-        </div>
         <div>
           <Label htmlFor="permalink">Link</Label>
           <Input
@@ -123,8 +111,56 @@ export function ContentForm({ content, vehicleOptions }: ContentFormProps) {
             type="url"
             value={form.permalink}
             onChange={(e) => set("permalink", e.target.value)}
-            placeholder="https://www.instagram.com/p/…"
+            placeholder="https://www.instagram.com/reel/…"
             required
+          />
+        </div>
+        <div>
+          <Label htmlFor="vehicleId">Vehicle</Label>
+          <select
+            id="vehicleId"
+            value={form.vehicleId}
+            onChange={(e) => set("vehicleId", e.target.value)}
+            className={SELECT_CLASS}
+          >
+            <option value="">— Editorial (no vehicle) —</option>
+            {vehicleOptions.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            Linking never creates or changes vehicle inventory — it&apos;s a reference only.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 md:col-span-2">
+          <input
+            id="active"
+            type="checkbox"
+            checked={form.active}
+            onChange={(e) => set("active", e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+          <Label htmlFor="active" className="mb-0">
+            Active (visible on the public site)
+          </Label>
+        </div>
+        <p className="font-body text-[12px] text-muted-2 md:col-span-2">
+          No thumbnail is required. A preview is retrieved automatically when the link was added
+          (YouTube and TikTok only, today) — other platforms link out without a preview image
+          rather than showing something misleading.
+        </p>
+      </Fieldset>
+
+      <Fieldset title="Details (optional)">
+        <div className="md:col-span-2">
+          <Label htmlFor="caption">Caption</Label>
+          <Textarea
+            id="caption"
+            rows={2}
+            value={form.caption}
+            onChange={(e) => set("caption", e.target.value)}
           />
         </div>
         <div>
@@ -163,70 +199,16 @@ export function ContentForm({ content, vehicleOptions }: ContentFormProps) {
         </div>
       </Fieldset>
 
-      <Fieldset title="Vehicle Link &amp; Status">
-        <div>
-          <Label htmlFor="vehicleId">Vehicle</Label>
-          <select
-            id="vehicleId"
-            value={form.vehicleId}
-            onChange={(e) => set("vehicleId", e.target.value)}
-            className={SELECT_CLASS}
-          >
-            <option value="">— Editorial (no vehicle) —</option>
-            {vehicleOptions.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.label}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Linking never creates or changes vehicle inventory — it&apos;s a reference only.
-          </p>
-        </div>
-        <div>
-          <Label htmlFor="status">Status</Label>
-          <select
-            id="status"
-            value={form.status}
-            onChange={(e) => set("status", e.target.value as typeof form.status)}
-            className={SELECT_CLASS}
-          >
-            <option value="INBOX">Inbox</option>
-            <option value="CLASSIFIED">Classified</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="IGNORED">Ignored</option>
-          </select>
-          <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Only Published content is visible on the public site. No thumbnail is required — the
-            linked vehicle&apos;s primary photo is shown automatically if this item has no image
-            of its own.
-          </p>
-        </div>
-      </Fieldset>
-
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" variant="primary" size="lg" disabled={saving}>
-          {saving ? "Saving…" : isEdit ? "Save Changes" : "Create Content"}
+          {saving ? "Saving…" : "Save Changes"}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          onClick={() => router.push("/admin/content")}
-        >
+        <Button type="button" variant="outline" size="lg" onClick={() => router.push("/admin/content")}>
           Cancel
         </Button>
-        {isEdit && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="lg"
-            disabled={deleting}
-            onClick={handleDelete}
-          >
-            {deleting ? "Deleting…" : "Delete"}
-          </Button>
-        )}
+        <Button type="button" variant="ghost" size="lg" disabled={deleting} onClick={handleDelete}>
+          {deleting ? "Deleting…" : "Delete"}
+        </Button>
         {saved && <span className="font-body text-[13px] text-success">Saved.</span>}
         {error && <span className="font-body text-[13px] text-primary">{error}</span>}
       </div>

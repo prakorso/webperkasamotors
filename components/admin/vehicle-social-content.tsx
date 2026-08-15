@@ -3,42 +3,24 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { SocialContent, SocialContentType, SocialContentStatus } from "@/lib/types";
+import type { SocialContent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Textarea } from "@/components/ui/input";
+import { Input, Label } from "@/components/ui/input";
 import { ContentStatusBadge } from "@/components/ui/content-status-badge";
-import { createContent, type ContentInput } from "@/lib/actions/content";
-
-const SELECT_CLASS =
-  "h-11 w-full border border-border bg-surface px-3 font-body text-body text-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary";
-
-const TYPE_LABEL: Record<SocialContentType, string> = {
-  STOCK: "Stock",
-  REVIEW: "Review",
-  REEL: "Reel",
-  FEATURE: "Feature",
-  NEWS: "News",
-  OTHER: "Other",
-};
-
-const EMPTY_FORM = {
-  permalink: "",
-  contentType: "STOCK" as SocialContentType,
-  status: "INBOX" as SocialContentStatus,
-  caption: "",
-  postedAt: "",
-};
+import { addSocialContent } from "@/lib/actions/content";
 
 /**
  * The primary workflow for managing a vehicle's linked Social Content —
  * lives on the Inventory edit page (see app/(admin)/admin/(shell)/
- * inventory/[id]/page.tsx), not the global /admin/content page. Shows
- * what's already linked and lets staff add a new item with vehicleId
- * fixed to this vehicle — the picker never appears here, so there's
- * nothing to re-select. Full edit/delete/status changes stay on
- * /admin/content/[id] (linked from each card below) — that page and the
- * global list remain the place for reviewing/editing/deleting everything,
- * per the split the user asked for.
+ * inventory/[id]/page.tsx), not the Content Library. One field: paste a
+ * URL, click Add. vehicleId is a fixed prop, wired straight into
+ * addSocialContent — there's nothing to select, so nothing is asked.
+ * Everything else (platform detection, thumbnail retrieval, caption) is
+ * derived automatically server-side; see lib/actions/content.ts.
+ *
+ * Fixing a wrong link, changing the caption, or hiding an item stays on
+ * /admin/content/[id] (linked from each card below) — the Library is
+ * still where full editing happens, just not creation.
  *
  * `items` is server-fetched and rendered directly rather than copied into
  * local state, so router.refresh() after a successful add — which
@@ -47,7 +29,7 @@ const EMPTY_FORM = {
  */
 export function VehicleSocialContent({ vehicleId, items }: { vehicleId: string; items: SocialContent[] }) {
   const router = useRouter();
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,23 +38,13 @@ export function VehicleSocialContent({ vehicleId, items }: { vehicleId: string; 
     setSaving(true);
     setError(null);
 
-    const input: ContentInput = {
-      vehicleId,
-      contentType: form.contentType,
-      status: form.status,
-      caption: form.caption,
-      permalink: form.permalink,
-      instagramMediaId: null,
-      postedAt: form.postedAt || null,
-    };
-
-    const result = await createContent(input);
+    const result = await addSocialContent(vehicleId, url);
     setSaving(false);
     if (result.error) {
       setError(result.error);
       return;
     }
-    setForm(EMPTY_FORM);
+    setUrl("");
     router.refresh();
   }
 
@@ -94,89 +66,41 @@ export function VehicleSocialContent({ vehicleId, items }: { vehicleId: string; 
                 {item.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                ) : null}
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="font-body text-[10px] uppercase tracking-[0.06em] text-muted-2">
+                      No preview
+                    </span>
+                  </div>
+                )}
                 <span className="absolute left-1.5 top-1.5">
                   <ContentStatusBadge status={item.status} />
                 </span>
               </div>
-              <p className="line-clamp-2 p-2 font-body text-[12px] text-ink">
-                {item.caption || TYPE_LABEL[item.contentType]}
-              </p>
+              {item.caption && (
+                <p className="line-clamp-2 p-2 font-body text-[12px] text-ink">{item.caption}</p>
+              )}
             </Link>
           ))}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 border border-border bg-surface p-4">
-        <p className="font-body text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-          Add Social Content
-        </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="vsc-permalink">Link</Label>
-            <Input
-              id="vsc-permalink"
-              type="url"
-              value={form.permalink}
-              onChange={(e) => setForm((f) => ({ ...f, permalink: e.target.value }))}
-              placeholder="https://www.instagram.com/p/…"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="vsc-type">Type</Label>
-            <select
-              id="vsc-type"
-              value={form.contentType}
-              onChange={(e) => setForm((f) => ({ ...f, contentType: e.target.value as SocialContentType }))}
-              className={SELECT_CLASS}
-            >
-              {(Object.keys(TYPE_LABEL) as SocialContentType[]).map((type) => (
-                <option key={type} value={type}>
-                  {TYPE_LABEL[type]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="vsc-status">Status</Label>
-            <select
-              id="vsc-status"
-              value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as SocialContentStatus }))}
-              className={SELECT_CLASS}
-            >
-              <option value="INBOX">Inbox</option>
-              <option value="CLASSIFIED">Classified</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="IGNORED">Ignored</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="vsc-postedAt">Posted Date</Label>
-            <Input
-              id="vsc-postedAt"
-              type="date"
-              value={form.postedAt}
-              onChange={(e) => setForm((f) => ({ ...f, postedAt: e.target.value }))}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <Label htmlFor="vsc-caption">Caption</Label>
-            <Textarea
-              id="vsc-caption"
-              rows={2}
-              value={form.caption}
-              onChange={(e) => setForm((f) => ({ ...f, caption: e.target.value }))}
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 border border-border bg-surface p-4">
+        <div className="min-w-[240px] flex-1">
+          <Label htmlFor="vsc-url">Social Media URL</Label>
+          <Input
+            id="vsc-url"
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.instagram.com/reel/…"
+            required
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" variant="outline" disabled={saving}>
-            {saving ? "Adding…" : "Add Content"}
-          </Button>
-          {error && <span className="font-body text-[13px] text-primary">{error}</span>}
-        </div>
+        <Button type="submit" variant="outline" disabled={saving}>
+          {saving ? "Adding…" : "Add Content"}
+        </Button>
+        {error && <span className="font-body text-[13px] text-primary">{error}</span>}
       </form>
     </div>
   );

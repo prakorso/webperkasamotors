@@ -3,28 +3,29 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SocialContent } from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
-import { getPrimaryVehicleImages } from "@/lib/data/vehicles";
 
 /**
- * Content data access — read-only. Mutations (create/update/delete) live
- * in lib/actions/content.ts as their own whole-file "use server" module,
- * same split as lib/data/vehicles.ts / lib/actions/vehicles.ts.
+ * Content data access — read-only. Mutations (create/update/delete, plus
+ * the primary addSocialContent workflow) live in lib/actions/content.ts
+ * as their own whole-file "use server" module, same split as
+ * lib/data/vehicles.ts / lib/actions/vehicles.ts.
  *
- * BATCH 3B: getSocialContentForVehicle reads via the anon/publishable
- * client — RLS's "public can read published content" policy
+ * getSocialContentForVehicle reads via the anon/publishable client —
+ * RLS's "public can read published content" policy
  * (supabase/migrations/20260814030400_rls_policies.sql) is what actually
  * restricts this to status = 'PUBLISHED'. The admin functions read via
  * the session client, exposed to every status through "staff can read all
  * content". lib/mock/social-content.ts remains as local-dev fixture data
  * only; nothing in app/ or components/ reads it anymore.
  *
- * REVISED (post-Batch 3B): content is a social-media-to-vehicle link, not
- * a standalone media CMS — a row is never required to have its own
- * thumbnail. mapContentRows resolves a display image for every row: the
- * row's own thumbnail_storage_path if one is ever set, otherwise the
- * linked vehicle's primary vehicle_media photo, otherwise no image. This
- * is why every exported function below returns SocialContent via that
- * shared async mapper instead of a plain synchronous row map.
+ * REVISED (one-person-operation redesign): a content item's display
+ * image is its own thumbnail_storage_path, or nothing — there is no
+ * fallback to the linked vehicle's photo. An earlier revision of this
+ * file did fall back to the vehicle's primary photo, but that conflated
+ * two different things: a vehicle's inventory photography and a social
+ * post's own preview image. When thumbnailUrl is null here, the UI is
+ * expected to show a "preview unavailable" state, not silently borrow
+ * unrelated imagery.
  */
 
 const CONTENT_BUCKET = "content-thumbnails";
@@ -46,40 +47,20 @@ interface ContentRow {
   posted_at: string | null;
 }
 
-/**
- * Batches one getPrimaryVehicleImages query for every distinct vehicle
- * among rows that lack their own thumbnail, rather than one lookup per
- * row — the admin content list can be dozens of rows across a handful of
- * vehicles.
- */
-async function mapContentRows(rows: ContentRow[], supabase: SupabaseClient): Promise<SocialContent[]> {
-  const fallbackVehicleIds = Array.from(
-    new Set(
-      rows
-        .filter((row) => !row.thumbnail_storage_path && row.vehicle_id)
-        .map((row) => row.vehicle_id as string)
-    )
-  );
-  const fallbackImages = await getPrimaryVehicleImages(supabase, fallbackVehicleIds);
-
-  return rows.map((row) => {
-    const ownThumbnail = row.thumbnail_storage_path
+function mapContentRows(rows: ContentRow[], supabase: SupabaseClient): SocialContent[] {
+  return rows.map((row) => ({
+    id: row.id,
+    vehicleId: row.vehicle_id,
+    contentType: row.content_type,
+    status: row.status,
+    caption: row.caption,
+    permalink: row.permalink,
+    thumbnailUrl: row.thumbnail_storage_path
       ? supabase.storage.from(CONTENT_BUCKET).getPublicUrl(row.thumbnail_storage_path).data.publicUrl
-      : null;
-    const displayImageUrl = ownThumbnail ?? (row.vehicle_id ? (fallbackImages[row.vehicle_id] ?? null) : null);
-
-    return {
-      id: row.id,
-      vehicleId: row.vehicle_id,
-      contentType: row.content_type,
-      status: row.status,
-      caption: row.caption,
-      permalink: row.permalink,
-      thumbnailUrl: displayImageUrl,
-      postedAt: row.posted_at,
-      instagramMediaId: row.instagram_media_id,
-    };
-  });
+      : null,
+    postedAt: row.posted_at,
+    instagramMediaId: row.instagram_media_id,
+  }));
 }
 
 export async function getSocialContentForVehicle(vehicleId: string): Promise<SocialContent[]> {
@@ -103,7 +84,7 @@ export async function getSocialContentForVehicle(vehicleId: string): Promise<Soc
 // RLS just filters rows rather than rejecting the query.
 // ---------------------------------------------------------------------------
 
-/** Admin-only: every content item regardless of status, newest first — the global Content overview page. */
+/** Admin-only: every content item regardless of status, newest first — the Content Library overview page. */
 export async function getAllContentForAdmin(): Promise<SocialContent[]> {
   const supabase = await getSupabaseSessionClient();
   const { data, error } = await supabase
@@ -125,15 +106,13 @@ export async function getContentByIdForAdmin(id: string): Promise<SocialContent 
 
   if (error) throw new Error(`getContentByIdForAdmin: ${error.message}`);
   if (!data) return null;
-  const [mapped] = await mapContentRows([data as unknown as ContentRow], supabase);
-  return mapped;
+  return mapContentRows([data as unknown as ContentRow], supabase)[0];
 }
 
 /**
  * Admin-only: every content item linked to one vehicle, regardless of
  * status — powers the Inventory edit page's embedded Social Content
- * section, the primary workflow for managing a vehicle's linked content
- * per the post-Batch 3B revision.
+ * section, the primary workflow for managing a vehicle's linked content.
  */
 export async function getContentForVehicleAdmin(vehicleId: string): Promise<SocialContent[]> {
   const supabase = await getSupabaseSessionClient();
