@@ -5,7 +5,7 @@ import type { VehicleMedia } from "@/lib/types";
 import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
 
 /**
- * Server Actions for vehicle media upload/reorder/primary/delete —
+ * Server Actions for vehicle media metadata/reorder/primary/delete —
  * separated from lib/data/vehicles.ts's plain reads, same reason as every
  * other lib/actions/*.ts file (see lib/actions/site-settings.ts).
  *
@@ -14,6 +14,20 @@ import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
  * enforced by the bucket's storage policy and the vehicle_media RLS
  * policies (supabase/migrations/*_storage_buckets.sql,
  * *_rls_policies.sql), not by anything in this file.
+ *
+ * REVISED: file bytes no longer pass through this file at all. The actual
+ * upload to Storage happens directly from the browser
+ * (components/admin/vehicle-media-manager.tsx, using
+ * lib/supabase/browser.ts's getSupabaseBrowserClient() — same
+ * authenticated session, same RLS policies, just initiated client-side
+ * instead of proxied through a Server Action). That was causing 504s on
+ * Netlify: routing multi-megabyte photo bytes through a serverless
+ * function meant a double network hop (browser -> Netlify function ->
+ * Supabase Storage, ap-southeast-1) plus several sequential DB round
+ * trips, all inside one function invocation with a hard execution-time
+ * ceiling. recordVehicleMediaUpload below only ever receives a small JSON
+ * payload (an already-uploaded object's path) — no bytes, no proxy, no
+ * double hop, so it can't reproduce that failure mode.
  */
 
 const BUCKET = "vehicle-media";
@@ -31,20 +45,30 @@ const ALLOWED_MEDIA_TYPES: VehicleMediaType[] = [
   "OTHER",
 ];
 
-export async function uploadVehicleMedia(
+/**
+ * Records a file the browser has *already* uploaded directly to Supabase
+ * Storage — this function never touches storage.upload() or sees file
+ * bytes. storagePath is required to start with `${vehicleId}/`, the same
+ * prefix the browser always generates: not an RLS boundary (the bucket
+ * policy doesn't scope by path prefix), just a sanity check against a
+ * buggy or malicious caller pointing this row at an unrelated object.
+ *
+ * Same business logic as before: first media for a vehicle becomes
+ * primary automatically, sort_order increments from the current max.
+ * If the insert fails, there's no upload left to roll back here — the
+ * browser does that (removing the object it just uploaded) when this
+ * action returns an error, since it's the one holding the session that
+ * performed the upload in the first place.
+ */
+export async function recordVehicleMediaUpload(
   vehicleId: string,
   mediaType: VehicleMediaType,
-  formData: FormData
+  storagePath: string
 ): Promise<{ error: string | null; media?: VehicleMedia }> {
   if (!vehicleId) return { error: "No vehicle specified." };
   if (!ALLOWED_MEDIA_TYPES.includes(mediaType)) return { error: "Invalid media type." };
-
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "No file selected." };
-  }
-  if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-    return { error: "Only image or video files are supported." };
+  if (!storagePath || !storagePath.startsWith(`${vehicleId}/`)) {
+    return { error: "Invalid storage path." };
   }
 
   const supabase = await getSupabaseSessionClient();
@@ -52,14 +76,6 @@ export async function uploadVehicleMedia(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
-
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${vehicleId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { cacheControl: "3600" });
-  if (uploadError) return { error: uploadError.message };
 
   const { count } = await supabase
     .from("vehicle_media")
@@ -81,7 +97,7 @@ export async function uploadVehicleMedia(
     .insert({
       vehicle_id: vehicleId,
       media_type: mediaType,
-      storage_path: path,
+      storage_path: storagePath,
       alt_text: "",
       // First image uploaded for a vehicle becomes primary automatically —
       // otherwise every new vehicle would show no image anywhere until
@@ -93,8 +109,6 @@ export async function uploadVehicleMedia(
     .single();
 
   if (insertError) {
-    // Roll back the upload so a failed insert doesn't leave an orphaned file.
-    await supabase.storage.from(BUCKET).remove([path]);
     return { error: insertError.message };
   }
 

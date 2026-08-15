@@ -25,6 +25,16 @@ function Fieldset({ title, children }: { title: string; children: React.ReactNod
  * Real create/edit, backed by lib/actions/vehicles.ts. Archive (visible
  * only when editing) sets status to ARCHIVED rather than deleting the
  * row — see that action's own comment for why.
+ *
+ * description/seoTitle/seoDescription are deliberately kept in `form`
+ * and still sent to createVehicle/updateVehicle below, even though this
+ * form no longer has inputs for them (removed per an Inventory UX
+ * simplification — description/SEO editing wasn't part of the intended
+ * workflow). This is not dead code: an existing vehicle's description
+ * still round-trips unchanged on every other edit, and the public
+ * vehicle page (untouched by this change) still reads it. The columns
+ * and public-facing behavior are unaffected — only the admin editing
+ * surface is gone.
  */
 export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
   const router = useRouter();
@@ -321,31 +331,6 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
           <p className="mt-1.5 font-body text-[12px] text-muted-2">
             Short bullets shown as chips on the vehicle card and detail page — one per line.
           </p>
-        </div>
-      </Fieldset>
-
-      <Fieldset title="Description &amp; SEO">
-        <div className="md:col-span-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            rows={4}
-            value={form.description}
-            onChange={(e) => set("description", e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="seoTitle">SEO Title</Label>
-          <Input id="seoTitle" value={form.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} />
-        </div>
-        <div>
-          <Label htmlFor="seoDescription">SEO Description</Label>
-          <Input
-            id="seoDescription"
-            value={form.seoDescription}
-            onChange={(e) => set("seoDescription", e.target.value)}
-          />
         </div>
       </Fieldset>
 

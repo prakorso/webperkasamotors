@@ -42,8 +42,18 @@ export interface VehicleInput {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-/** Server-side validation — never trust the client, even though every
- *  field is also constrained by an HTML input on the form. */
+/**
+ * Server-side validation — never trust the client, even though every
+ * field is also constrained by an HTML input on the form.
+ *
+ * description is NOT required here, on purpose: the Inventory admin
+ * form (components/admin/vehicle-form.tsx) no longer has a Description
+ * field at all, per a UX simplification — requiring it would make
+ * vehicle creation permanently impossible through that form. This
+ * matches the database column itself, which is `not null default ''`,
+ * not a hard non-empty requirement — this function used to be stricter
+ * than the schema; now it isn't.
+ */
 function validateVehicleInput(input: VehicleInput): string | null {
   if (!input.stockNumber.trim()) return "Stock number is required.";
   if (!input.brand.trim()) return "Brand is required.";
@@ -53,7 +63,6 @@ function validateVehicleInput(input: VehicleInput): string | null {
   }
   if (!Number.isFinite(input.price) || input.price <= 0) return "Price must be a positive number.";
   if (!Number.isFinite(input.mileageKm) || input.mileageKm < 0) return "Mileage cannot be negative.";
-  if (!input.description.trim()) return "Description is required.";
   return null;
 }
 

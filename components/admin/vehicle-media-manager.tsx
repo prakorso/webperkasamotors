@@ -4,8 +4,9 @@ import { useRef, useState, useTransition } from "react";
 import { UploadCloud, ChevronUp, ChevronDown, Trash2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
-  uploadVehicleMedia,
+  recordVehicleMediaUpload,
   setPrimaryVehicleMedia,
   reorderVehicleMedia,
   deleteVehicleMedia,
@@ -27,6 +28,64 @@ const MEDIA_TYPE_OPTIONS: VehicleMediaType[] = [
 const SELECT_CLASS =
   "h-11 border border-border bg-surface px-3 font-body text-body text-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary";
 
+/** Same bucket lib/actions/vehicle-media.ts targets — duplicated as a
+ *  literal here rather than shared, matching how other bucket names in
+ *  this codebase are scoped to whichever file actually calls Storage. */
+const BUCKET = "vehicle-media";
+
+/**
+ * Uploads directly from the browser to Supabase Storage — never through
+ * a Server Action — then records the result via recordVehicleMediaUpload
+ * (a small JSON call, no file bytes). This is what actually eliminates
+ * the 504s: the file bytes now make one hop (browser -> Supabase),
+ * instead of two (browser -> Netlify function -> Supabase), and never sit
+ * inside a serverless function's execution-time budget.
+ *
+ * Uses the same authenticated session as everywhere else in the admin
+ * (lib/supabase/browser.ts's getSupabaseBrowserClient(), backed by the
+ * same sb-*-auth-token cookie @supabase/ssr already manages) — the
+ * "staff can upload/delete vehicle media objects" storage policies
+ * (supabase/migrations/*_storage_buckets.sql) enforce is_active_staff()
+ * identically regardless of whether the request originates server-side
+ * or here in the browser, since both resolve from the same auth.uid().
+ * No new credentials, no RLS change, nothing service-role.
+ */
+async function uploadOneFile(
+  vehicleId: string,
+  mediaType: VehicleMediaType,
+  file: File
+): Promise<{ error: string | null; media?: VehicleMedia }> {
+  if (file.size === 0) return { error: "No file selected." };
+  if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+    return { error: "Only image or video files are supported." };
+  }
+
+  const supabase = getSupabaseBrowserClient();
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${vehicleId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+
+  try {
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { cacheControl: "3600" });
+    if (uploadError) return { error: uploadError.message };
+
+    const result = await recordVehicleMediaUpload(vehicleId, mediaType, path);
+    if (result.error || !result.media) {
+      // The metadata insert failed after a real upload succeeded — roll
+      // the upload back so it doesn't linger as an orphaned file. The
+      // browser is the one that can do this: it holds the session that
+      // performed the upload, and recordVehicleMediaUpload never touched
+      // storage itself.
+      await supabase.storage.from(BUCKET).remove([path]);
+      return { error: result.error ?? "Could not save this photo. Please try again." };
+    }
+    return { error: null, media: result.media };
+  } catch {
+    return { error: "Upload failed — check your connection and try again." };
+  }
+}
+
 export function VehicleMediaManager({
   vehicleId,
   initialMedia,
@@ -47,9 +106,7 @@ export function VehicleMediaManager({
 
     startTransition(async () => {
       for (const file of files) {
-        const formData = new FormData();
-        formData.set("file", file);
-        const result = await uploadVehicleMedia(vehicleId, mediaType, formData);
+        const result = await uploadOneFile(vehicleId, mediaType, file);
         if (result.error || !result.media) {
           setError(result.error ?? "Upload failed.");
           continue;
