@@ -5,8 +5,19 @@ import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 import type { VehicleMedia } from "@/lib/types";
 
+/**
+ * Opens on whichever photo is flagged isPrimary — not just media[0]
+ * (the first item by sort_order). Those coincide by default (the first
+ * upload becomes primary automatically), but sort_order and isPrimary
+ * are independent: staff can manually set a different photo primary
+ * without reordering it to the front, and this gallery needs to agree
+ * with every other surface (vehicle cards, catalogue, homepage
+ * featured, related vehicles) about which photo is "the" main image —
+ * isPrimary is the single source of truth for that, not position.
+ */
 export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
-  const [activeId, setActiveId] = useState(media[0]?.id);
+  const initialId = media.find((m) => m.isPrimary)?.id ?? media[0]?.id;
+  const [activeId, setActiveId] = useState(initialId);
   const active = media.find((m) => m.id === activeId) ?? media[0];
 
   if (!active) return null;

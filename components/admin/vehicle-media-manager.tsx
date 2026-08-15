@@ -14,24 +14,34 @@ import {
 } from "@/lib/actions/vehicle-media";
 import type { VehicleMedia } from "@/lib/types";
 
-const MEDIA_TYPE_OPTIONS: VehicleMediaType[] = [
-  "EXTERIOR",
-  "INTERIOR",
-  "ENGINE",
-  "WHEELS",
-  "WALKAROUND",
-  "DOCUMENT",
-  "VIDEO",
-  "OTHER",
-];
-
-const SELECT_CLASS =
-  "h-11 border border-border bg-surface px-3 font-body text-body text-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary";
-
 /** Same bucket lib/actions/vehicle-media.ts targets — duplicated as a
  *  literal here rather than shared, matching how other bucket names in
  *  this codebase are scoped to whichever file actually calls Storage. */
 const BUCKET = "vehicle-media";
+
+/**
+ * Every photo uploaded through this simplified workflow gets this fixed
+ * classification — media_type stays a real, required column (unchanged
+ * schema, still used elsewhere), but choosing it is no longer part of
+ * the admin's job. A one-person operation doesn't need to categorize
+ * every photo as Exterior/Interior/Engine/etc. before it can go live.
+ */
+const DEFAULT_MEDIA_TYPE: VehicleMediaType = "EXTERIOR";
+
+const HEIC_MIME_TYPES = ["image/heic", "image/heif"];
+const HEIC_EXTENSIONS = [".heic", ".heif"];
+
+/**
+ * HEIC/HEIF detection checks both the reported MIME type and the file
+ * extension — browsers are inconsistent about setting file.type for
+ * HEIC (Safari usually does; some others report an empty string), so
+ * the extension is a necessary fallback, not redundancy.
+ */
+function isHeicFile(file: File): boolean {
+  if (HEIC_MIME_TYPES.includes(file.type.toLowerCase())) return true;
+  const name = file.name.toLowerCase();
+  return HEIC_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
 
 /**
  * Uploads directly from the browser to Supabase Storage — never through
@@ -49,13 +59,27 @@ const BUCKET = "vehicle-media";
  * identically regardless of whether the request originates server-side
  * or here in the browser, since both resolve from the same auth.uid().
  * No new credentials, no RLS change, nothing service-role.
+ *
+ * Rejects HEIC/HEIF before ever touching Storage — this was the actual
+ * cause of "broken image" cards after a multi-photo upload (confirmed
+ * live: the objects and DB rows were all created correctly and the
+ * public URLs were fully reachable; browsers other than Safari simply
+ * can't decode image/heic in an <img> tag). No automatic conversion is
+ * attempted — that would need a new client-side HEIC decoding
+ * dependency this project doesn't have, which is more complexity than a
+ * one-time phone-settings fix warrants.
  */
 async function uploadOneFile(
   vehicleId: string,
-  mediaType: VehicleMediaType,
   file: File
 ): Promise<{ error: string | null; media?: VehicleMedia }> {
   if (file.size === 0) return { error: "No file selected." };
+  if (isHeicFile(file)) {
+    return {
+      error:
+        "HEIC/HEIF photos aren't supported by browsers yet. On iPhone: Settings → Camera → Formats → Most Compatible. Or share it via Messages/WhatsApp first — that usually converts it automatically.",
+    };
+  }
   if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
     return { error: "Only image or video files are supported." };
   }
@@ -70,7 +94,7 @@ async function uploadOneFile(
       .upload(path, file, { cacheControl: "3600" });
     if (uploadError) return { error: uploadError.message };
 
-    const result = await recordVehicleMediaUpload(vehicleId, mediaType, path);
+    const result = await recordVehicleMediaUpload(vehicleId, DEFAULT_MEDIA_TYPE, path);
     if (result.error || !result.media) {
       // The metadata insert failed after a real upload succeeded — roll
       // the upload back so it doesn't linger as an orphaned file. The
@@ -94,7 +118,6 @@ export function VehicleMediaManager({
   initialMedia: VehicleMedia[];
 }) {
   const [media, setMedia] = useState(initialMedia);
-  const [mediaType, setMediaType] = useState<VehicleMediaType>("EXTERIOR");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -105,10 +128,17 @@ export function VehicleMediaManager({
     setError(null);
 
     startTransition(async () => {
+      // Collected rather than set immediately per-file: with several
+      // files in one batch, an earlier failure's message would
+      // otherwise get silently overwritten by a later file's result —
+      // one bad file (e.g. a HEIC photo) should never hide what
+      // happened to the others, and every valid file in the same batch
+      // still uploads regardless of what happens to the others.
+      const failures: string[] = [];
       for (const file of files) {
-        const result = await uploadOneFile(vehicleId, mediaType, file);
+        const result = await uploadOneFile(vehicleId, file);
         if (result.error || !result.media) {
-          setError(result.error ?? "Upload failed.");
+          failures.push(`${file.name}: ${result.error ?? "Upload failed."}`);
           continue;
         }
         const uploaded = result.media;
@@ -116,6 +146,7 @@ export function VehicleMediaManager({
           uploaded.isPrimary ? [...prev.map((m) => ({ ...m, isPrimary: false })), uploaded] : [...prev, uploaded]
         );
       }
+      if (failures.length > 0) setError(failures.join(" • "));
     });
 
     if (inputRef.current) inputRef.current.value = "";
@@ -176,96 +207,81 @@ export function VehicleMediaManager({
             <div key={item.id} className="border border-border bg-surface">
               <div className="relative aspect-square overflow-hidden bg-surface-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.url} alt={item.altText || item.mediaType} className="h-full w-full object-cover" />
+                <img src={item.url} alt={item.altText || "Vehicle photo"} className="h-full w-full object-cover" />
                 {item.isPrimary && (
                   <span className="absolute left-1.5 top-1.5">
                     <Badge variant="primary">Primary</Badge>
                   </span>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-1 p-1.5">
-                <span className="truncate font-body text-[11px] uppercase tracking-[0.06em] text-muted">
-                  {item.mediaType}
-                </span>
-                <div className="flex items-center gap-0.5">
-                  <button
-                    type="button"
-                    disabled={index === 0 || pending}
-                    onClick={() => move(index, -1)}
-                    aria-label="Move earlier"
-                    className="p-1 text-muted hover:text-ink disabled:opacity-30"
-                  >
-                    <ChevronUp size={14} aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={index === media.length - 1 || pending}
-                    onClick={() => move(index, 1)}
-                    aria-label="Move later"
-                    className="p-1 text-muted hover:text-ink disabled:opacity-30"
-                  >
-                    <ChevronDown size={14} aria-hidden />
-                  </button>
-                  {!item.isPrimary && (
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={() => handleSetPrimary(item.id)}
-                      aria-label="Set as primary photo"
-                      className="p-1 text-muted hover:text-primary disabled:opacity-30"
-                    >
-                      <Star size={14} aria-hidden />
-                    </button>
-                  )}
+              <div className="flex items-center justify-end gap-0.5 p-1.5">
+                <button
+                  type="button"
+                  disabled={index === 0 || pending}
+                  onClick={() => move(index, -1)}
+                  aria-label="Move earlier"
+                  className="p-1 text-muted hover:text-ink disabled:opacity-30"
+                >
+                  <ChevronUp size={14} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  disabled={index === media.length - 1 || pending}
+                  onClick={() => move(index, 1)}
+                  aria-label="Move later"
+                  className="p-1 text-muted hover:text-ink disabled:opacity-30"
+                >
+                  <ChevronDown size={14} aria-hidden />
+                </button>
+                {!item.isPrimary && (
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() => handleDelete(item.id)}
-                    aria-label="Delete photo"
+                    onClick={() => handleSetPrimary(item.id)}
+                    aria-label="Set as primary photo"
                     className="p-1 text-muted hover:text-primary disabled:opacity-30"
                   >
-                    <Trash2 size={14} aria-hidden />
+                    <Star size={14} aria-hidden />
                   </button>
-                </div>
+                )}
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => handleDelete(item.id)}
+                  aria-label="Delete photo"
+                  className="p-1 text-muted hover:text-primary disabled:opacity-30"
+                >
+                  <Trash2 size={14} aria-hidden />
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 border border-border bg-surface p-4">
-        <select
-          value={mediaType}
-          onChange={(e) => setMediaType(e.target.value as VehicleMediaType)}
-          className={SELECT_CLASS}
-          aria-label="Photo type for the next upload"
-        >
-          {MEDIA_TYPE_OPTIONS.map((type) => (
-            <option key={type} value={type}>
-              {type.charAt(0) + type.slice(1).toLowerCase()}
-            </option>
-          ))}
-        </select>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending}
-          onClick={() => inputRef.current?.click()}
-        >
-          <UploadCloud size={16} aria-hidden />
-          {pending ? "Uploading…" : "Upload Photos"}
-        </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*,video/*"
-          multiple
-          className="hidden"
-          onChange={handleFilesSelected}
-        />
-        <span className="font-body text-[12px] text-muted-2">
-          The first photo uploaded becomes primary automatically.
-        </span>
+      <div className="flex flex-col gap-2 border border-border bg-surface p-4">
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => inputRef.current?.click()}
+          >
+            <UploadCloud size={16} aria-hidden />
+            {pending ? "Uploading…" : "Upload Photos"}
+          </Button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFilesSelected}
+          />
+        </div>
+        <p className="font-body text-[12px] text-muted-2">
+          Upload all vehicle photos at once. Select one photo as Primary.
+        </p>
       </div>
     </div>
   );
