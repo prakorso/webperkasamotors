@@ -148,6 +148,25 @@ function buildSlugBase(input: {
   return slugify(parts.join(" "));
 }
 
+/**
+ * Loose "does this slug still describe this vehicle" check — hyphenation/
+ * spacing/case-insensitive substring test on brand+model only (not
+ * variant/year, which many pre-dynamic-slug rows never included at all).
+ * Used to catch slugs that are stale from *before* this edit (see
+ * updateVehicle below) — deliberately looser than buildSlugBase, since a
+ * slug merely missing a year suffix still correctly identifies its
+ * vehicle and must NOT be treated as drift.
+ */
+function slugMatchesIdentity(
+  slug: string,
+  identity: { brand: string; model: string }
+): boolean {
+  const normalize = (s: string) => slugify(s).replace(/-/g, "");
+  const identityToken = normalize(`${identity.brand} ${identity.model}`);
+  const slugToken = normalize(slug);
+  return identityToken.length > 0 && slugToken.includes(identityToken);
+}
+
 /** Deterministic uniqueness: base, then base-2, base-3, … — the first one not already in use. */
 async function generateUniqueSlug(
   supabase: Awaited<ReturnType<typeof getSupabaseSessionClient>>,
@@ -218,10 +237,27 @@ export async function createVehicle(
  * slug DOES change here now, but only when it needs to: this fetches the
  * vehicle's current brand/model/variant/year/vehicle_type/slug first,
  * recomputes what the slug *base* would be for both the old and new
- * identity, and only regenerates when either the identity-derived base
- * changed or vehicle_type changed (which moves the catalogue path even
- * if the slug text itself wouldn't). Editing price/status/description/
- * etc. never touches the slug. Whenever the effective URL does change,
+ * identity, and regenerates when either the identity-derived base
+ * changed, vehicle_type changed (which moves the catalogue path even if
+ * the slug text itself wouldn't), or — separately — the *currently
+ * stored* slug no longer even contains the vehicle's *currently stored*
+ * brand/model (slugDrifted, see slugMatchesIdentity above).
+ *
+ * That third check matters: comparing old-vs-new submitted values only
+ * ever catches drift introduced by *this* edit. It can never catch a row
+ * whose brand/model were already changed at some point in the past
+ * without slug ever following (e.g. a listing repurposed for a different
+ * vehicle before this slug-dynamism feature existed) — in that case the
+ * stored row and a same-value resubmission are identical, so old-vs-new
+ * alone always reports "unchanged" and the stale slug would persist
+ * forever, even across repeated saves. slugDrifted catches that case on
+ * the next save regardless of what the admin actually edited. It's
+ * deliberately loose (brand+model only, hyphenation-insensitive) so it
+ * never fires on slugs that are merely missing a year/variant suffix —
+ * only on slugs that no longer describe the vehicle at all.
+ *
+ * Editing price/status/description/etc. never touches the slug unless
+ * slugDrifted is already true. Whenever the effective URL does change,
  * the *previous* (vehicle_type, slug) is recorded into
  * vehicle_url_history before the row is updated, so the old URL keeps
  * resolving via a redirect instead of 404ing.
@@ -260,10 +296,11 @@ export async function updateVehicle(
   const newBase = buildSlugBase(input);
   const identityChanged = oldBase !== newBase;
   const typeChanged = current.vehicle_type !== input.vehicleType;
+  const slugDrifted = !slugMatchesIdentity(current.slug, current);
 
   const rowUpdate: Record<string, unknown> = toRow(input);
 
-  if (identityChanged || typeChanged) {
+  if (identityChanged || typeChanged || slugDrifted) {
     // Record the URL this vehicle is about to stop answering to, before
     // it stops answering to it. ignoreDuplicates so re-editing back to a
     // name it already had once (bouncing between two names) can't fail
@@ -281,7 +318,7 @@ export async function updateVehicle(
     }
   }
 
-  if (identityChanged) {
+  if (identityChanged || slugDrifted) {
     if (!newBase) {
       return { error: "Could not generate a URL from Brand, Model, and Year — check those fields." };
     }
@@ -299,14 +336,12 @@ export async function updateVehicle(
 }
 
 /**
- * "Delete" in this admin means archive, not a destructive row removal.
- * The schema already models this: VehicleStatus includes ARCHIVED, and
- * public visibility (RLS) already excludes it regardless of is_published.
- * A hard DELETE would cascade-remove vehicle_media (foreign key ON DELETE
- * CASCADE) and orphan any leads/content that reference this vehicle —
- * far more destructive than routine inventory management calls for, and
- * nothing in the approved schema asked for that workflow. Reversible: an
- * archived vehicle can be brought back by editing its status again.
+ * Soft-delete: sets status to ARCHIVED rather than removing the row.
+ * Public visibility (RLS) already excludes ARCHIVED regardless of
+ * is_published. Reversible — an archived vehicle can be brought back by
+ * editing its status again. This is the only "remove from active stock"
+ * action for SOLD/RESERVED vehicles (see deleteVehicle below, which the
+ * database itself refuses for those two statuses).
  */
 export async function archiveVehicle(id: string): Promise<{ error: string | null }> {
   const supabase = await getSupabaseSessionClient();
@@ -316,6 +351,41 @@ export async function archiveVehicle(id: string): Promise<{ error: string | null
   if (!user) return { error: "You must be signed in." };
 
   const { error } = await supabase.from("vehicles").update({ status: "ARCHIVED" }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  return { error: null };
+}
+
+/**
+ * Hard delete — genuinely removes the row, unlike archiveVehicle above.
+ * Deliberately thin: all the real safety logic lives in the
+ * vehicles_before_delete trigger (supabase/migrations/20260816010000_
+ * vehicle_stock_number_reuse_and_safe_delete.sql), not here, so it can
+ * never be bypassed by a path other than this Server Action:
+ *
+ *   - SOLD/RESERVED vehicles are rejected with a Postgres exception —
+ *     the trigger raises it, this function just surfaces the message.
+ *   - Otherwise, the vehicle's stock number is released into
+ *     stock_number_pool for reuse before the row is actually removed.
+ *
+ * vehicle_media and vehicle_url_history cascade-delete with the vehicle
+ * (their FKs are ON DELETE CASCADE — losing a deleted vehicle's photos
+ * and old-URL redirects is correct, nothing should keep pointing at a
+ * vehicle that no longer exists). leads.interested_vehicle_id and
+ * content.vehicle_id are ON DELETE SET NULL — those rows survive, they
+ * just stop referencing this vehicle. Storage objects for the vehicle's
+ * photos are NOT removed by this (a pre-existing gap, not introduced
+ * here) — only the vehicle_media rows pointing at them are.
+ */
+export async function deleteVehicle(id: string): Promise<{ error: string | null }> {
+  const supabase = await getSupabaseSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { error } = await supabase.from("vehicles").delete().eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/", "layout");

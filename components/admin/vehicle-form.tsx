@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import type { Vehicle } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { createVehicle, updateVehicle, archiveVehicle, type VehicleInput } from "@/lib/actions/vehicles";
+import {
+  createVehicle,
+  updateVehicle,
+  archiveVehicle,
+  deleteVehicle,
+  type VehicleInput,
+} from "@/lib/actions/vehicles";
+
+/** Mirrors the vehicles_before_delete trigger's SOLD/RESERVED lock — see inventory-table.tsx. */
+const UNDELETABLE_STATUSES: Vehicle["status"][] = ["SOLD", "RESERVED"];
 
 const SELECT_CLASS =
   "h-11 w-full border border-border bg-surface px-3 font-body text-body text-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary";
@@ -63,6 +72,7 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
   });
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -130,6 +140,26 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
     router.push("/admin/inventory");
   }
 
+  async function handleDelete() {
+    if (!vehicle) return;
+    if (
+      !confirm(
+        `Permanently delete ${form.brand} ${form.model} (${vehicle.stockNumber})? This removes its photos and cannot be undone. Its stock number will become available for reuse.`
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    const result = await deleteVehicle(vehicle.id);
+    setDeleting(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    router.push("/admin/inventory");
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <Fieldset title="Basic Information">
@@ -186,8 +216,10 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
               {vehicle.stockNumber}
             </p>
             <p className="mt-1.5 font-body text-[12px] text-muted-2">
-              Generated automatically when created — CAR-/MOT- numbers never repeat and never
-              change, even if Vehicle Type is edited later.
+              Generated automatically. Stock numbers are never manually assigned, and never change
+              even if Vehicle Type is edited later. Once this vehicle is Reserved or Sold, its
+              number is locked permanently — deleting it afterward can never free the number for
+              reuse.
             </p>
           </div>
         ) : (
@@ -365,6 +397,28 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
           >
             {archiving ? "Archiving…" : "Archive"}
           </Button>
+        )}
+        {isEdit && vehicle && UNDELETABLE_STATUSES.includes(vehicle.status) ? (
+          <span
+            className="font-body text-[13px] text-muted-2"
+            title={`This vehicle is ${vehicle.status.toLowerCase()} — its stock number is permanently reserved and it can't be deleted. Archive it instead.`}
+          >
+            This vehicle is {vehicle.status === "SOLD" ? "sold" : "reserved"} and its stock number
+            is permanently reserved. It cannot be deleted.
+          </span>
+        ) : (
+          isEdit &&
+          vehicle && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          )
         )}
         {saved && <span className="font-body text-[13px] text-success">Saved.</span>}
         {error && <span className="font-body text-[13px] text-primary">{error}</span>}
