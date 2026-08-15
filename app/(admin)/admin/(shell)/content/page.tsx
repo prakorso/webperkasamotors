@@ -18,7 +18,7 @@ export default async function AdminContentPage() {
     <div>
       <PageHeader
         title="Content"
-        description={`${items.length} item${items.length === 1 ? "" : "s"} — Instagram-sourced and editorial content, optionally linked to a vehicle.`}
+        description={`${items.length} item${items.length === 1 ? "" : "s"} — overview of everything across every vehicle. To add or review one vehicle's social content, open it from Inventory instead.`}
         action={
           <Link href="/admin/content/new" className={buttonVariants({ variant: "primary" })}>
             <Plus size={16} aria-hidden />

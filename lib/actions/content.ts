@@ -5,10 +5,9 @@ import type { SocialContentType, SocialContentStatus } from "@/lib/types";
 import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
 
 /**
- * Server Actions for content create/update/delete plus thumbnail
- * upload/replace — separated from lib/data/social-content.ts's plain
- * reads, same reason as every other lib/actions/*.ts file (see
- * lib/actions/site-settings.ts).
+ * Server Actions for content create/update/delete — separated from
+ * lib/data/social-content.ts's plain reads, same reason as every other
+ * lib/actions/*.ts file (see lib/actions/site-settings.ts).
  *
  * Unlike vehicles (archive-only, never a hard delete — see
  * lib/actions/vehicles.ts), content rows are really deleted here.
@@ -17,6 +16,17 @@ import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
  * cascade risk — nothing references content.id as a foreign key — so a
  * real DELETE for genuinely-wrong or duplicate entries doesn't carry the
  * blast radius that ruled it out for vehicles.
+ *
+ * REVISED (post-Batch 3B): there is no manual thumbnail upload here
+ * anymore, and publishing never depends on one. Content is a
+ * social-media-to-vehicle link, not a media CMS — the display image
+ * (lib/data/social-content.ts's mapContentRows) resolves from
+ * thumbnail_storage_path if a future ingestion/scraping step ever sets
+ * it, otherwise the linked vehicle's own primary photo, otherwise no
+ * image. thumbnail_storage_path stays a real, writable column for that
+ * future use — nothing here removes it — but this file no longer writes
+ * to it, so BUCKET/cleanup logic only appears in deleteContent, to avoid
+ * leaving an orphaned file if a row with one ever exists.
  */
 
 const BUCKET = "content-thumbnails";
@@ -65,10 +75,10 @@ function friendlyConstraintError(message: string): string {
 
 /**
  * Row fields shared by create and update. Deliberately excludes
- * `thumbnail_storage_path` — that column is only ever written by
- * uploadContentThumbnail below, mirroring how vehicles' toRow() excludes
- * `slug`: create/update never touch it, so a thumbnail always survives an
- * unrelated caption/status edit.
+ * `thumbnail_storage_path` — nothing in this file writes it (see the file
+ * header), mirroring how vehicles' toRow() excludes `slug`: create/update
+ * never touch it, so a thumbnail always survives an unrelated
+ * caption/status edit, if one is ever set by a future process.
  *
  * classified_by/classified_at are derived from status, not passed in
  * separately: any save that leaves status at something other than INBOX
@@ -97,16 +107,6 @@ export async function createContent(
 ): Promise<{ error: string | null; id?: string }> {
   const validationError = validateContentInput(input);
   if (validationError) return { error: validationError };
-
-  // A new row never has a thumbnail yet — thumbnails are uploaded on the
-  // edit page after creation (mirrors vehicle photos: "Photos can be added
-  // once the vehicle is created — save it first").
-  if (input.status === "PUBLISHED") {
-    return {
-      error:
-        "Add a thumbnail before publishing — save as Inbox or Classified first, then publish once uploaded.",
-    };
-  }
 
   const supabase = await getSupabaseSessionClient();
   const {
@@ -140,18 +140,6 @@ export async function updateContent(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
-
-  if (input.status === "PUBLISHED") {
-    const { data: existing } = await supabase
-      .from("content")
-      .select("thumbnail_storage_path")
-      .eq("id", id)
-      .maybeSingle();
-    const hasThumbnail = Boolean(
-      (existing as unknown as { thumbnail_storage_path: string | null } | null)?.thumbnail_storage_path
-    );
-    if (!hasThumbnail) return { error: "Add a thumbnail before publishing." };
-  }
 
   const { error } = await supabase.from("content").update(toRow(input, user.id)).eq("id", id);
 
@@ -194,66 +182,4 @@ export async function deleteContent(id: string): Promise<{ error: string | null 
 
   revalidatePath("/", "layout");
   return { error: null };
-}
-
-/**
- * Uploads a new thumbnail and replaces the previous one, if any — single
- * image, unlike vehicle media's ordered gallery, so "upload" always means
- * "replace" here. Uses the content-thumbnails bucket and the signed-in
- * user's own session throughout — never a service-role key. Staff-only
- * writes are enforced by the bucket's storage policy and the content RLS
- * policies (supabase/migrations/*_storage_buckets.sql, *_rls_policies.sql),
- * not by anything in this file.
- */
-export async function uploadContentThumbnail(
-  contentId: string,
-  formData: FormData
-): Promise<{ error: string | null; thumbnailUrl?: string }> {
-  if (!contentId) return { error: "No content item specified." };
-
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "No file selected." };
-  if (!file.type.startsWith("image/")) return { error: "Only image files are supported." };
-
-  const supabase = await getSupabaseSessionClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
-
-  const { data: existing } = await supabase
-    .from("content")
-    .select("thumbnail_storage_path")
-    .eq("id", contentId)
-    .maybeSingle();
-  const previousPath = (existing as unknown as { thumbnail_storage_path: string | null } | null)
-    ?.thumbnail_storage_path;
-
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${contentId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { cacheControl: "3600" });
-  if (uploadError) return { error: uploadError.message };
-
-  const { error: updateError } = await supabase
-    .from("content")
-    .update({ thumbnail_storage_path: path })
-    .eq("id", contentId);
-
-  if (updateError) {
-    // Roll back the upload so a failed update doesn't leave an orphaned file.
-    await supabase.storage.from(BUCKET).remove([path]);
-    return { error: updateError.message };
-  }
-
-  if (previousPath) {
-    await supabase.storage.from(BUCKET).remove([previousPath]);
-  }
-
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-
-  revalidatePath("/", "layout");
-  return { error: null, thumbnailUrl: urlData.publicUrl };
 }

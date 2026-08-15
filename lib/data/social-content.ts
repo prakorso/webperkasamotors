@@ -1,21 +1,30 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SocialContent } from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
+import { getPrimaryVehicleImages } from "@/lib/data/vehicles";
 
 /**
- * Content data access — read-only. Mutations (create/update/delete,
- * thumbnail upload) live in lib/actions/content.ts as their own whole-file
- * "use server" module, same split as lib/data/vehicles.ts /
- * lib/actions/vehicles.ts.
+ * Content data access — read-only. Mutations (create/update/delete) live
+ * in lib/actions/content.ts as their own whole-file "use server" module,
+ * same split as lib/data/vehicles.ts / lib/actions/vehicles.ts.
  *
- * BATCH 3B: getSocialContentForVehicle now reads via the anon/publishable
+ * BATCH 3B: getSocialContentForVehicle reads via the anon/publishable
  * client — RLS's "public can read published content" policy
  * (supabase/migrations/20260814030400_rls_policies.sql) is what actually
- * restricts this to status = 'PUBLISHED'. The two admin functions read via
+ * restricts this to status = 'PUBLISHED'. The admin functions read via
  * the session client, exposed to every status through "staff can read all
  * content". lib/mock/social-content.ts remains as local-dev fixture data
  * only; nothing in app/ or components/ reads it anymore.
+ *
+ * REVISED (post-Batch 3B): content is a social-media-to-vehicle link, not
+ * a standalone media CMS — a row is never required to have its own
+ * thumbnail. mapContentRows resolves a display image for every row: the
+ * row's own thumbnail_storage_path if one is ever set, otherwise the
+ * linked vehicle's primary vehicle_media photo, otherwise no image. This
+ * is why every exported function below returns SocialContent via that
+ * shared async mapper instead of a plain synchronous row map.
  */
 
 const CONTENT_BUCKET = "content-thumbnails";
@@ -37,23 +46,40 @@ interface ContentRow {
   posted_at: string | null;
 }
 
-function mapContentRow(row: ContentRow): SocialContent {
-  const supabase = getSupabaseServerClient();
-  const thumbnailUrl = row.thumbnail_storage_path
-    ? supabase.storage.from(CONTENT_BUCKET).getPublicUrl(row.thumbnail_storage_path).data.publicUrl
-    : null;
+/**
+ * Batches one getPrimaryVehicleImages query for every distinct vehicle
+ * among rows that lack their own thumbnail, rather than one lookup per
+ * row — the admin content list can be dozens of rows across a handful of
+ * vehicles.
+ */
+async function mapContentRows(rows: ContentRow[], supabase: SupabaseClient): Promise<SocialContent[]> {
+  const fallbackVehicleIds = Array.from(
+    new Set(
+      rows
+        .filter((row) => !row.thumbnail_storage_path && row.vehicle_id)
+        .map((row) => row.vehicle_id as string)
+    )
+  );
+  const fallbackImages = await getPrimaryVehicleImages(supabase, fallbackVehicleIds);
 
-  return {
-    id: row.id,
-    vehicleId: row.vehicle_id,
-    contentType: row.content_type,
-    status: row.status,
-    caption: row.caption,
-    permalink: row.permalink,
-    thumbnailUrl,
-    postedAt: row.posted_at,
-    instagramMediaId: row.instagram_media_id,
-  };
+  return rows.map((row) => {
+    const ownThumbnail = row.thumbnail_storage_path
+      ? supabase.storage.from(CONTENT_BUCKET).getPublicUrl(row.thumbnail_storage_path).data.publicUrl
+      : null;
+    const displayImageUrl = ownThumbnail ?? (row.vehicle_id ? (fallbackImages[row.vehicle_id] ?? null) : null);
+
+    return {
+      id: row.id,
+      vehicleId: row.vehicle_id,
+      contentType: row.content_type,
+      status: row.status,
+      caption: row.caption,
+      permalink: row.permalink,
+      thumbnailUrl: displayImageUrl,
+      postedAt: row.posted_at,
+      instagramMediaId: row.instagram_media_id,
+    };
+  });
 }
 
 export async function getSocialContentForVehicle(vehicleId: string): Promise<SocialContent[]> {
@@ -66,7 +92,7 @@ export async function getSocialContentForVehicle(vehicleId: string): Promise<Soc
     .order("posted_at", { ascending: false });
 
   if (error) throw new Error(`getSocialContentForVehicle: ${error.message}`);
-  return (data as unknown as ContentRow[]).map(mapContentRow);
+  return mapContentRows(data as unknown as ContentRow[], supabase);
 }
 
 // ---------------------------------------------------------------------------
@@ -77,7 +103,7 @@ export async function getSocialContentForVehicle(vehicleId: string): Promise<Soc
 // RLS just filters rows rather than rejecting the query.
 // ---------------------------------------------------------------------------
 
-/** Admin-only: every content item regardless of status, newest first. */
+/** Admin-only: every content item regardless of status, newest first — the global Content overview page. */
 export async function getAllContentForAdmin(): Promise<SocialContent[]> {
   const supabase = await getSupabaseSessionClient();
   const { data, error } = await supabase
@@ -86,7 +112,7 @@ export async function getAllContentForAdmin(): Promise<SocialContent[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`getAllContentForAdmin: ${error.message}`);
-  return (data as unknown as ContentRow[]).map(mapContentRow);
+  return mapContentRows(data as unknown as ContentRow[], supabase);
 }
 
 export async function getContentByIdForAdmin(id: string): Promise<SocialContent | null> {
@@ -98,5 +124,25 @@ export async function getContentByIdForAdmin(id: string): Promise<SocialContent 
     .maybeSingle();
 
   if (error) throw new Error(`getContentByIdForAdmin: ${error.message}`);
-  return data ? mapContentRow(data as unknown as ContentRow) : null;
+  if (!data) return null;
+  const [mapped] = await mapContentRows([data as unknown as ContentRow], supabase);
+  return mapped;
+}
+
+/**
+ * Admin-only: every content item linked to one vehicle, regardless of
+ * status — powers the Inventory edit page's embedded Social Content
+ * section, the primary workflow for managing a vehicle's linked content
+ * per the post-Batch 3B revision.
+ */
+export async function getContentForVehicleAdmin(vehicleId: string): Promise<SocialContent[]> {
+  const supabase = await getSupabaseSessionClient();
+  const { data, error } = await supabase
+    .from("content")
+    .select(CONTENT_COLUMNS)
+    .eq("vehicle_id", vehicleId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`getContentForVehicleAdmin: ${error.message}`);
+  return mapContentRows(data as unknown as ContentRow[], supabase);
 }

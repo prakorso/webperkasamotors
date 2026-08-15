@@ -197,7 +197,9 @@ export function ContentForm({ content, vehicleOptions }: ContentFormProps) {
             <option value="IGNORED">Ignored</option>
           </select>
           <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Only Published content is visible on the public site — a thumbnail is required first.
+            Only Published content is visible on the public site. No thumbnail is required — the
+            linked vehicle&apos;s primary photo is shown automatically if this item has no image
+            of its own.
           </p>
         </div>
       </Fieldset>
