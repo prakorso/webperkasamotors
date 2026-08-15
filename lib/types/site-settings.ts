@@ -28,4 +28,9 @@ export interface WebsiteSettings {
    *  lib/actions/leads.ts's DEFAULT_WHATSAPP_TEMPLATE. Supports {name},
    *  {vehicle}, {company}. */
   whatsappLeadTemplate: string | null;
+  /** Destination WhatsApp number for vehicle lead inquiries — distinct
+   *  from `whatsapp` (the general/footer number). Null/empty falls back
+   *  to `whatsapp`, so leaving this unset means General and Lead
+   *  WhatsApp are the same number. */
+  whatsappLeadNumber: string | null;
 }

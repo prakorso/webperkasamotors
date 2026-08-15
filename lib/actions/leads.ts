@@ -31,11 +31,18 @@ import { normalizeIndonesianPhone } from "@/lib/utils/phone";
  *
  * WHATSAPP TEMPLATE: website_settings.whatsapp_lead_template (nullable —
  * supabase/migrations/20260815020000_website_settings_whatsapp_template.sql)
- * is the admin-editable override, set via the Website Settings "WhatsApp
- * Lead Message" section. DEFAULT_WHATSAPP_TEMPLATE is the fallback
- * whenever that column is null or blank — see resolveTemplate below —
- * so the feature keeps working immediately after deployment even before
- * anyone touches the setting.
+ * is the admin-editable override, set via the Website Settings "WhatsApp"
+ * section. DEFAULT_WHATSAPP_TEMPLATE is the fallback whenever that column
+ * is null or blank — see resolveTemplate below — so the feature keeps
+ * working immediately after deployment even before anyone touches the
+ * setting.
+ *
+ * WHATSAPP DESTINATION: website_settings.whatsapp_lead_number (nullable —
+ * supabase/migrations/20260815030000_website_settings_whatsapp_lead_number.sql)
+ * is the explicit destination for vehicle leads, distinct from
+ * `whatsapp` (the general/footer number) — falls back to `whatsapp` when
+ * not set. This is never the customer's own submitted number: that only
+ * ever gets written to leads.phone, never into the wa.me destination.
  */
 
 const DEFAULT_WHATSAPP_TEMPLATE =
@@ -126,7 +133,12 @@ export async function createLead(input: CreateLeadInput): Promise<CreateLeadResu
   });
   if (error) return { error: "Terjadi kesalahan. Silakan coba lagi." };
 
-  const destination = settings.whatsapp ? normalizeIndonesianPhone(settings.whatsapp) : null;
+  // Destination is the configured Lead WhatsApp Number, falling back to
+  // the General WhatsApp number when it's not explicitly set — never the
+  // customer's own submitted number, which only ever goes into
+  // leads.phone above.
+  const destinationRaw = settings.whatsappLeadNumber || settings.whatsapp;
+  const destination = destinationRaw ? normalizeIndonesianPhone(destinationRaw) : null;
   if (!destination) {
     // Lead is saved regardless — WhatsApp just isn't configured yet.
     return { error: null };

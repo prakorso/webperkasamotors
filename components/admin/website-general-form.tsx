@@ -46,6 +46,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
     defaultCtaUrl: settings.defaultCtaUrl ?? "",
     copyrightText: settings.copyrightText,
     whatsappLeadTemplate: settings.whatsappLeadTemplate ?? "",
+    whatsappLeadNumber: settings.whatsappLeadNumber ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +79,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
       defaultCtaUrl: orNull(form.defaultCtaUrl),
       copyrightText: form.copyrightText.trim() || "All rights reserved.",
       whatsappLeadTemplate: orNull(form.whatsappLeadTemplate),
+      whatsappLeadNumber: orNull(form.whatsappLeadNumber),
     };
 
     const result = await updateWebsiteSettings(input);
@@ -138,15 +140,6 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
           />
         </div>
         <div>
-          <Label htmlFor="whatsapp">WhatsApp</Label>
-          <Input
-            id="whatsapp"
-            value={form.whatsapp}
-            onChange={(e) => set("whatsapp", e.target.value)}
-            placeholder="+62 8xx xxxx xxxx"
-          />
-        </div>
-        <div>
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -156,7 +149,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
             placeholder="sales@perkasamotors.com"
           />
         </div>
-        <div>
+        <div className="md:col-span-2">
           <Label htmlFor="address">Address</Label>
           <Input
             id="address"
@@ -166,9 +159,35 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
         </div>
       </Fieldset>
 
-      <Fieldset title="WhatsApp Lead Message">
+      <Fieldset title="WhatsApp">
+        <div>
+          <Label htmlFor="whatsapp">General WhatsApp</Label>
+          <Input
+            id="whatsapp"
+            value={form.whatsapp}
+            onChange={(e) => set("whatsapp", e.target.value)}
+            placeholder="+62 8xx xxxx xxxx"
+          />
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            Used by the footer&apos;s WhatsApp link and as the fallback destination for vehicle
+            leads below.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="whatsappLeadNumber">Lead WhatsApp Number</Label>
+          <Input
+            id="whatsappLeadNumber"
+            value={form.whatsappLeadNumber}
+            onChange={(e) => set("whatsappLeadNumber", e.target.value)}
+            placeholder="+62 8xx xxxx xxxx"
+          />
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            Where vehicle inquiry leads open in WhatsApp. Leave empty to use the General WhatsApp
+            number.
+          </p>
+        </div>
         <div className="md:col-span-2">
-          <Label htmlFor="whatsappLeadTemplate">Message Template</Label>
+          <Label htmlFor="whatsappLeadTemplate">WhatsApp Lead Message</Label>
           <Textarea
             id="whatsappLeadTemplate"
             rows={4}
@@ -177,9 +196,8 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
             placeholder="Halo {company}, saya {name}. Saya tertarik dengan {vehicle}. Boleh saya mendapatkan informasi mengenai detail unit, harga, dan ketersediaannya?"
           />
           <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Pre-fills the WhatsApp message when someone submits the inquiry form on a vehicle
-            page. Available variables:{" "}
-            <code className="font-mono text-ink">{"{name}"}</code>,{" "}
+            Pre-fills the message when someone submits the inquiry form on a vehicle page.
+            Available variables: <code className="font-mono text-ink">{"{name}"}</code>,{" "}
             <code className="font-mono text-ink">{"{vehicle}"}</code>,{" "}
             <code className="font-mono text-ink">{"{company}"}</code>. Leave empty to use the
             default template shown above as a placeholder.

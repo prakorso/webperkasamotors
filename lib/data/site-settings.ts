@@ -40,13 +40,14 @@ const SAFE_DEFAULTS: WebsiteSettings = {
   copyrightText: "All rights reserved.",
   footerDescription: "Premium automotive digital showroom. Presisi, Performa, Perkasa.",
   whatsappLeadTemplate: null,
+  whatsappLeadNumber: null,
 };
 
 const SETTINGS_COLUMNS =
   "company_name, tagline, logo_storage_path, favicon_storage_path, phone, whatsapp, " +
   "email, address, instagram_url, facebook_url, tiktok_url, youtube_url, seo_title, " +
   "seo_description, seo_og_image_storage_path, default_cta_label, default_cta_url, " +
-  "copyright_text, footer_description, whatsapp_lead_template";
+  "copyright_text, footer_description, whatsapp_lead_template, whatsapp_lead_number";
 
 interface SettingsRow {
   company_name: string;
@@ -69,6 +70,7 @@ interface SettingsRow {
   copyright_text: string;
   footer_description: string | null;
   whatsapp_lead_template: string | null;
+  whatsapp_lead_number: string | null;
 }
 
 function resolvePublicUrl(storagePath: string | null): string | null {
@@ -100,6 +102,7 @@ function mapSettingsRow(row: SettingsRow): WebsiteSettings {
     copyrightText: row.copyright_text,
     footerDescription: row.footer_description,
     whatsappLeadTemplate: row.whatsapp_lead_template,
+    whatsappLeadNumber: row.whatsapp_lead_number,
   };
 }
 
