@@ -15,6 +15,7 @@ export const MOCK_SOCIAL_CONTENT: SocialContent[] = [
     permalink: "#",
     thumbnailUrl: "/mock/vehicles/bmw-m4-competition/1.svg",
     postedAt: "2026-08-01",
+    instagramMediaId: null,
   },
   {
     id: "sc2",
@@ -25,6 +26,7 @@ export const MOCK_SOCIAL_CONTENT: SocialContent[] = [
     permalink: "#",
     thumbnailUrl: "/mock/vehicles/bmw-m4-competition/2.svg",
     postedAt: "2026-08-05",
+    instagramMediaId: null,
   },
   {
     id: "sc3",
@@ -35,5 +37,6 @@ export const MOCK_SOCIAL_CONTENT: SocialContent[] = [
     permalink: "#",
     thumbnailUrl: "/mock/vehicles/porsche-911-carrera-s/3.svg",
     postedAt: "2026-07-20",
+    instagramMediaId: null,
   },
 ];

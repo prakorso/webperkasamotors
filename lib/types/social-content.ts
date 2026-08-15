@@ -1,7 +1,10 @@
 /**
- * Instagram-sourced content, optionally linked to a vehicle.
- * Not populated by any real ingestion yet — see lib/mock for the
- * placeholder shape used to prove the UI slot on the vehicle detail page.
+ * Instagram-sourced (and, later, other editorial) content, optionally
+ * linked to a vehicle. Backed by the `content` table (see
+ * lib/data/social-content.ts, lib/actions/content.ts) — there is no
+ * automated Instagram ingestion, so every row today is entered by staff
+ * through the admin Content page. lib/mock/social-content.ts remains as
+ * local-dev fixture data only, per docs/PHASE-2-SUPABASE-PLAN.md section H.
  */
 
 /**
@@ -34,6 +37,13 @@ export interface SocialContent {
   status: SocialContentStatus;
   caption: string;
   permalink: string;
-  thumbnailUrl: string;
-  postedAt: string;
+  /** Null until a thumbnail is uploaded (content.thumbnail_storage_path is
+   *  nullable) — the admin action layer refuses to set status PUBLISHED
+   *  while this is null, so a publicly-rendered item always has one, but
+   *  the type stays honest about the underlying column's real nullability. */
+  thumbnailUrl: string | null;
+  postedAt: string | null;
+  /** Ingestion idempotency key for a future automated pipeline — optional
+   *  today since every row is entered manually. */
+  instagramMediaId: string | null;
 }
