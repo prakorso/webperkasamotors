@@ -23,4 +23,9 @@ export interface WebsiteSettings {
   defaultCtaUrl: string | null;
   copyrightText: string;
   footerDescription: string | null;
+  /** Admin-editable WhatsApp message template for the vehicle inquiry lead
+   *  form. Null/empty means "use the hardcoded default" — see
+   *  lib/actions/leads.ts's DEFAULT_WHATSAPP_TEMPLATE. Supports {name},
+   *  {vehicle}, {company}. */
+  whatsappLeadTemplate: string | null;
 }

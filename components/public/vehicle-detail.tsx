@@ -80,7 +80,7 @@ export function VehicleDetail({
           <p className="mt-8 font-body text-body text-ink">{vehicle.description}</p>
 
           <div className="mt-8">
-            <InquiryForm vehicleTitle={title} />
+            <InquiryForm vehicleTitle={title} vehicleSlug={vehicle.slug} />
           </div>
         </div>
       </div>

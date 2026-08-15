@@ -1,25 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Textarea } from "@/components/ui/input";
+import { Input, Label } from "@/components/ui/input";
+import { createLead } from "@/lib/actions/leads";
 
 /**
- * MOCK — visually complete, does not write to a database. There is no
- * backend to send this to until Phase 2 (Supabase `leads`). Submitting
- * only flips local UI state; nothing is persisted or transmitted.
+ * The vehicle detail page's lead form — deliberately just two fields.
+ * The vehicle is never asked for: vehicleSlug comes from the page this
+ * form is rendered on (see components/public/vehicle-detail.tsx), and
+ * the Server Action re-resolves the real vehicle from it server-side
+ * rather than trusting anything the client sends. On success, opens a
+ * WhatsApp chat pre-filled from the configured message template — the
+ * lead is already saved in Supabase by the time that happens.
  */
-export function InquiryForm({ vehicleTitle }: { vehicleTitle: string }) {
+export function InquiryForm({
+  vehicleTitle,
+  vehicleSlug,
+}: {
+  vehicleTitle: string;
+  vehicleSlug: string;
+}) {
+  const [name, setName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  // Hidden from view — a real visitor never sees or fills this field.
+  const [honeypot, setHoneypot] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    const result = await createLead({ name, whatsapp, vehicleSlug, honeypot });
+    setSubmitting(false);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    setSubmitted(true);
+    if (result.whatsappUrl) {
+      window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+    }
+  }
 
   if (submitted) {
     return (
       <div className="border border-border bg-surface p-6">
-        <p className="font-body text-body text-ink">
-          Thanks — this is a Phase 1 demo form, so nothing was actually sent yet.
-        </p>
+        <p className="font-body text-body text-ink">Terima kasih, {name}!</p>
         <p className="mt-2 font-body text-[13px] text-muted">
-          Real lead capture arrives once the Supabase backend is connected.
+          Tim kami akan segera menghubungi Anda melalui WhatsApp mengenai {vehicleTitle}.
         </p>
       </div>
     );
@@ -27,35 +61,47 @@ export function InquiryForm({ vehicleTitle }: { vehicleTitle: string }) {
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        setSubmitted(true);
-      }}
-      className="flex flex-col gap-4 border border-border bg-surface p-6"
+      onSubmit={handleSubmit}
+      className="relative flex flex-col gap-4 border border-border bg-surface p-6"
     >
       <div>
         <Label htmlFor="inquiry-name">Nama</Label>
-        <Input id="inquiry-name" name="name" required placeholder="Nama lengkap" />
-      </div>
-      <div>
-        <Label htmlFor="inquiry-contact">Telepon / Email</Label>
-        <Input id="inquiry-contact" name="contact" required placeholder="08xx-xxxx-xxxx" />
-      </div>
-      <div>
-        <Label htmlFor="inquiry-message">Pesan</Label>
-        <Textarea
-          id="inquiry-message"
-          name="message"
-          rows={3}
-          defaultValue={`Saya tertarik dengan ${vehicleTitle}.`}
+        <Input
+          id="inquiry-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          placeholder="Nama lengkap"
         />
       </div>
-      <Button type="submit" variant="primary" size="lg">
-        Ajukan Pertanyaan
+      <div>
+        <Label htmlFor="inquiry-whatsapp">Nomor WhatsApp</Label>
+        <Input
+          id="inquiry-whatsapp"
+          type="tel"
+          value={whatsapp}
+          onChange={(e) => setWhatsapp(e.target.value)}
+          required
+          placeholder="08xx-xxxx-xxxx"
+        />
+      </div>
+      {/* Honeypot: absolutely positioned off-screen rather than display:none —
+          some bots skip fields hidden via display/visibility but still fill
+          ones that are merely positioned outside the viewport. */}
+      <input
+        type="text"
+        name="company_website"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="absolute left-[-9999px] h-0 w-0 opacity-0"
+      />
+      <Button type="submit" variant="primary" size="lg" disabled={submitting}>
+        {submitting ? "Mengirim…" : "Hubungi Kami"}
       </Button>
-      <p className="font-body text-[12px] text-muted-2">
-        Demo only — not yet connected to a database.
-      </p>
+      {error && <p className="font-body text-[13px] text-primary">{error}</p>}
     </form>
   );
 }

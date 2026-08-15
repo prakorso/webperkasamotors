@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getFooterSettings } from "@/lib/data/footer";
 import { FacebookIcon, InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/icons/social-icons";
+import { normalizeIndonesianPhone } from "@/lib/utils/phone";
 
 /**
  * PHASE 2C: fully database-driven (Footer Manager, via lib/data/footer.ts)
@@ -15,6 +16,16 @@ export async function SiteFooter() {
   const hasContact = footer.phone || footer.whatsapp || footer.email || footer.address;
   const hasSocial =
     footer.instagramUrl || footer.facebookUrl || footer.tiktokUrl || footer.youtubeUrl;
+  // Bug fix (discovered during the Leads/WhatsApp phase): this used to be
+  // footer.whatsapp.replace(/\D/g, ""), which strips non-digits but never
+  // turns a leading "0" into the "62" country code wa.me actually needs —
+  // "082233184122" produced a broken link, not "6282233184122". Falls
+  // back to the old naive stripping only if the configured value doesn't
+  // parse as a real Indonesian number, so a previously-visible link never
+  // disappears outright.
+  const whatsappNumber = footer.whatsapp
+    ? (normalizeIndonesianPhone(footer.whatsapp) ?? footer.whatsapp.replace(/\D/g, ""))
+    : null;
 
   return (
     <footer className="border-t border-border bg-ink text-paper">
@@ -38,10 +49,10 @@ export async function SiteFooter() {
                     </a>
                   </li>
                 )}
-                {footer.whatsapp && (
+                {footer.whatsapp && whatsappNumber && (
                   <li>
                     <a
-                      href={`https://wa.me/${footer.whatsapp.replace(/\D/g, "")}`}
+                      href={`https://wa.me/${whatsappNumber}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-primary"

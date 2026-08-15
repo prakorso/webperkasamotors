@@ -45,6 +45,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
     defaultCtaLabel: settings.defaultCtaLabel ?? "",
     defaultCtaUrl: settings.defaultCtaUrl ?? "",
     copyrightText: settings.copyrightText,
+    whatsappLeadTemplate: settings.whatsappLeadTemplate ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +77,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
       defaultCtaLabel: orNull(form.defaultCtaLabel),
       defaultCtaUrl: orNull(form.defaultCtaUrl),
       copyrightText: form.copyrightText.trim() || "All rights reserved.",
+      whatsappLeadTemplate: orNull(form.whatsappLeadTemplate),
     };
 
     const result = await updateWebsiteSettings(input);
@@ -161,6 +163,27 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
             value={form.address}
             onChange={(e) => set("address", e.target.value)}
           />
+        </div>
+      </Fieldset>
+
+      <Fieldset title="WhatsApp Lead Message">
+        <div className="md:col-span-2">
+          <Label htmlFor="whatsappLeadTemplate">Message Template</Label>
+          <Textarea
+            id="whatsappLeadTemplate"
+            rows={4}
+            value={form.whatsappLeadTemplate}
+            onChange={(e) => set("whatsappLeadTemplate", e.target.value)}
+            placeholder="Halo {company}, saya {name}. Saya tertarik dengan {vehicle}. Boleh saya mendapatkan informasi mengenai detail unit, harga, dan ketersediaannya?"
+          />
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            Pre-fills the WhatsApp message when someone submits the inquiry form on a vehicle
+            page. Available variables:{" "}
+            <code className="font-mono text-ink">{"{name}"}</code>,{" "}
+            <code className="font-mono text-ink">{"{vehicle}"}</code>,{" "}
+            <code className="font-mono text-ink">{"{company}"}</code>. Leave empty to use the
+            default template shown above as a placeholder.
+          </p>
         </div>
       </Fieldset>
 

@@ -17,7 +17,7 @@ export default async function AdminLeadsPage() {
     <div>
       <PageHeader
         title="Customer Leads"
-        description={`${leads.length} inquiries — mock data; the public contact/inquiry forms don't write here yet.`}
+        description={`${leads.length} inquiries from the public vehicle inquiry form.`}
       />
       <div className="overflow-x-auto border border-border bg-surface">
         <table className="w-full min-w-[760px] border-collapse">

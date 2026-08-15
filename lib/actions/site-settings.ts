@@ -29,6 +29,7 @@ export interface UpdateWebsiteSettingsInput {
   defaultCtaLabel: string | null;
   defaultCtaUrl: string | null;
   copyrightText: string;
+  whatsappLeadTemplate: string | null;
 }
 
 /** Staff-only. RLS enforces this regardless — the session client carries no elevated privilege on its own. */
@@ -59,6 +60,10 @@ export async function updateWebsiteSettings(
       default_cta_label: input.defaultCtaLabel,
       default_cta_url: input.defaultCtaUrl,
       copyright_text: input.copyrightText,
+      // Trimmed-empty is treated the same as null — a textarea cleared to
+      // whitespace should fall back to the default template, not save an
+      // effectively-blank one that would send an empty WhatsApp message.
+      whatsapp_lead_template: input.whatsappLeadTemplate?.trim() || null,
       updated_by: user.id,
     })
     .eq("id", 1);
