@@ -52,6 +52,14 @@ export interface WebsiteSettings {
    *  unconfigured section is simply omitted from the homepage, not
    *  replaced with placeholder content. */
   about: AboutSectionSettings;
+  /** Homepage Why Perkasa section header — see
+   *  supabase/migrations/20260819010000_why_perkasa_and_testimonials_storage.sql.
+   *  The benefit cards themselves live in the homepage_benefits table
+   *  (lib/data/homepage-benefits.ts), not here — this is only the
+   *  section's eyebrow/headline/description/active. Falls back to the
+   *  hardcoded DEFAULT_WHY_PERKASA (components/public/why-perkasa-section.tsx)
+   *  when inactive or headline is empty, same pattern as Hero. */
+  whyPerkasa: WhyPerkasaSectionSettings;
 }
 
 export interface HeroSlideSettings {
@@ -71,5 +79,12 @@ export interface AboutSectionSettings {
   imageUrl: string | null;
   ctaLabel: string | null;
   ctaUrl: string | null;
+  isActive: boolean;
+}
+
+export interface WhyPerkasaSectionSettings {
+  eyebrow: string | null;
+  headline: string | null;
+  description: string | null;
   isActive: boolean;
 }

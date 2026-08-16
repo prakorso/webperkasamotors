@@ -1,13 +1,18 @@
 import Link from "next/link";
-import { ShieldCheck, BadgeCheck, Sparkles } from "lucide-react";
 import { Hero, DEFAULT_HERO, type HeroContent } from "@/components/public/hero";
 import { HeroSlideshow } from "@/components/public/hero-slideshow";
 import { AboutSection, type AboutContent } from "@/components/public/about-section";
+import { WhyPerkasaSection, DEFAULT_WHY_PERKASA, type WhyPerkasaContent } from "@/components/public/why-perkasa-section";
+import { TestimonialsSection } from "@/components/public/testimonials-section";
+import { HomepageSocialSection } from "@/components/public/homepage-social-section";
 import { SectionHeading } from "@/components/public/section-heading";
 import { VehicleCard } from "@/components/public/vehicle-card";
 import { getFeaturedVehicles, getVehicleMedia } from "@/lib/data/vehicles";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
-import type { HeroSlideSettings, AboutSectionSettings } from "@/lib/types";
+import { getActiveHomepageBenefits } from "@/lib/data/homepage-benefits";
+import { getActiveTestimonials } from "@/lib/data/testimonials";
+import { getPublishedContentForHomepage } from "@/lib/data/social-content";
+import type { HeroSlideSettings, AboutSectionSettings, WhyPerkasaSectionSettings, HomepageBenefit } from "@/lib/types";
 
 /**
  * A slide participates in the public rotation only if it's marked active
@@ -50,8 +55,38 @@ function resolveAbout(raw: AboutSectionSettings): AboutContent | null {
   };
 }
 
+/**
+ * Unlike About, Why Perkasa DOES have a hardcoded default (the original
+ * 3-card content, preserved as DEFAULT_WHY_PERKASA — see that file's own
+ * comment for why) — same fallback shape as Hero. Falls back when the
+ * section is inactive, has no headline, OR has zero active benefit
+ * cards (an active section with nothing to show would otherwise render
+ * an empty grid, which is exactly the "CMS misconfiguration must never
+ * break the homepage" rule this whole phase keeps repeating).
+ */
+function resolveWhyPerkasa(
+  raw: WhyPerkasaSectionSettings,
+  activeBenefits: HomepageBenefit[]
+): WhyPerkasaContent {
+  if (!raw.isActive || !raw.headline?.trim() || activeBenefits.length === 0) {
+    return DEFAULT_WHY_PERKASA;
+  }
+  return {
+    eyebrow: raw.eyebrow,
+    headline: raw.headline,
+    description: raw.description,
+    benefits: activeBenefits,
+  };
+}
+
 export default async function HomePage() {
-  const [featured, settings] = await Promise.all([getFeaturedVehicles(4), getWebsiteSettings()]);
+  const [featured, settings, benefits, testimonials, socialContent] = await Promise.all([
+    getFeaturedVehicles(4),
+    getWebsiteSettings(),
+    getActiveHomepageBenefits(),
+    getActiveTestimonials(),
+    getPublishedContentForHomepage(),
+  ]);
   const featuredWithMedia = await Promise.all(
     featured.map(async (vehicle) => ({
       vehicle,
@@ -68,6 +103,7 @@ export default async function HomePage() {
     .map(resolveSlide)
     .filter((slide): slide is HeroContent => slide !== null);
   const about = resolveAbout(settings.about);
+  const whyPerkasa = resolveWhyPerkasa(settings.whyPerkasa, benefits);
 
   return (
     <>
@@ -92,39 +128,11 @@ export default async function HomePage() {
 
       {about && <AboutSection {...about} />}
 
-      <section className="border-y border-border bg-surface">
-        <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
-          <SectionHeading title="Mengapa Perkasa Motors?" className="text-center" />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {[
-              {
-                icon: ShieldCheck,
-                title: "Terpercaya",
-                body: "Reputasi dalam menghadirkan kendaraan premium berkualitas tinggi untuk kepuasan pelanggan.",
-              },
-              {
-                icon: BadgeCheck,
-                title: "Kualitas Terjamin",
-                body: "Setiap unit melewati inspeksi menyeluruh untuk memastikan performa dan kondisi sempurna.",
-              },
-              {
-                icon: Sparkles,
-                title: "Layanan Premium",
-                body: "Pengalaman konsultasi, pembelian, hingga layanan purna jual yang eksklusif.",
-              },
-            ].map(({ icon: Icon, title, body }) => (
-              <div
-                key={title}
-                className="flex flex-col items-center border border-border bg-paper p-8 text-center"
-              >
-                <Icon className="mb-6 text-primary" size={40} aria-hidden />
-                <h3 className="mb-3 font-display text-headline-sm text-ink">{title}</h3>
-                <p className="font-body text-body text-muted">{body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <WhyPerkasaSection {...whyPerkasa} />
+
+      <TestimonialsSection testimonials={testimonials} />
+
+      <HomepageSocialSection items={socialContent} />
 
       <section className="mx-auto max-w-container px-6 py-16 text-center md:px-8 lg:px-margin lg:py-section">
         <h2 className="mx-auto max-w-2xl font-display text-headline-lg text-ink">

@@ -220,6 +220,65 @@ export async function updateAboutSection(
   return { error: null };
 }
 
+export interface UpdateWhyPerkasaSectionInput {
+  eyebrow: string | null;
+  headline: string | null;
+  description: string | null;
+  isActive: boolean;
+}
+
+const WHY_PERKASA_HEADLINE_MAX_LENGTH = 200;
+const WHY_PERKASA_DESCRIPTION_MAX_LENGTH = 500;
+
+/** Same shape as validateAboutSection — no CTA here since the Why Perkasa section header doesn't have one (only the benefit cards, which have no CTA either). */
+function validateWhyPerkasaSection(input: UpdateWhyPerkasaSectionInput): string | null {
+  if (input.isActive && !input.headline?.trim()) {
+    return "Headline is required while Why Perkasa is Active.";
+  }
+  if ((input.headline?.length ?? 0) > WHY_PERKASA_HEADLINE_MAX_LENGTH) {
+    return `Headline must be ${WHY_PERKASA_HEADLINE_MAX_LENGTH} characters or fewer.`;
+  }
+  if ((input.description?.length ?? 0) > WHY_PERKASA_DESCRIPTION_MAX_LENGTH) {
+    return `Description must be ${WHY_PERKASA_DESCRIPTION_MAX_LENGTH} characters or fewer.`;
+  }
+  return null;
+}
+
+/**
+ * Staff-only, same pattern as updateAboutSection — scoped to just the
+ * why_perkasa_* section-header columns on website_settings. The benefit
+ * cards themselves are managed separately via
+ * lib/actions/homepage-benefits.ts (createHomepageBenefit etc.), since
+ * they're a genuine list, not singleton fields on this row.
+ */
+export async function updateWhyPerkasaSection(
+  input: UpdateWhyPerkasaSectionInput
+): Promise<{ error: string | null }> {
+  const validationError = validateWhyPerkasaSection(input);
+  if (validationError) return { error: validationError };
+
+  const supabase = await getSupabaseSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { error } = await supabase
+    .from("website_settings")
+    .update({
+      why_perkasa_eyebrow: input.eyebrow,
+      why_perkasa_headline: input.headline,
+      why_perkasa_description: input.description,
+      why_perkasa_is_active: input.isActive,
+      updated_by: user.id,
+    })
+    .eq("id", 1);
+
+  if (error) return { error: error.message };
+  revalidatePath("/", "layout");
+  return { error: null };
+}
+
 export type SiteAssetField =
   | "logo"
   | "favicon"

@@ -76,6 +76,29 @@ export async function getSocialContentForVehicle(vehicleId: string): Promise<Soc
   return mapContentRows(data as unknown as ContentRow[], supabase);
 }
 
+/**
+ * Homepage Social Content section (Phase 4 Batch 4.6) — published
+ * content across every vehicle, not scoped to one. This is a pure read:
+ * it consumes the same `content` rows the Inventory > Vehicle > Social
+ * Content "paste a URL" workflow already creates
+ * (lib/actions/content.ts:addSocialContent) — no new creation path, no
+ * duplicate records. created_at (not posted_at, which is frequently
+ * null — see addSocialContent's own comment on why) orders newest-added
+ * first, which is what the founder actually controls day to day.
+ */
+export async function getPublishedContentForHomepage(limit = 8): Promise<SocialContent[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("content")
+    .select(CONTENT_COLUMNS)
+    .eq("status", "PUBLISHED")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error(`getPublishedContentForHomepage: ${error.message}`);
+  return mapContentRows(data as unknown as ContentRow[], supabase);
+}
+
 // ---------------------------------------------------------------------------
 // Admin-only — session-authenticated. RLS's "staff can read all content"
 // policy is what actually allows these to see INBOX/CLASSIFIED/IGNORED

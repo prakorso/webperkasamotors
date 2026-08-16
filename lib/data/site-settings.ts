@@ -1,5 +1,10 @@
 import "server-only";
-import type { WebsiteSettings, HeroSlideSettings, AboutSectionSettings } from "@/lib/types";
+import type {
+  WebsiteSettings,
+  HeroSlideSettings,
+  AboutSectionSettings,
+  WhyPerkasaSectionSettings,
+} from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getStoragePublicUrl } from "@/lib/storage/provider";
 
@@ -32,6 +37,14 @@ const EMPTY_ABOUT_SECTION: AboutSectionSettings = {
   imageUrl: null,
   ctaLabel: null,
   ctaUrl: null,
+  isActive: false,
+};
+
+/** An unconfigured Why Perkasa section — falls back to DEFAULT_WHY_PERKASA (components/public/why-perkasa-section.tsx), not an empty section. */
+const EMPTY_WHY_PERKASA_SECTION: WhyPerkasaSectionSettings = {
+  eyebrow: null,
+  headline: null,
+  description: null,
   isActive: false,
 };
 
@@ -68,6 +81,7 @@ const SAFE_DEFAULTS: WebsiteSettings = {
   heroSlide2: EMPTY_HERO_SLIDE,
   heroSlide3: EMPTY_HERO_SLIDE,
   about: EMPTY_ABOUT_SECTION,
+  whyPerkasa: EMPTY_WHY_PERKASA_SECTION,
 };
 
 const SETTINGS_COLUMNS =
@@ -82,7 +96,8 @@ const SETTINGS_COLUMNS =
   "hero_3_eyebrow, hero_3_headline, hero_3_description, hero_3_image_storage_path, " +
   "hero_3_cta_label, hero_3_cta_url, hero_3_is_active, " +
   "about_eyebrow, about_headline, about_description, about_image_storage_path, " +
-  "about_cta_label, about_cta_url, about_is_active";
+  "about_cta_label, about_cta_url, about_is_active, " +
+  "why_perkasa_eyebrow, why_perkasa_headline, why_perkasa_description, why_perkasa_is_active";
 
 interface SettingsRow {
   company_name: string;
@@ -134,6 +149,10 @@ interface SettingsRow {
   about_cta_label: string | null;
   about_cta_url: string | null;
   about_is_active: boolean;
+  why_perkasa_eyebrow: string | null;
+  why_perkasa_headline: string | null;
+  why_perkasa_description: string | null;
+  why_perkasa_is_active: boolean;
 }
 
 function resolvePublicUrl(storagePath: string | null): string | null {
@@ -172,6 +191,15 @@ function toAboutSection(row: SettingsRow): AboutSectionSettings {
     ctaLabel: row.about_cta_label,
     ctaUrl: row.about_cta_url,
     isActive: row.about_is_active,
+  };
+}
+
+function toWhyPerkasaSection(row: SettingsRow): WhyPerkasaSectionSettings {
+  return {
+    eyebrow: row.why_perkasa_eyebrow,
+    headline: row.why_perkasa_headline,
+    description: row.why_perkasa_description,
+    isActive: row.why_perkasa_is_active,
   };
 }
 
@@ -226,6 +254,7 @@ function mapSettingsRow(row: SettingsRow): WebsiteSettings {
       row.hero_3_is_active
     ),
     about: toAboutSection(row),
+    whyPerkasa: toWhyPerkasaSection(row),
   };
 }
 
