@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { getFooterSettings } from "@/lib/data/footer";
-import { FacebookIcon, InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/icons/social-icons";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  TiktokIcon,
+  WhatsappIcon,
+  YoutubeIcon,
+} from "@/components/icons/social-icons";
 import { normalizeIndonesianPhone } from "@/lib/utils/phone";
 
 /**
@@ -55,9 +61,12 @@ export async function SiteFooter() {
                       href={`https://wa.me/${whatsappNumber}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-primary"
+                      aria-label={`Chat on WhatsApp: ${footer.whatsapp}`}
+                      title="Chat on WhatsApp"
+                      className="flex items-center gap-2 hover:text-primary"
                     >
-                      WhatsApp: {footer.whatsapp}
+                      <WhatsappIcon size={16} aria-hidden="true" />
+                      {footer.whatsapp}
                     </a>
                   </li>
                 )}
