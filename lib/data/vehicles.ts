@@ -28,7 +28,8 @@ const VEHICLE_MEDIA_BUCKET = "vehicle-media";
 
 const VEHICLE_COLUMNS =
   "id, stock_number, slug, vehicle_type, brand, model, variant, year, price, " +
-  "currency, mileage_km, transmission, fuel_type, exterior_color, location, " +
+  "currency, mileage_km, transmission, fuel_type, exterior_color, capacity_cc, " +
+  "plate_number, location, " +
   "condition, status, is_published, is_featured, description, highlights, " +
   "seo_title, seo_description";
 
@@ -50,6 +51,8 @@ interface VehicleRow {
   transmission: Vehicle["transmission"];
   fuel_type: Vehicle["fuelType"];
   exterior_color: string | null;
+  capacity_cc: number | null;
+  plate_number: string | null;
   location: string | null;
   condition: Vehicle["condition"];
   status: Vehicle["status"];
@@ -77,6 +80,8 @@ function mapVehicleRow(row: VehicleRow): Vehicle {
     transmission: row.transmission,
     fuelType: row.fuel_type,
     exteriorColor: row.exterior_color ?? undefined,
+    capacityCc: row.capacity_cc ?? undefined,
+    plateNumber: row.plate_number ?? undefined,
     location: row.location ?? undefined,
     condition: row.condition,
     status: row.status,

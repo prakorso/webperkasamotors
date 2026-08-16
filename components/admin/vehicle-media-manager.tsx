@@ -14,6 +14,7 @@ import {
   type VehicleMediaType,
 } from "@/lib/actions/vehicle-media";
 import type { VehicleMedia } from "@/lib/types";
+import { VehicleLightbox } from "@/components/public/vehicle-lightbox";
 
 /** Same bucket lib/actions/vehicle-media.ts targets — duplicated as a
  *  literal here rather than shared, matching how other bucket names in
@@ -79,6 +80,7 @@ export function VehicleMediaManager({
   const [media, setMedia] = useState(initialMedia);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
@@ -161,10 +163,15 @@ export function VehicleMediaManager({
           <p className="font-body text-[13px] text-muted">No photos uploaded yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {media.map((item, index) => (
             <div key={item.id} className="border border-border bg-surface">
-              <div className="relative aspect-square overflow-hidden bg-surface-muted">
+              <button
+                type="button"
+                onClick={() => setPreviewIndex(index)}
+                aria-label={`Preview ${item.altText || "photo"}`}
+                className="relative block aspect-square w-full overflow-hidden bg-surface-muted"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.url} alt={item.altText || "Vehicle photo"} className="h-full w-full object-cover" />
                 {item.isPrimary && (
@@ -172,7 +179,7 @@ export function VehicleMediaManager({
                     <Badge variant="primary">Primary</Badge>
                   </span>
                 )}
-              </div>
+              </button>
               <div className="flex items-center justify-end gap-0.5 p-1.5">
                 <button
                   type="button"
@@ -242,6 +249,10 @@ export function VehicleMediaManager({
           Upload all vehicle photos at once. Select one photo as Primary.
         </p>
       </div>
+
+      {previewIndex !== null && (
+        <VehicleLightbox media={media} initialIndex={previewIndex} onClose={() => setPreviewIndex(null)} />
+      )}
     </div>
   );
 }

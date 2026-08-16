@@ -36,6 +36,10 @@ export interface Vehicle {
   transmission: Transmission;
   fuelType: FuelType;
   exteriorColor?: string;
+  /** Numeric only (e.g. 155) — the UI appends "CC", the admin never types the unit. */
+  capacityCc?: number;
+  /** Free-text exactly as the admin wants it publicly shown (e.g. "B Jakarta") — never parsed or validated. */
+  plateNumber?: string;
   /** Showroom / lot the unit is physically at. Optional — single-location
    *  today, but every listing already implies "where is this car" as a
    *  question a buyer asks, so the field exists ahead of a second location. */

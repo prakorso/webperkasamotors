@@ -17,6 +17,8 @@ const SPEC_ROWS: Array<{ label: string; value: (v: Vehicle) => string }> = [
   { label: "Bahan Bakar", value: (v) => v.fuelType.charAt(0) + v.fuelType.slice(1).toLowerCase() },
   { label: "Warna Eksterior", value: (v) => v.exteriorColor ?? "—" },
   { label: "Kondisi", value: (v) => (v.condition === "USED" ? "Used" : "New") },
+  { label: "Kapasitas CC", value: (v) => (v.capacityCc ? `${v.capacityCc} CC` : "—") },
+  { label: "Plat Nomor", value: (v) => v.plateNumber ?? "—" },
 ];
 
 interface VehicleDetailProps {
@@ -64,13 +66,13 @@ export function VehicleDetail({
             </ul>
           )}
 
-          <dl className="mt-8 divide-y divide-border border-y border-border">
+          <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border py-5 sm:grid-cols-3">
             {SPEC_ROWS.map((row) => (
-              <div key={row.label} className="flex justify-between py-3">
-                <dt className="font-body text-[13px] uppercase tracking-[0.06em] text-muted">
+              <div key={row.label}>
+                <dt className="font-body text-[12px] uppercase tracking-[0.06em] text-muted">
                   {row.label}
                 </dt>
-                <dd className="font-body text-[14px] font-medium text-ink">
+                <dd className="mt-1 font-body text-[14px] font-medium text-ink">
                   {row.value(vehicle)}
                 </dd>
               </div>

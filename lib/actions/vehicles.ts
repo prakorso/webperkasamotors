@@ -28,6 +28,8 @@ export interface VehicleInput {
   transmission: Transmission;
   fuelType: FuelType;
   exteriorColor: string | null;
+  capacityCc: number | null;
+  plateNumber: string | null;
   location: string | null;
   condition: "NEW" | "USED";
   status: VehicleStatus;
@@ -64,6 +66,9 @@ function validateVehicleInput(input: VehicleInput): string | null {
   }
   if (!Number.isFinite(input.price) || input.price <= 0) return "Price must be a positive number.";
   if (!Number.isFinite(input.mileageKm) || input.mileageKm < 0) return "Mileage cannot be negative.";
+  if (input.capacityCc !== null && (!Number.isFinite(input.capacityCc) || input.capacityCc <= 0)) {
+    return "Kapasitas CC must be a positive number.";
+  }
   return null;
 }
 
@@ -87,6 +92,8 @@ function toRow(input: VehicleInput) {
     transmission: input.transmission,
     fuel_type: input.fuelType,
     exterior_color: input.exteriorColor?.trim() || null,
+    capacity_cc: input.capacityCc,
+    plate_number: input.plateNumber?.trim() || null,
     location: input.location?.trim() || null,
     condition: input.condition,
     status: input.status,

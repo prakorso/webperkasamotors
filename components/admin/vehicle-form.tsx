@@ -65,6 +65,8 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
     transmission: vehicle?.transmission ?? "AUTOMATIC",
     fuelType: vehicle?.fuelType ?? "PETROL",
     exteriorColor: vehicle?.exteriorColor ?? "",
+    capacityCc: vehicle?.capacityCc?.toString() ?? "",
+    plateNumber: vehicle?.plateNumber ?? "",
     description: vehicle?.description ?? "",
     highlights: (vehicle?.highlights ?? []).join("\n"),
     seoTitle: vehicle?.seoTitle ?? "",
@@ -97,6 +99,8 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       transmission: form.transmission,
       fuelType: form.fuelType,
       exteriorColor: form.exteriorColor || null,
+      capacityCc: form.capacityCc.trim() ? Number(form.capacityCc) : null,
+      plateNumber: form.plateNumber || null,
       location: form.location || null,
       condition: form.condition,
       status: form.status,
@@ -359,6 +363,31 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
             value={form.exteriorColor}
             onChange={(e) => set("exteriorColor", e.target.value)}
           />
+        </div>
+        <div>
+          <Label htmlFor="capacityCc">Kapasitas CC</Label>
+          <Input
+            id="capacityCc"
+            type="number"
+            value={form.capacityCc}
+            onChange={(e) => set("capacityCc", e.target.value)}
+            placeholder="e.g. 155"
+          />
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            Number only — the site adds &ldquo;CC&rdquo; automatically. Optional.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="plateNumber">Plat Nomor</Label>
+          <Input
+            id="plateNumber"
+            value={form.plateNumber}
+            onChange={(e) => set("plateNumber", e.target.value)}
+            placeholder="e.g. B Jakarta"
+          />
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            Shown on the public site exactly as typed. Optional.
+          </p>
         </div>
         <div className="md:col-span-2">
           <Label htmlFor="highlights">Highlights</Label>
