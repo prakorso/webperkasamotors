@@ -1,5 +1,5 @@
 import "server-only";
-import type { WebsiteSettings, HeroSlideSettings } from "@/lib/types";
+import type { WebsiteSettings, HeroSlideSettings, AboutSectionSettings } from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getStoragePublicUrl } from "@/lib/storage/provider";
 
@@ -15,6 +15,17 @@ const SITE_ASSETS_BUCKET = "site-assets";
 
 /** An unconfigured slide — isActive false means it's never usable regardless of the other fields. */
 const EMPTY_HERO_SLIDE: HeroSlideSettings = {
+  eyebrow: null,
+  headline: null,
+  description: null,
+  imageUrl: null,
+  ctaLabel: null,
+  ctaUrl: null,
+  isActive: false,
+};
+
+/** An unconfigured About section — never renders regardless of isActive, since headline/description are also required. */
+const EMPTY_ABOUT_SECTION: AboutSectionSettings = {
   eyebrow: null,
   headline: null,
   description: null,
@@ -56,6 +67,7 @@ const SAFE_DEFAULTS: WebsiteSettings = {
   heroSlide1: EMPTY_HERO_SLIDE,
   heroSlide2: EMPTY_HERO_SLIDE,
   heroSlide3: EMPTY_HERO_SLIDE,
+  about: EMPTY_ABOUT_SECTION,
 };
 
 const SETTINGS_COLUMNS =
@@ -68,7 +80,9 @@ const SETTINGS_COLUMNS =
   "hero_2_eyebrow, hero_2_headline, hero_2_description, hero_2_image_storage_path, " +
   "hero_2_cta_label, hero_2_cta_url, hero_2_is_active, " +
   "hero_3_eyebrow, hero_3_headline, hero_3_description, hero_3_image_storage_path, " +
-  "hero_3_cta_label, hero_3_cta_url, hero_3_is_active";
+  "hero_3_cta_label, hero_3_cta_url, hero_3_is_active, " +
+  "about_eyebrow, about_headline, about_description, about_image_storage_path, " +
+  "about_cta_label, about_cta_url, about_is_active";
 
 interface SettingsRow {
   company_name: string;
@@ -113,6 +127,13 @@ interface SettingsRow {
   hero_3_cta_label: string | null;
   hero_3_cta_url: string | null;
   hero_3_is_active: boolean;
+  about_eyebrow: string | null;
+  about_headline: string | null;
+  about_description: string | null;
+  about_image_storage_path: string | null;
+  about_cta_label: string | null;
+  about_cta_url: string | null;
+  about_is_active: boolean;
 }
 
 function resolvePublicUrl(storagePath: string | null): string | null {
@@ -139,6 +160,18 @@ function toHeroSlide(
     ctaLabel,
     ctaUrl,
     isActive,
+  };
+}
+
+function toAboutSection(row: SettingsRow): AboutSectionSettings {
+  return {
+    eyebrow: row.about_eyebrow,
+    headline: row.about_headline,
+    description: row.about_description,
+    imageUrl: resolvePublicUrl(row.about_image_storage_path),
+    ctaLabel: row.about_cta_label,
+    ctaUrl: row.about_cta_url,
+    isActive: row.about_is_active,
   };
 }
 
@@ -192,6 +225,7 @@ function mapSettingsRow(row: SettingsRow): WebsiteSettings {
       row.hero_3_cta_url,
       row.hero_3_is_active
     ),
+    about: toAboutSection(row),
   };
 }
 

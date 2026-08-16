@@ -140,7 +140,94 @@ export async function updateHeroSlides(
   return { error: null };
 }
 
-export type SiteAssetField = "logo" | "favicon" | "ogImage" | "hero1Image" | "hero2Image" | "hero3Image";
+export interface UpdateAboutSectionInput {
+  eyebrow: string | null;
+  headline: string | null;
+  description: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  isActive: boolean;
+}
+
+const ABOUT_HEADLINE_MAX_LENGTH = 200;
+const ABOUT_DESCRIPTION_MAX_LENGTH = 1000;
+
+/**
+ * Same validation the admin form itself already runs client-side
+ * (components/admin/homepage-about-form.tsx) — repeated here because a
+ * Server Action is a public network endpoint and must never trust the
+ * client alone. Returns a user-facing message, or null if input is
+ * valid.
+ */
+function validateAboutSection(input: UpdateAboutSectionInput): string | null {
+  if (input.isActive) {
+    if (!input.headline?.trim()) return "Headline is required while About is Active.";
+    if (!input.description?.trim()) return "Description is required while About is Active.";
+  }
+  if ((input.headline?.length ?? 0) > ABOUT_HEADLINE_MAX_LENGTH) {
+    return `Headline must be ${ABOUT_HEADLINE_MAX_LENGTH} characters or fewer.`;
+  }
+  if ((input.description?.length ?? 0) > ABOUT_DESCRIPTION_MAX_LENGTH) {
+    return `Description must be ${ABOUT_DESCRIPTION_MAX_LENGTH} characters or fewer.`;
+  }
+  // CTA Label and CTA URL must be filled together or both left empty — a
+  // label with no destination (or a URL with no visible button text)
+  // would be a silently broken/invisible call to action.
+  const hasCtaLabel = Boolean(input.ctaLabel?.trim());
+  const hasCtaUrl = Boolean(input.ctaUrl?.trim());
+  if (hasCtaLabel !== hasCtaUrl) {
+    return "Fill in both CTA Label and CTA URL, or leave both empty.";
+  }
+  return null;
+}
+
+/**
+ * Staff-only, same pattern as updateHeroSlides — a separate admin form
+ * (Website > Homepage > About), scoped to just the about_* columns.
+ * Unlike Hero, there's no existing hardcoded homepage About copy to
+ * preserve as a fallback, so validation here matters more: an Active
+ * About section with a missing headline/description would otherwise
+ * render as a visibly broken/empty block instead of the "just don't
+ * show it" behavior an inactive section gets.
+ */
+export async function updateAboutSection(
+  input: UpdateAboutSectionInput
+): Promise<{ error: string | null }> {
+  const validationError = validateAboutSection(input);
+  if (validationError) return { error: validationError };
+
+  const supabase = await getSupabaseSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { error } = await supabase
+    .from("website_settings")
+    .update({
+      about_eyebrow: input.eyebrow,
+      about_headline: input.headline,
+      about_description: input.description,
+      about_cta_label: input.ctaLabel,
+      about_cta_url: input.ctaUrl,
+      about_is_active: input.isActive,
+      updated_by: user.id,
+    })
+    .eq("id", 1);
+
+  if (error) return { error: error.message };
+  revalidatePath("/", "layout");
+  return { error: null };
+}
+
+export type SiteAssetField =
+  | "logo"
+  | "favicon"
+  | "ogImage"
+  | "hero1Image"
+  | "hero2Image"
+  | "hero3Image"
+  | "aboutImage";
 
 const ASSET_COLUMN: Record<SiteAssetField, string> = {
   logo: "logo_storage_path",
@@ -149,6 +236,7 @@ const ASSET_COLUMN: Record<SiteAssetField, string> = {
   hero1Image: "hero_1_image_storage_path",
   hero2Image: "hero_2_image_storage_path",
   hero3Image: "hero_3_image_storage_path",
+  aboutImage: "about_image_storage_path",
 };
 
 /**

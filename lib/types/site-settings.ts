@@ -43,9 +43,28 @@ export interface WebsiteSettings {
   heroSlide1: HeroSlideSettings;
   heroSlide2: HeroSlideSettings;
   heroSlide3: HeroSlideSettings;
+  /** Homepage About / Tentang Perkasa section — see
+   *  supabase/migrations/20260818010000_homepage_about_section.sql. A
+   *  single fixed section (not a slideshow like Hero). Only renders when
+   *  isActive is true AND both headline and description are non-empty —
+   *  resolved in app/(public)/page.tsx. There's no hardcoded default
+   *  copy to fall back to (unlike Hero's DEFAULT_HERO), so an
+   *  unconfigured section is simply omitted from the homepage, not
+   *  replaced with placeholder content. */
+  about: AboutSectionSettings;
 }
 
 export interface HeroSlideSettings {
+  eyebrow: string | null;
+  headline: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  isActive: boolean;
+}
+
+export interface AboutSectionSettings {
   eyebrow: string | null;
   headline: string | null;
   description: string | null;

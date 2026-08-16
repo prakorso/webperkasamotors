@@ -2,11 +2,12 @@ import Link from "next/link";
 import { ShieldCheck, BadgeCheck, Sparkles } from "lucide-react";
 import { Hero, DEFAULT_HERO, type HeroContent } from "@/components/public/hero";
 import { HeroSlideshow } from "@/components/public/hero-slideshow";
+import { AboutSection, type AboutContent } from "@/components/public/about-section";
 import { SectionHeading } from "@/components/public/section-heading";
 import { VehicleCard } from "@/components/public/vehicle-card";
 import { getFeaturedVehicles, getVehicleMedia } from "@/lib/data/vehicles";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
-import type { HeroSlideSettings } from "@/lib/types";
+import type { HeroSlideSettings, AboutSectionSettings } from "@/lib/types";
 
 /**
  * A slide participates in the public rotation only if it's marked active
@@ -28,6 +29,27 @@ function resolveSlide(raw: HeroSlideSettings): HeroContent | null {
   };
 }
 
+/**
+ * Unlike Hero, there's no hardcoded default About copy — an unusable
+ * About section (inactive, or missing headline/description) means the
+ * section is omitted from the page entirely, not replaced with
+ * placeholder content. Same required bar the Server Action itself
+ * enforces (lib/actions/site-settings.ts:validateAboutSection), checked
+ * again here since the CMS row could in principle be edited outside the
+ * validated form path.
+ */
+function resolveAbout(raw: AboutSectionSettings): AboutContent | null {
+  if (!raw.isActive || !raw.headline?.trim() || !raw.description?.trim()) return null;
+  return {
+    eyebrow: raw.eyebrow,
+    headline: raw.headline,
+    description: raw.description,
+    imageUrl: raw.imageUrl,
+    ctaLabel: raw.ctaLabel,
+    ctaUrl: raw.ctaUrl,
+  };
+}
+
 export default async function HomePage() {
   const [featured, settings] = await Promise.all([getFeaturedVehicles(4), getWebsiteSettings()]);
   const featuredWithMedia = await Promise.all(
@@ -45,6 +67,7 @@ export default async function HomePage() {
   const slides = [settings.heroSlide1, settings.heroSlide2, settings.heroSlide3]
     .map(resolveSlide)
     .filter((slide): slide is HeroContent => slide !== null);
+  const about = resolveAbout(settings.about);
 
   return (
     <>
@@ -66,6 +89,8 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {about && <AboutSection {...about} />}
 
       <section className="border-y border-border bg-surface">
         <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
