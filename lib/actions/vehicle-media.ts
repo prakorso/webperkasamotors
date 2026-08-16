@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { VehicleMedia } from "@/lib/types";
 import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
+import { getStoragePublicUrl, removeFromStorage } from "@/lib/storage/provider";
 
 /**
  * Server Actions for vehicle media metadata/reorder/primary/delete —
@@ -121,7 +122,7 @@ export async function recordVehicleMediaUpload(
     is_primary: boolean;
     sort_order: number;
   };
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(row.storage_path);
+  const url = getStoragePublicUrl(supabase, BUCKET, row.storage_path);
 
   revalidatePath("/", "layout");
   return {
@@ -130,7 +131,7 @@ export async function recordVehicleMediaUpload(
       id: row.id,
       vehicleId: row.vehicle_id,
       mediaType: row.media_type,
-      url: urlData.publicUrl,
+      url,
       altText: row.alt_text,
       isPrimary: row.is_primary,
       sortOrder: row.sort_order,
@@ -212,8 +213,8 @@ export async function deleteVehicleMedia(mediaId: string): Promise<{ error: stri
 
   const storagePath = (row as unknown as { storage_path: string }).storage_path;
 
-  const { error: storageError } = await supabase.storage.from(BUCKET).remove([storagePath]);
-  if (storageError) return { error: storageError.message };
+  const { error: storageError } = await removeFromStorage(supabase, BUCKET, [storagePath]);
+  if (storageError) return { error: storageError };
 
   const { error: dbError } = await supabase.from("vehicle_media").delete().eq("id", mediaId);
   if (dbError) return { error: dbError.message };

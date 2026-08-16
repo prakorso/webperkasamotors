@@ -78,23 +78,31 @@ export async function updateWebsiteSettings(
   return { error: null };
 }
 
-export interface UpdateHeroSettingsInput {
-  heroEyebrow: string | null;
-  heroHeadline: string | null;
-  heroDescription: string | null;
-  heroCtaLabel: string | null;
-  heroCtaUrl: string | null;
-  heroIsActive: boolean;
+export interface UpdateHeroSlideInput {
+  eyebrow: string | null;
+  headline: string | null;
+  description: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  isActive: boolean;
+}
+
+export interface UpdateHeroSlidesInput {
+  slide1: UpdateHeroSlideInput;
+  slide2: UpdateHeroSlideInput;
+  slide3: UpdateHeroSlideInput;
 }
 
 /**
  * Staff-only, same pattern as updateWebsiteSettings — separate function
  * because it's a separate admin form (Website > Homepage > Hero), scoped
- * to just the hero_* columns so saving Hero never has to also submit
- * every other Website Settings field.
+ * to just the hero_N_* columns so saving Hero never has to also submit
+ * every other Website Settings field. One call for all three slides —
+ * the admin form has a single "Save Changes" button for the whole Hero
+ * Slides section, matching the original single-hero form's UX.
  */
-export async function updateHeroSettings(
-  input: UpdateHeroSettingsInput
+export async function updateHeroSlides(
+  input: UpdateHeroSlidesInput
 ): Promise<{ error: string | null }> {
   const supabase = await getSupabaseSessionClient();
   const {
@@ -105,12 +113,24 @@ export async function updateHeroSettings(
   const { error } = await supabase
     .from("website_settings")
     .update({
-      hero_eyebrow: input.heroEyebrow,
-      hero_headline: input.heroHeadline,
-      hero_description: input.heroDescription,
-      hero_cta_label: input.heroCtaLabel,
-      hero_cta_url: input.heroCtaUrl,
-      hero_is_active: input.heroIsActive,
+      hero_1_eyebrow: input.slide1.eyebrow,
+      hero_1_headline: input.slide1.headline,
+      hero_1_description: input.slide1.description,
+      hero_1_cta_label: input.slide1.ctaLabel,
+      hero_1_cta_url: input.slide1.ctaUrl,
+      hero_1_is_active: input.slide1.isActive,
+      hero_2_eyebrow: input.slide2.eyebrow,
+      hero_2_headline: input.slide2.headline,
+      hero_2_description: input.slide2.description,
+      hero_2_cta_label: input.slide2.ctaLabel,
+      hero_2_cta_url: input.slide2.ctaUrl,
+      hero_2_is_active: input.slide2.isActive,
+      hero_3_eyebrow: input.slide3.eyebrow,
+      hero_3_headline: input.slide3.headline,
+      hero_3_description: input.slide3.description,
+      hero_3_cta_label: input.slide3.ctaLabel,
+      hero_3_cta_url: input.slide3.ctaUrl,
+      hero_3_is_active: input.slide3.isActive,
       updated_by: user.id,
     })
     .eq("id", 1);
@@ -120,29 +140,48 @@ export async function updateHeroSettings(
   return { error: null };
 }
 
-export type SiteAssetField = "logo" | "favicon" | "ogImage" | "heroImage";
+export type SiteAssetField = "logo" | "favicon" | "ogImage" | "hero1Image" | "hero2Image" | "hero3Image";
 
 const ASSET_COLUMN: Record<SiteAssetField, string> = {
   logo: "logo_storage_path",
   favicon: "favicon_storage_path",
   ogImage: "seo_og_image_storage_path",
-  heroImage: "hero_image_storage_path",
+  hero1Image: "hero_1_image_storage_path",
+  hero2Image: "hero_2_image_storage_path",
+  hero3Image: "hero_3_image_storage_path",
 };
 
 /**
- * Uploads a brand asset (logo/favicon/OG image) to the site-assets bucket
- * and points the corresponding website_settings column at it. Staff-only —
- * enforced by the bucket's storage policy (see
- * supabase/migrations/*_site_assets_bucket.sql), not by anything in this
- * function.
+ * Metadata-only — the actual upload to the site-assets bucket now happens
+ * directly from the browser (components/admin/asset-upload-field.tsx, via
+ * lib/storage/upload-image.ts), never here. This function's only job is
+ * to point the corresponding website_settings column at an object that
+ * already exists in Storage. It receives a storage path string, never a
+ * File or FormData — no image bytes pass through this Server Action.
+ *
+ * REVISED (Phase 5 Media Architecture): this used to be uploadSiteAsset,
+ * accepting FormData with the raw File and calling storage.upload() from
+ * inside this Server Action — routing multi-megabyte image bytes through
+ * a Netlify serverless function, the same failure mode already root-caused
+ * and fixed for Vehicle Photos (lib/actions/vehicle-media.ts). Logo and
+ * Favicon occasionally survived that (small files); Hero and OG Image,
+ * being larger marketing imagery, consistently didn't — hence the
+ * reported 504 on Hero specifically, even though the underlying bug was
+ * identical across all four fields.
+ *
+ * storagePath is validated against the field's own naming convention
+ * (`${field}-...`, exactly what asset-upload-field.tsx generates) before
+ * being trusted — not an RLS boundary (the bucket policy doesn't scope by
+ * filename), just a sanity check against a buggy or malicious caller
+ * pointing this column at an unrelated object, mirroring
+ * recordVehicleMediaUpload's own prefix check.
  */
-export async function uploadSiteAsset(
+export async function recordSiteAsset(
   field: SiteAssetField,
-  formData: FormData
+  storagePath: string
 ): Promise<{ error: string | null }> {
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "No file selected." };
+  if (!storagePath || !storagePath.startsWith(`${field}-`)) {
+    return { error: "Invalid storage path." };
   }
 
   const supabase = await getSupabaseSessionClient();
@@ -151,19 +190,11 @@ export async function uploadSiteAsset(
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
-  const extension = file.name.split(".").pop()?.toLowerCase() || "png";
-  const path = `${field}-${Date.now()}.${extension}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("site-assets")
-    .upload(path, file, { upsert: true, cacheControl: "3600" });
-  if (uploadError) return { error: uploadError.message };
-
-  const { error: updateError } = await supabase
+  const { error } = await supabase
     .from("website_settings")
-    .update({ [ASSET_COLUMN[field]]: path, updated_by: user.id })
+    .update({ [ASSET_COLUMN[field]]: storagePath, updated_by: user.id })
     .eq("id", 1);
-  if (updateError) return { error: updateError.message };
+  if (error) return { error: error.message };
 
   revalidatePath("/", "layout");
   return { error: null };

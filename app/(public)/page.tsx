@@ -1,10 +1,32 @@
 import Link from "next/link";
 import { ShieldCheck, BadgeCheck, Sparkles } from "lucide-react";
 import { Hero, DEFAULT_HERO, type HeroContent } from "@/components/public/hero";
+import { HeroSlideshow } from "@/components/public/hero-slideshow";
 import { SectionHeading } from "@/components/public/section-heading";
 import { VehicleCard } from "@/components/public/vehicle-card";
 import { getFeaturedVehicles, getVehicleMedia } from "@/lib/data/vehicles";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
+import type { HeroSlideSettings } from "@/lib/types";
+
+/**
+ * A slide participates in the public rotation only if it's marked active
+ * AND has a headline — same bar the original single-hero column used
+ * (`heroIsActive && heroHeadline?.trim()`), just applied per-slide now.
+ * Image/eyebrow/description/CTA all stay optional; CTA falls back to
+ * DEFAULT_HERO's own label/URL per slide, matching the original behavior.
+ * Returns null for a slide that isn't usable, so the caller can filter.
+ */
+function resolveSlide(raw: HeroSlideSettings): HeroContent | null {
+  if (!raw.isActive || !raw.headline?.trim()) return null;
+  return {
+    eyebrow: raw.eyebrow,
+    headline: raw.headline,
+    description: raw.description,
+    imageUrl: raw.imageUrl,
+    ctaLabel: raw.ctaLabel?.trim() || DEFAULT_HERO.ctaLabel,
+    ctaUrl: raw.ctaUrl?.trim() || DEFAULT_HERO.ctaUrl,
+  };
+}
 
 export default async function HomePage() {
   const [featured, settings] = await Promise.all([getFeaturedVehicles(4), getWebsiteSettings()]);
@@ -15,24 +37,18 @@ export default async function HomePage() {
     }))
   );
 
-  // Inactive, or no headline, falls back to the original hardcoded hero —
-  // resolved here, once, rather than inside Hero itself, so the component
-  // stays a plain "render what I'm given" presentational piece.
-  const hero: HeroContent =
-    settings.heroIsActive && settings.heroHeadline?.trim()
-      ? {
-          eyebrow: settings.heroEyebrow,
-          headline: settings.heroHeadline,
-          description: settings.heroDescription,
-          imageUrl: settings.heroImageUrl,
-          ctaLabel: settings.heroCtaLabel?.trim() || DEFAULT_HERO.ctaLabel,
-          ctaUrl: settings.heroCtaUrl?.trim() || DEFAULT_HERO.ctaUrl,
-        }
-      : DEFAULT_HERO;
+  // Zero usable slides (nothing configured, everything inactive, or every
+  // active slide missing a headline) falls back to the original hardcoded
+  // hero — resolved here, once, rather than inside Hero/HeroSlideshow, so
+  // both stay plain "render what I'm given" presentational pieces. A CMS
+  // misconfiguration can never produce a broken/empty homepage hero.
+  const slides = [settings.heroSlide1, settings.heroSlide2, settings.heroSlide3]
+    .map(resolveSlide)
+    .filter((slide): slide is HeroContent => slide !== null);
 
   return (
     <>
-      <Hero {...hero} />
+      {slides.length > 0 ? <HeroSlideshow slides={slides} /> : <Hero {...DEFAULT_HERO} />}
 
       <section className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
         <div className="flex items-end justify-between">

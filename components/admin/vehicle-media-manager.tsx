@@ -4,7 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { UploadCloud, ChevronUp, ChevronDown, Trash2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uploadImage, rollbackImageUpload } from "@/lib/storage/upload-image";
+import { validateImageFile } from "@/lib/utils/image-validation";
 import {
   recordVehicleMediaUpload,
   setPrimaryVehicleMedia,
@@ -28,86 +29,44 @@ const BUCKET = "vehicle-media";
  */
 const DEFAULT_MEDIA_TYPE: VehicleMediaType = "EXTERIOR";
 
-const HEIC_MIME_TYPES = ["image/heic", "image/heif"];
-const HEIC_EXTENSIONS = [".heic", ".heif"];
-
 /**
- * HEIC/HEIF detection checks both the reported MIME type and the file
- * extension — browsers are inconsistent about setting file.type for
- * HEIC (Safari usually does; some others report an empty string), so
- * the extension is a necessary fallback, not redundancy.
- */
-function isHeicFile(file: File): boolean {
-  if (HEIC_MIME_TYPES.includes(file.type.toLowerCase())) return true;
-  const name = file.name.toLowerCase();
-  return HEIC_EXTENSIONS.some((ext) => name.endsWith(ext));
-}
-
-/**
- * Uploads directly from the browser to Supabase Storage — never through
- * a Server Action — then records the result via recordVehicleMediaUpload
- * (a small JSON call, no file bytes). This is what actually eliminates
- * the 504s: the file bytes now make one hop (browser -> Supabase),
- * instead of two (browser -> Netlify function -> Supabase), and never sit
- * inside a serverless function's execution-time budget.
+ * Uploads directly from the browser to Supabase Storage (lib/storage/
+ * upload-image.ts — never through a Server Action) then records the
+ * result via recordVehicleMediaUpload (a small JSON call, no file bytes).
+ * This is what actually eliminates the 504s: the file bytes now make one
+ * hop (browser -> Supabase), instead of two (browser -> Netlify function
+ * -> Supabase), and never sit inside a serverless function's
+ * execution-time budget.
  *
- * Uses the same authenticated session as everywhere else in the admin
- * (lib/supabase/browser.ts's getSupabaseBrowserClient(), backed by the
- * same sb-*-auth-token cookie @supabase/ssr already manages) — the
- * "staff can upload/delete vehicle media objects" storage policies
- * (supabase/migrations/*_storage_buckets.sql) enforce is_active_staff()
- * identically regardless of whether the request originates server-side
- * or here in the browser, since both resolve from the same auth.uid().
- * No new credentials, no RLS change, nothing service-role.
- *
- * Rejects HEIC/HEIF before ever touching Storage — this was the actual
- * cause of "broken image" cards after a multi-photo upload (confirmed
- * live: the objects and DB rows were all created correctly and the
- * public URLs were fully reachable; browsers other than Safari simply
- * can't decode image/heic in an <img> tag). No automatic conversion is
- * attempted — that would need a new client-side HEIC decoding
- * dependency this project doesn't have, which is more complexity than a
- * one-time phone-settings fix warrants.
+ * Validation (HEIC/HEIF rejection, type/size checks) is now shared with
+ * every other image uploader via lib/utils/image-validation.ts — same
+ * messages as before, just defined once. HEIC/HEIF rejection specifically
+ * came from a real bug: "broken image" cards after a multi-photo upload
+ * (confirmed live: the objects and DB rows were all created correctly and
+ * the public URLs were fully reachable; browsers other than Safari simply
+ * can't decode image/heic in an <img> tag).
  */
 async function uploadOneFile(
   vehicleId: string,
   file: File
 ): Promise<{ error: string | null; media?: VehicleMedia }> {
-  if (file.size === 0) return { error: "No file selected." };
-  if (isHeicFile(file)) {
-    return {
-      error:
-        "HEIC/HEIF photos aren't supported by browsers yet. On iPhone: Settings → Camera → Formats → Most Compatible. Or share it via Messages/WhatsApp first — that usually converts it automatically.",
-    };
-  }
-  if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-    return { error: "Only image or video files are supported." };
-  }
+  const validationError = validateImageFile(file, { allowVideo: true });
+  if (validationError) return { error: validationError };
 
-  const supabase = getSupabaseBrowserClient();
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${vehicleId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
 
-  try {
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { cacheControl: "3600" });
-    if (uploadError) return { error: uploadError.message };
+  const { error: uploadError } = await uploadImage({ bucket: BUCKET, path, file });
+  if (uploadError) return { error: uploadError };
 
-    const result = await recordVehicleMediaUpload(vehicleId, DEFAULT_MEDIA_TYPE, path);
-    if (result.error || !result.media) {
-      // The metadata insert failed after a real upload succeeded — roll
-      // the upload back so it doesn't linger as an orphaned file. The
-      // browser is the one that can do this: it holds the session that
-      // performed the upload, and recordVehicleMediaUpload never touched
-      // storage itself.
-      await supabase.storage.from(BUCKET).remove([path]);
-      return { error: result.error ?? "Could not save this photo. Please try again." };
-    }
-    return { error: null, media: result.media };
-  } catch {
-    return { error: "Upload failed — check your connection and try again." };
+  const result = await recordVehicleMediaUpload(vehicleId, DEFAULT_MEDIA_TYPE, path);
+  if (result.error || !result.media) {
+    // The metadata insert failed after a real upload succeeded — roll the
+    // upload back so it doesn't linger as an orphaned file.
+    await rollbackImageUpload(BUCKET, path);
+    return { error: result.error ?? "Could not save this photo. Please try again." };
   }
+  return { error: null, media: result.media };
 }
 
 export function VehicleMediaManager({

@@ -6,7 +6,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { AssetUploadField } from "./asset-upload-field";
 import {
   updateWebsiteSettings,
-  uploadSiteAsset,
+  recordSiteAsset,
   type UpdateWebsiteSettingsInput,
 } from "@/lib/actions/site-settings";
 import type { WebsiteSettings } from "@/lib/types";
@@ -115,7 +115,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
             label="Logo"
             hint="Shown in the public header, mobile menu, and admin sidebar. Falls back to the company name as text until uploaded."
             currentUrl={settings.logoUrl}
-            action={uploadSiteAsset}
+            action={recordSiteAsset}
           />
         </div>
         <div className="md:col-span-2">
@@ -124,7 +124,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
             label="Favicon"
             hint="Browser tab icon. Falls back to the default site icon until uploaded."
             currentUrl={settings.faviconUrl}
-            action={uploadSiteAsset}
+            action={recordSiteAsset}
           />
         </div>
       </Fieldset>
@@ -268,7 +268,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
             label="Default OG Image"
             hint="Used when the site is shared on social media, unless a page sets its own."
             currentUrl={settings.seoOgImageUrl}
-            action={uploadSiteAsset}
+            action={recordSiteAsset}
           />
         </div>
       </Fieldset>

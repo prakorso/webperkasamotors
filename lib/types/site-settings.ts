@@ -33,16 +33,24 @@ export interface WebsiteSettings {
    *  to `whatsapp`, so leaving this unset means General and Lead
    *  WhatsApp are the same number. */
   whatsappLeadNumber: string | null;
-  /** Homepage hero — see supabase/migrations/20260815040000_homepage_cms.sql.
-   *  heroIsActive false, or heroHeadline null/empty, means the public
-   *  homepage falls back to its hardcoded default hero
-   *  (components/public/hero.tsx's DEFAULT_HERO) — resolved in
-   *  app/(public)/page.tsx, not inside the Hero component itself. */
-  heroEyebrow: string | null;
-  heroHeadline: string | null;
-  heroDescription: string | null;
-  heroImageUrl: string | null;
-  heroCtaLabel: string | null;
-  heroCtaUrl: string | null;
-  heroIsActive: boolean;
+  /** Homepage hero — fixed 3-slide structure, see
+   *  supabase/migrations/20260817010000_hero_3_slides.sql. Each slide is
+   *  independently optional; a slide only participates in the public
+   *  rotation if isActive is true AND headline is non-empty — resolved in
+   *  app/(public)/page.tsx, not inside the Hero/HeroSlideshow components
+   *  themselves. Zero usable slides falls back to the hardcoded
+   *  DEFAULT_HERO (components/public/hero.tsx). */
+  heroSlide1: HeroSlideSettings;
+  heroSlide2: HeroSlideSettings;
+  heroSlide3: HeroSlideSettings;
+}
+
+export interface HeroSlideSettings {
+  eyebrow: string | null;
+  headline: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  isActive: boolean;
 }

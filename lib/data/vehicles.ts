@@ -2,6 +2,7 @@ import "server-only";
 import type { Vehicle, VehicleMedia, VehicleType } from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
+import { getStoragePublicUrl } from "@/lib/storage/provider";
 
 /**
  * Vehicle data access — read-only. Mutations (create/update/archive) live
@@ -101,12 +102,12 @@ interface VehicleMediaRow {
 
 function mapVehicleMediaRow(row: VehicleMediaRow): VehicleMedia {
   const supabase = getSupabaseServerClient();
-  const { data } = supabase.storage.from(VEHICLE_MEDIA_BUCKET).getPublicUrl(row.storage_path);
+  const url = getStoragePublicUrl(supabase, VEHICLE_MEDIA_BUCKET, row.storage_path);
   return {
     id: row.id,
     vehicleId: row.vehicle_id,
     mediaType: row.media_type,
-    url: data.publicUrl,
+    url,
     altText: row.alt_text,
     isPrimary: row.is_primary,
     sortOrder: row.sort_order,

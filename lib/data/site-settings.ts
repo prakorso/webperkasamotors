@@ -1,9 +1,10 @@
 import "server-only";
-import type { WebsiteSettings } from "@/lib/types";
+import type { WebsiteSettings, HeroSlideSettings } from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getStoragePublicUrl } from "@/lib/storage/provider";
 
 /**
- * Read-only. Mutations (updateWebsiteSettings, uploadSiteAsset) live in
+ * Read-only. Mutations (updateWebsiteSettings, recordSiteAsset) live in
  * lib/actions/site-settings.ts — Server Actions need their own
  * whole-file "use server" module, separate from this "server-only" read
  * module, or importing either from a Client Component breaks Next's
@@ -11,6 +12,17 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
  */
 
 const SITE_ASSETS_BUCKET = "site-assets";
+
+/** An unconfigured slide — isActive false means it's never usable regardless of the other fields. */
+const EMPTY_HERO_SLIDE: HeroSlideSettings = {
+  eyebrow: null,
+  headline: null,
+  description: null,
+  imageUrl: null,
+  ctaLabel: null,
+  ctaUrl: null,
+  isActive: false,
+};
 
 /**
  * Matches what's hardcoded in the frontend today (app/layout.tsx,
@@ -41,13 +53,9 @@ const SAFE_DEFAULTS: WebsiteSettings = {
   footerDescription: "Premium automotive digital showroom. Presisi, Performa, Perkasa.",
   whatsappLeadTemplate: null,
   whatsappLeadNumber: null,
-  heroEyebrow: null,
-  heroHeadline: null,
-  heroDescription: null,
-  heroImageUrl: null,
-  heroCtaLabel: null,
-  heroCtaUrl: null,
-  heroIsActive: true,
+  heroSlide1: EMPTY_HERO_SLIDE,
+  heroSlide2: EMPTY_HERO_SLIDE,
+  heroSlide3: EMPTY_HERO_SLIDE,
 };
 
 const SETTINGS_COLUMNS =
@@ -55,8 +63,12 @@ const SETTINGS_COLUMNS =
   "email, address, instagram_url, facebook_url, tiktok_url, youtube_url, seo_title, " +
   "seo_description, seo_og_image_storage_path, default_cta_label, default_cta_url, " +
   "copyright_text, footer_description, whatsapp_lead_template, whatsapp_lead_number, " +
-  "hero_eyebrow, hero_headline, hero_description, hero_image_storage_path, " +
-  "hero_cta_label, hero_cta_url, hero_is_active";
+  "hero_1_eyebrow, hero_1_headline, hero_1_description, hero_1_image_storage_path, " +
+  "hero_1_cta_label, hero_1_cta_url, hero_1_is_active, " +
+  "hero_2_eyebrow, hero_2_headline, hero_2_description, hero_2_image_storage_path, " +
+  "hero_2_cta_label, hero_2_cta_url, hero_2_is_active, " +
+  "hero_3_eyebrow, hero_3_headline, hero_3_description, hero_3_image_storage_path, " +
+  "hero_3_cta_label, hero_3_cta_url, hero_3_is_active";
 
 interface SettingsRow {
   company_name: string;
@@ -80,20 +92,54 @@ interface SettingsRow {
   footer_description: string | null;
   whatsapp_lead_template: string | null;
   whatsapp_lead_number: string | null;
-  hero_eyebrow: string | null;
-  hero_headline: string | null;
-  hero_description: string | null;
-  hero_image_storage_path: string | null;
-  hero_cta_label: string | null;
-  hero_cta_url: string | null;
-  hero_is_active: boolean;
+  hero_1_eyebrow: string | null;
+  hero_1_headline: string | null;
+  hero_1_description: string | null;
+  hero_1_image_storage_path: string | null;
+  hero_1_cta_label: string | null;
+  hero_1_cta_url: string | null;
+  hero_1_is_active: boolean;
+  hero_2_eyebrow: string | null;
+  hero_2_headline: string | null;
+  hero_2_description: string | null;
+  hero_2_image_storage_path: string | null;
+  hero_2_cta_label: string | null;
+  hero_2_cta_url: string | null;
+  hero_2_is_active: boolean;
+  hero_3_eyebrow: string | null;
+  hero_3_headline: string | null;
+  hero_3_description: string | null;
+  hero_3_image_storage_path: string | null;
+  hero_3_cta_label: string | null;
+  hero_3_cta_url: string | null;
+  hero_3_is_active: boolean;
 }
 
 function resolvePublicUrl(storagePath: string | null): string | null {
   if (!storagePath) return null;
   const supabase = getSupabaseServerClient();
-  const { data } = supabase.storage.from(SITE_ASSETS_BUCKET).getPublicUrl(storagePath);
-  return data.publicUrl;
+  return getStoragePublicUrl(supabase, SITE_ASSETS_BUCKET, storagePath);
+}
+
+/** Raw column values for one hero_N_* group — mapHeroSlideN below picks these out of SettingsRow explicitly rather than a clever generic, to keep this readable. */
+function toHeroSlide(
+  eyebrow: string | null,
+  headline: string | null,
+  description: string | null,
+  imageStoragePath: string | null,
+  ctaLabel: string | null,
+  ctaUrl: string | null,
+  isActive: boolean
+): HeroSlideSettings {
+  return {
+    eyebrow,
+    headline,
+    description,
+    imageUrl: resolvePublicUrl(imageStoragePath),
+    ctaLabel,
+    ctaUrl,
+    isActive,
+  };
 }
 
 function mapSettingsRow(row: SettingsRow): WebsiteSettings {
@@ -119,13 +165,33 @@ function mapSettingsRow(row: SettingsRow): WebsiteSettings {
     footerDescription: row.footer_description,
     whatsappLeadTemplate: row.whatsapp_lead_template,
     whatsappLeadNumber: row.whatsapp_lead_number,
-    heroEyebrow: row.hero_eyebrow,
-    heroHeadline: row.hero_headline,
-    heroDescription: row.hero_description,
-    heroImageUrl: resolvePublicUrl(row.hero_image_storage_path),
-    heroCtaLabel: row.hero_cta_label,
-    heroCtaUrl: row.hero_cta_url,
-    heroIsActive: row.hero_is_active,
+    heroSlide1: toHeroSlide(
+      row.hero_1_eyebrow,
+      row.hero_1_headline,
+      row.hero_1_description,
+      row.hero_1_image_storage_path,
+      row.hero_1_cta_label,
+      row.hero_1_cta_url,
+      row.hero_1_is_active
+    ),
+    heroSlide2: toHeroSlide(
+      row.hero_2_eyebrow,
+      row.hero_2_headline,
+      row.hero_2_description,
+      row.hero_2_image_storage_path,
+      row.hero_2_cta_label,
+      row.hero_2_cta_url,
+      row.hero_2_is_active
+    ),
+    heroSlide3: toHeroSlide(
+      row.hero_3_eyebrow,
+      row.hero_3_headline,
+      row.hero_3_description,
+      row.hero_3_image_storage_path,
+      row.hero_3_cta_label,
+      row.hero_3_cta_url,
+      row.hero_3_is_active
+    ),
   };
 }
 

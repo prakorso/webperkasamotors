@@ -37,15 +37,29 @@ export const DEFAULT_HERO: HeroContent = {
  * the default hero's three-line "Presisi. / Performa. / Perkasa." look
  * is achieved this way, and a CMS-entered headline can use the same
  * technique via a multi-line textarea in the admin form.
+ *
+ * priority defaults to true — every existing single-Hero call site (the
+ * DEFAULT_HERO fallback, or a single active CMS slide) keeps the same
+ * eager-loading behavior it always had. HeroSlideshow is the only caller
+ * that ever passes false, for every slide after the first — see its own
+ * comment for why.
  */
-export function Hero({ eyebrow, headline, description, imageUrl, ctaLabel, ctaUrl }: HeroContent) {
+export function Hero({
+  eyebrow,
+  headline,
+  description,
+  imageUrl,
+  ctaLabel,
+  ctaUrl,
+  priority = true,
+}: HeroContent & { priority?: boolean }) {
   const headlineLines = headline.split("\n").filter(Boolean);
 
   return (
     <section className="relative flex h-[68vh] w-full items-center overflow-hidden bg-ink md:h-[70vh] lg:h-[80vh]">
       {imageUrl ? (
         <>
-          <Image src={imageUrl} alt="" fill priority sizes="100vw" className="object-cover" />
+          <Image src={imageUrl} alt="" fill priority={priority} sizes="100vw" className="object-cover" />
           {/* Dark scrim over a real photo — keeps text-paper headline/body
               legible the same way the default gradient treatment does. */}
           <div className="absolute inset-0 bg-ink/60" />

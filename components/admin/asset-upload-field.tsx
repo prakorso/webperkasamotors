@@ -4,20 +4,40 @@ import { useRef, useState, useTransition } from "react";
 import { UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
+import { uploadImage, rollbackImageUpload } from "@/lib/storage/upload-image";
+import { validateImageFile } from "@/lib/utils/image-validation";
 import type { SiteAssetField } from "@/lib/actions/site-settings";
+
+const BUCKET = "site-assets";
 
 interface AssetUploadFieldProps {
   field: SiteAssetField;
   label: string;
   hint: string;
   currentUrl: string | null;
-  action: (field: SiteAssetField, formData: FormData) => Promise<{ error: string | null }>;
+  /** Metadata-only — receives the storage path of an object already uploaded to Supabase Storage, never a File. */
+  action: (field: SiteAssetField, storagePath: string) => Promise<{ error: string | null }>;
 }
 
 /**
- * Upload control for logo/favicon/OG image. No asset exists for any of
- * these yet — currentUrl is null across the board — so this always shows
- * the empty state until something is actually uploaded through it.
+ * Upload control for logo/favicon/OG image/hero image. Uploads directly
+ * from the browser to Supabase Storage (lib/storage/upload-image.ts) —
+ * never through a Server Action — then calls `action` with only the
+ * resulting storage path. This is the same shape as Vehicle Photos
+ * (components/admin/vehicle-media-manager.tsx): file bytes make one hop
+ * (browser -> Supabase), never a second hop through a Netlify function.
+ *
+ * REVISED (Phase 5 Media Architecture): previously packed the File into
+ * FormData and handed it to a Server Action that uploaded from inside
+ * itself — that's what was producing 504s on Hero (and, less visibly,
+ * would eventually have hit Logo/Favicon/OG Image too; see
+ * lib/actions/site-settings.ts:recordSiteAsset's own comment for why
+ * Logo/Favicon occasionally survived it while Hero/OG Image didn't).
+ *
+ * Validation (HEIC/HEIF rejection, type/size checks) is shared with every
+ * other image uploader via lib/utils/image-validation.ts. On a metadata
+ * save failure after a successful upload, the just-uploaded object is
+ * rolled back (removed) so it doesn't linger orphaned in Storage.
  */
 export function AssetUploadField({ field, label, hint, currentUrl, action }: AssetUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,13 +51,41 @@ export function AssetUploadField({ field, label, hint, currentUrl, action }: Ass
     setError(null);
     setSuccess(false);
 
-    const formData = new FormData();
-    formData.set("file", file);
-
     startTransition(async () => {
-      const result = await action(field, formData);
-      if (result.error) setError(result.error);
-      else setSuccess(true);
+      const validationError = validateImageFile(file);
+      if (validationError) {
+        setError(validationError);
+        if (inputRef.current) inputRef.current.value = "";
+        return;
+      }
+
+      const extension = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${field}-${Date.now()}.${extension}`;
+
+      const { error: uploadError } = await uploadImage({
+        bucket: BUCKET,
+        path,
+        file,
+        cacheControl: "3600",
+        upsert: true,
+      });
+      if (uploadError) {
+        setError(uploadError);
+        if (inputRef.current) inputRef.current.value = "";
+        return;
+      }
+
+      const result = await action(field, path);
+      if (result.error) {
+        // The metadata update failed after a real upload succeeded — roll
+        // the upload back so it doesn't linger as an orphaned file.
+        await rollbackImageUpload(BUCKET, path);
+        setError(result.error);
+        if (inputRef.current) inputRef.current.value = "";
+        return;
+      }
+
+      setSuccess(true);
       if (inputRef.current) inputRef.current.value = "";
     });
   }
