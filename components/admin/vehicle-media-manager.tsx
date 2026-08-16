@@ -172,8 +172,18 @@ export function VehicleMediaManager({
                 aria-label={`Preview ${item.altText || "photo"}`}
                 className="relative block aspect-square w-full overflow-hidden bg-surface-muted"
               >
+                {/* object-contain (not object-cover) — the CRM preview's only
+                 *  job is to show the admin exactly what they uploaded, so the
+                 *  full photo stays visible and centered in the fixed square
+                 *  frame rather than being cropped to fill it. The public
+                 *  gallery/lightbox make their own framing decisions
+                 *  separately and are untouched by this. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.url} alt={item.altText || "Vehicle photo"} className="h-full w-full object-cover" />
+                <img
+                  src={item.url}
+                  alt={item.altText || "Vehicle photo"}
+                  className="h-full w-full object-contain"
+                />
                 {item.isPrimary && (
                   <span className="absolute left-1.5 top-1.5">
                     <Badge variant="primary">Primary</Badge>
