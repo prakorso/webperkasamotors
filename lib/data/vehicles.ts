@@ -158,14 +158,53 @@ export interface PaginatedVehicles {
 }
 
 /**
- * Public catalogue pages (/cars, /motorcycles) — most recently *updated*
- * vehicle first (not created_at, not stock number, not name), so
- * touching a listing (price change, status update, new photos) brings it
- * back toward the top. `id` is a deterministic tie-breaker for vehicles
- * with an identical updated_at, so page boundaries never shift between
- * requests. Server-side pagination via PostgREST's `.range()` — never
- * fetches the full inventory into the browser.
+ * Public catalogue pages (/cars, /motorcycles) — availability tier first,
+ * recency second:
+ *
+ *   1. AVAILABLE
+ *   2. RESERVED
+ *   3. SOLD
+ *
+ * (DRAFT/ARCHIVED never reach this function at all — RLS's "public can
+ * read published vehicles" policy already restricts anon reads to
+ * is_published = true AND status in these three, so there's nothing to
+ * exclude here.)
+ *
+ * Within AVAILABLE and RESERVED, `updated_at DESC` — touching a listing
+ * (price change, status update, new photos) brings it back toward the
+ * top of its tier, same behavior as before this fix.
+ *
+ * Within SOLD, deliberately `created_at DESC`, NOT `updated_at` — a sold
+ * vehicle edited later for an administrative reason (fixing a typo,
+ * updating a photo) must not jump back up the SOLD tier just because
+ * updated_at changed. created_at is the one existing column that's
+ * genuinely immutable after insert (never touched by any trigger or
+ * update path in this codebase — see supabase/migrations/*_tables.sql /
+ * *_functions_and_triggers.sql), so it's the closest existing signal to
+ * "when this vehicle entered the catalogue" without adding a dedicated
+ * sold_at/status_changed_at column. No schema change was needed for this
+ * fix — see the batch's own commit message / report for why that
+ * decision was made instead of a new column.
+ *
+ * Because "sort by tier, then by a *different* column per tier" isn't
+ * expressible as a single PostgREST `.order()` chain (Postgres enum
+ * ordering alone would get the tier priority right — vehicle_status is
+ * declared AVAILABLE before RESERVED before SOLD — but a plain
+ * `.order('status').order('updated_at')` would still apply updated_at
+ * uniformly to every tier, including SOLD, reintroducing exactly the bug
+ * this fix exists to remove), this treats the three tiers as ranges laid
+ * end-to-end and only queries the tier(s) a given page's window actually
+ * overlaps — never more than 3 small `.range()` queries for one page,
+ * and each one is still DB-sorted and DB-limited. The full inventory is
+ * never loaded into the browser, or even into this function, at any
+ * page size used by the UI (10/page).
  */
+const CATALOGUE_TIERS: Array<{ status: "AVAILABLE" | "RESERVED" | "SOLD"; orderColumn: "updated_at" | "created_at" }> = [
+  { status: "AVAILABLE", orderColumn: "updated_at" },
+  { status: "RESERVED", orderColumn: "updated_at" },
+  { status: "SOLD", orderColumn: "created_at" },
+];
+
 export async function getVehiclesByTypePaginated(
   type: VehicleType,
   page = 1,
@@ -173,21 +212,52 @@ export async function getVehiclesByTypePaginated(
 ): Promise<PaginatedVehicles> {
   const supabase = getSupabaseServerClient();
   const safePage = Math.max(1, page);
-  const from = (safePage - 1) * perPage;
-  const to = from + perPage - 1;
+  const globalFrom = (safePage - 1) * perPage;
+  const globalTo = globalFrom + perPage; // exclusive
 
-  const { data, error, count } = await supabase
-    .from("vehicles")
-    .select(VEHICLE_COLUMNS, { count: "exact" })
-    .eq("vehicle_type", type)
-    .order("updated_at", { ascending: false })
-    .order("id", { ascending: true })
-    .range(from, to);
+  const tierCounts = await Promise.all(
+    CATALOGUE_TIERS.map(async (tier) => {
+      const { count, error } = await supabase
+        .from("vehicles")
+        .select("id", { count: "exact", head: true })
+        .eq("vehicle_type", type)
+        .eq("status", tier.status);
+      if (error) throw new Error(`getVehiclesByTypePaginated (count ${tier.status}): ${error.message}`);
+      return count ?? 0;
+    })
+  );
+  const totalCount = tierCounts.reduce((sum, n) => sum + n, 0);
 
-  if (error) throw new Error(`getVehiclesByTypePaginated: ${error.message}`);
-  const totalCount = count ?? 0;
+  const rows: VehicleRow[] = [];
+  let cursor = 0;
+  for (let i = 0; i < CATALOGUE_TIERS.length; i++) {
+    const tier = CATALOGUE_TIERS[i];
+    const tierStart = cursor;
+    const tierEnd = cursor + tierCounts[i]; // exclusive
+    cursor = tierEnd;
+
+    const overlapStart = Math.max(globalFrom, tierStart);
+    const overlapEnd = Math.min(globalTo, tierEnd);
+    if (overlapStart >= overlapEnd) continue; // this page's window doesn't touch this tier
+
+    const localFrom = overlapStart - tierStart;
+    const localTo = overlapEnd - tierStart - 1; // .range() end is inclusive
+
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select(VEHICLE_COLUMNS)
+      .eq("vehicle_type", type)
+      .eq("status", tier.status)
+      .order(tier.orderColumn, { ascending: false })
+      .order("id", { ascending: true })
+      .range(localFrom, localTo);
+
+    if (error) throw new Error(`getVehiclesByTypePaginated (${tier.status}): ${error.message}`);
+    rows.push(...(data as unknown as VehicleRow[]));
+  }
+
   return {
-    vehicles: (data as unknown as VehicleRow[]).map(mapVehicleRow),
+    vehicles: rows.map(mapVehicleRow),
     totalCount,
     page: safePage,
     perPage,
