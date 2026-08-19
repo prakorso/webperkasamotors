@@ -133,16 +133,66 @@ export async function getFeaturedVehicles(limit = 4): Promise<Vehicle[]> {
   return (data as unknown as VehicleRow[]).map(mapVehicleRow);
 }
 
+/** Every vehicle of a type, unpaginated — used by app/sitemap.ts, which needs full coverage, not one page. */
 export async function getVehiclesByType(type: VehicleType): Promise<Vehicle[]> {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("vehicles")
     .select(VEHICLE_COLUMNS)
     .eq("vehicle_type", type)
-    .order("created_at", { ascending: true });
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: true });
 
   if (error) throw new Error(`getVehiclesByType: ${error.message}`);
   return (data as unknown as VehicleRow[]).map(mapVehicleRow);
+}
+
+export const VEHICLES_PER_PAGE = 10;
+
+export interface PaginatedVehicles {
+  vehicles: Vehicle[];
+  totalCount: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
+
+/**
+ * Public catalogue pages (/cars, /motorcycles) — most recently *updated*
+ * vehicle first (not created_at, not stock number, not name), so
+ * touching a listing (price change, status update, new photos) brings it
+ * back toward the top. `id` is a deterministic tie-breaker for vehicles
+ * with an identical updated_at, so page boundaries never shift between
+ * requests. Server-side pagination via PostgREST's `.range()` — never
+ * fetches the full inventory into the browser.
+ */
+export async function getVehiclesByTypePaginated(
+  type: VehicleType,
+  page = 1,
+  perPage = VEHICLES_PER_PAGE
+): Promise<PaginatedVehicles> {
+  const supabase = getSupabaseServerClient();
+  const safePage = Math.max(1, page);
+  const from = (safePage - 1) * perPage;
+  const to = from + perPage - 1;
+
+  const { data, error, count } = await supabase
+    .from("vehicles")
+    .select(VEHICLE_COLUMNS, { count: "exact" })
+    .eq("vehicle_type", type)
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: true })
+    .range(from, to);
+
+  if (error) throw new Error(`getVehiclesByTypePaginated: ${error.message}`);
+  const totalCount = count ?? 0;
+  return {
+    vehicles: (data as unknown as VehicleRow[]).map(mapVehicleRow),
+    totalCount,
+    page: safePage,
+    perPage,
+    totalPages: Math.max(1, Math.ceil(totalCount / perPage)),
+  };
 }
 
 export async function getVehicleBySlug(slug: string): Promise<Vehicle | null> {

@@ -31,6 +31,16 @@ const MAX_THUMBNAILS = 3;
  * activeIndex advances past what's currently visible, the window slides
  * forward with it, so the thumbnails always show "what's next" rather
  * than freezing on the first 3 photos forever.
+ *
+ * Option B framing (CMS/UX refinement batch): the primary photo uses a
+ * responsive aspect ratio — 4:3 on mobile (where a taller frame still
+ * reads fine at narrow widths) widening to 16:9 from lg: up, instead of
+ * a fixed 4:3 at every breakpoint. This makes the primary image shorter
+ * and more horizontal on tablet/desktop — less vertically dominant next
+ * to the vehicle info column — without cropping differently or touching
+ * next/image's object-cover behavior; only the container's aspect ratio
+ * changed. Thumbnails follow the same ratio for visual consistency with
+ * the primary frame above them.
  */
 export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
   const initialIndex = Math.max(
@@ -52,7 +62,7 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
 
   return (
     <div>
-      <div className="relative aspect-[4/3] w-full overflow-hidden border border-border bg-surface-muted">
+      <div className="relative aspect-[4/3] w-full overflow-hidden border border-border bg-surface-muted lg:aspect-[16/9]">
         <button
           type="button"
           onClick={() => setLightboxOpen(true)}
@@ -111,7 +121,7 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
                 aria-label={`Show ${item.altText || "photo"}`}
                 aria-pressed={itemIndex === activeIndex}
                 className={cn(
-                  "relative aspect-[4/3] overflow-hidden border bg-surface-muted transition-colors",
+                  "relative aspect-[4/3] overflow-hidden border bg-surface-muted transition-colors lg:aspect-[16/9]",
                   itemIndex === activeIndex ? "border-ink" : "border-border hover:border-muted"
                 )}
               >

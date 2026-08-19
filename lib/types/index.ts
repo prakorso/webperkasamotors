@@ -1,5 +1,6 @@
 export * from "./vehicle";
 export * from "./social-content";
+export * from "./article";
 export * from "./lead";
 export * from "./site-settings";
 export * from "./navigation";

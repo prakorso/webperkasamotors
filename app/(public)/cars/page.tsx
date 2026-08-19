@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { VehicleCatalogue } from "@/components/public/vehicle-catalogue";
-import { getVehiclesByType, getVehicleMedia } from "@/lib/data/vehicles";
+import { getVehiclesByTypePaginated, getVehicleMedia } from "@/lib/data/vehicles";
 
 export const metadata: Metadata = {
   title: "Beli Mobil",
   description: "Browse Perkasa Motors' curated collection of premium cars.",
 };
 
-export default async function CarsPage() {
-  const vehicles = await getVehiclesByType("CAR");
+export default async function CarsPage(props: PageProps<"/cars">) {
+  const searchParams = await props.searchParams;
+  const requestedPage = Number(searchParams?.page) || 1;
+
+  const { vehicles, page, totalPages } = await getVehiclesByTypePaginated("CAR", requestedPage);
   const mediaEntries = await Promise.all(
     vehicles.map(async (v) => [v.id, (await getVehicleMedia(v.id)).find((m) => m.isPrimary)] as const)
   );
@@ -19,6 +22,9 @@ export default async function CarsPage() {
       description="Setiap unit telah melalui kurasi dan inspeksi internal Perkasa Motors."
       vehicles={vehicles}
       mediaByVehicleId={Object.fromEntries(mediaEntries)}
+      page={page}
+      totalPages={totalPages}
+      basePath="/cars"
     />
   );
 }

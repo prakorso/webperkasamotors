@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Vehicle } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import {
   createVehicle,
   updateVehicle,
@@ -57,15 +58,15 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
     year: vehicle?.year ?? new Date().getFullYear(),
     location: vehicle?.location ?? "",
     condition: vehicle?.condition ?? "USED",
-    price: vehicle?.price ?? 0,
+    price: (vehicle?.price ?? 0) as number | null,
     status: vehicle?.status ?? "DRAFT",
     isPublished: vehicle?.isPublished ?? false,
     isFeatured: vehicle?.isFeatured ?? false,
-    mileageKm: vehicle?.mileageKm ?? 0,
+    mileageKm: (vehicle?.mileageKm ?? 0) as number | null,
     transmission: vehicle?.transmission ?? "AUTOMATIC",
     fuelType: vehicle?.fuelType ?? "PETROL",
     exteriorColor: vehicle?.exteriorColor ?? "",
-    capacityCc: vehicle?.capacityCc?.toString() ?? "",
+    capacityCc: (vehicle?.capacityCc ?? null) as number | null,
     plateNumber: vehicle?.plateNumber ?? "",
     description: vehicle?.description ?? "",
     highlights: (vehicle?.highlights ?? []).join("\n"),
@@ -94,12 +95,12 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       model: form.model,
       variant: form.variant || null,
       year: Number(form.year),
-      price: Number(form.price),
-      mileageKm: Number(form.mileageKm),
+      price: form.price ?? 0,
+      mileageKm: form.mileageKm ?? 0,
       transmission: form.transmission,
       fuelType: form.fuelType,
       exteriorColor: form.exteriorColor || null,
-      capacityCc: form.capacityCc.trim() ? Number(form.capacityCc) : null,
+      capacityCc: form.capacityCc,
       plateNumber: form.plateNumber || null,
       location: form.location || null,
       condition: form.condition,
@@ -265,13 +266,7 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       <Fieldset title="Pricing &amp; Status">
         <div>
           <Label htmlFor="price">Price (IDR)</Label>
-          <Input
-            id="price"
-            type="number"
-            value={form.price}
-            onChange={(e) => set("price", Number(e.target.value))}
-            required
-          />
+          <NumericInput id="price" value={form.price} onChange={(v) => set("price", v)} required />
         </div>
         <div>
           <Label htmlFor="status">Status</Label>
@@ -322,12 +317,7 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       <Fieldset title="Specifications">
         <div>
           <Label htmlFor="mileageKm">Mileage (km)</Label>
-          <Input
-            id="mileageKm"
-            type="number"
-            value={form.mileageKm}
-            onChange={(e) => set("mileageKm", Number(e.target.value))}
-          />
+          <NumericInput id="mileageKm" value={form.mileageKm} onChange={(v) => set("mileageKm", v)} />
         </div>
         <div>
           <Label htmlFor="transmission">Transmission</Label>
@@ -366,11 +356,10 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
         </div>
         <div>
           <Label htmlFor="capacityCc">Kapasitas CC</Label>
-          <Input
+          <NumericInput
             id="capacityCc"
-            type="number"
             value={form.capacityCc}
-            onChange={(e) => set("capacityCc", e.target.value)}
+            onChange={(v) => set("capacityCc", v)}
             placeholder="e.g. 155"
           />
           <p className="mt-1.5 font-body text-[12px] text-muted-2">
