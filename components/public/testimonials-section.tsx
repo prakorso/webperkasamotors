@@ -25,30 +25,32 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   if (testimonials.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
-      <SectionHeading eyebrow="Testimoni" title="Apa Kata Pelanggan Kami" className="text-center" />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {testimonials.map((item) => (
-          <figure key={item.id} className="flex flex-col border border-border bg-paper p-8">
-            <Quote className="mb-4 text-primary/40" size={28} aria-hidden />
-            <blockquote className="flex-1 font-body text-body text-ink">{item.testimonial}</blockquote>
-            <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-6">
-              {item.photoUrl ? (
-                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-surface-muted">
-                  <Image src={item.photoUrl} alt={item.customerName} fill sizes="44px" className="object-cover" />
+    <section className="border-y border-border bg-surface">
+      <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
+        <SectionHeading eyebrow="Testimoni" title="Apa Kata Pelanggan Kami" className="text-center" />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {testimonials.map((item) => (
+            <figure key={item.id} className="flex flex-col border border-border bg-paper p-8">
+              <Quote className="mb-4 text-primary/40" size={28} aria-hidden />
+              <blockquote className="flex-1 font-body text-body text-ink">{item.testimonial}</blockquote>
+              <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-6">
+                {item.photoUrl ? (
+                  <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-surface-muted">
+                    <Image src={item.photoUrl} alt={item.customerName} fill sizes="44px" className="object-cover" />
+                  </div>
+                ) : (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-body text-[13px] font-semibold text-primary">
+                    {initials(item.customerName)}
+                  </div>
+                )}
+                <div>
+                  <p className="font-body text-[13px] font-semibold text-ink">{item.customerName}</p>
+                  {item.roleLabel && <p className="font-body text-[12px] text-muted">{item.roleLabel}</p>}
                 </div>
-              ) : (
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-body text-[13px] font-semibold text-primary">
-                  {initials(item.customerName)}
-                </div>
-              )}
-              <div>
-                <p className="font-body text-[13px] font-semibold text-ink">{item.customerName}</p>
-                {item.roleLabel && <p className="font-body text-[12px] text-muted">{item.roleLabel}</p>}
-              </div>
-            </figcaption>
-          </figure>
-        ))}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       </div>
     </section>
   );
