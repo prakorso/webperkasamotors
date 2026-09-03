@@ -4,14 +4,12 @@ import { HeroSlideshow } from "@/components/public/hero-slideshow";
 import { AboutSection, type AboutContent } from "@/components/public/about-section";
 import { WhyPerkasaSection, DEFAULT_WHY_PERKASA, type WhyPerkasaContent } from "@/components/public/why-perkasa-section";
 import { TestimonialsSection } from "@/components/public/testimonials-section";
-import { HomepageSocialSection } from "@/components/public/homepage-social-section";
 import { SectionHeading } from "@/components/public/section-heading";
 import { VehicleCard } from "@/components/public/vehicle-card";
 import { getFeaturedVehicles, getVehicleMedia } from "@/lib/data/vehicles";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getActiveHomepageBenefits } from "@/lib/data/homepage-benefits";
 import { getActiveTestimonials } from "@/lib/data/testimonials";
-import { getPublishedContentForHomepage } from "@/lib/data/social-content";
 import type { HeroSlideSettings, AboutSectionSettings, WhyPerkasaSectionSettings, HomepageBenefit } from "@/lib/types";
 
 /**
@@ -80,12 +78,11 @@ function resolveWhyPerkasa(
 }
 
 export default async function HomePage() {
-  const [featured, settings, benefits, testimonials, socialContent] = await Promise.all([
+  const [featured, settings, benefits, testimonials] = await Promise.all([
     getFeaturedVehicles(4),
     getWebsiteSettings(),
     getActiveHomepageBenefits(),
     getActiveTestimonials(),
-    getPublishedContentForHomepage(),
   ]);
   const featuredWithMedia = await Promise.all(
     featured.map(async (vehicle) => ({
@@ -131,8 +128,6 @@ export default async function HomePage() {
       <WhyPerkasaSection {...whyPerkasa} />
 
       <TestimonialsSection testimonials={testimonials} />
-
-      <HomepageSocialSection items={socialContent} />
 
       <section className="mx-auto max-w-container px-6 py-16 text-center md:px-8 lg:px-margin lg:py-section">
         <h2 className="mx-auto max-w-2xl font-display text-headline-lg text-ink">
