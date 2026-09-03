@@ -23,15 +23,21 @@ export interface WebsiteSettings {
   defaultCtaUrl: string | null;
   copyrightText: string;
   footerDescription: string | null;
-  /** Admin-editable WhatsApp message template for the vehicle inquiry lead
-   *  form. Null/empty means "use the hardcoded default" — see
-   *  lib/actions/leads.ts's DEFAULT_WHATSAPP_TEMPLATE. Supports {name},
-   *  {vehicle}, {company}. */
+  /** Admin-editable WhatsApp message for a vehicle-specific contact CTA
+   *  ("Product Inquiry Message" in the CMS). Null/empty falls back to
+   *  DEFAULT_PRODUCT_WHATSAPP_TEMPLATE in lib/utils/whatsapp.ts. Supports
+   *  {vehicle}, {company} — {name} was removed with the public lead form. */
   whatsappLeadTemplate: string | null;
-  /** Destination WhatsApp number for vehicle lead inquiries — distinct
-   *  from `whatsapp` (the general/footer number). Null/empty falls back
-   *  to `whatsapp`, so leaving this unset means General and Lead
-   *  WhatsApp are the same number. */
+  /** Admin-editable WhatsApp message for generic (non-vehicle) contact
+   *  CTAs — homepage final CTA, header "Hubungi Kami", contact page,
+   *  financing page. Null/empty falls back to
+   *  DEFAULT_GENERIC_WHATSAPP_TEMPLATE in lib/utils/whatsapp.ts. Supports
+   *  {company}. */
+  whatsappGenericTemplate: string | null;
+  /** DORMANT since the public site moved to direct-to-WhatsApp CTAs — no
+   *  longer surfaced in the CMS. Still mapped/read so the dormant
+   *  createLead() Server Action (lib/actions/leads.ts) keeps compiling;
+   *  null falls back to `whatsapp`. */
   whatsappLeadNumber: string | null;
   /** Homepage hero — fixed 3-slide structure, see
    *  supabase/migrations/20260817010000_hero_3_slides.sql. Each slide is

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { VehicleCatalogue } from "@/components/public/vehicle-catalogue";
 import { getVehiclesByTypePaginated, getVehicleMedia } from "@/lib/data/vehicles";
+import { getWebsiteSettings } from "@/lib/data/site-settings";
+import { vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 
 export const metadata: Metadata = {
   title: "Beli Motor",
@@ -11,10 +13,10 @@ export default async function MotorcyclesPage(props: PageProps<"/motorcycles">) 
   const searchParams = await props.searchParams;
   const requestedPage = Number(searchParams?.page) || 1;
 
-  const { vehicles, page, totalPages } = await getVehiclesByTypePaginated(
-    "MOTORCYCLE",
-    requestedPage
-  );
+  const [{ vehicles, page, totalPages }, settings] = await Promise.all([
+    getVehiclesByTypePaginated("MOTORCYCLE", requestedPage),
+    getWebsiteSettings(),
+  ]);
   const mediaEntries = await Promise.all(
     vehicles.map(async (v) => [v.id, (await getVehicleMedia(v.id)).find((m) => m.isPrimary)] as const)
   );
@@ -28,6 +30,7 @@ export default async function MotorcyclesPage(props: PageProps<"/motorcycles">) 
       page={page}
       totalPages={totalPages}
       basePath="/motorcycles"
+      whatsapp={vehicleWhatsAppConfig(settings)}
     />
   );
 }

@@ -6,10 +6,12 @@ import { WhyPerkasaSection, DEFAULT_WHY_PERKASA, type WhyPerkasaContent } from "
 import { TestimonialsSection } from "@/components/public/testimonials-section";
 import { SectionHeading } from "@/components/public/section-heading";
 import { VehicleCard } from "@/components/public/vehicle-card";
+import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { getFeaturedVehicles, getVehicleMedia } from "@/lib/data/vehicles";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getActiveHomepageBenefits } from "@/lib/data/homepage-benefits";
 import { getActiveTestimonials } from "@/lib/data/testimonials";
+import { genericWhatsAppUrl, vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 import type { HeroSlideSettings, AboutSectionSettings, WhyPerkasaSectionSettings, HomepageBenefit } from "@/lib/types";
 
 /**
@@ -101,6 +103,8 @@ export default async function HomePage() {
     .filter((slide): slide is HeroContent => slide !== null);
   const about = resolveAbout(settings.about);
   const whyPerkasa = resolveWhyPerkasa(settings.whyPerkasa, benefits);
+  const whatsappConfig = vehicleWhatsAppConfig(settings);
+  const genericWhatsappHref = genericWhatsAppUrl(settings);
 
   return (
     <>
@@ -118,7 +122,12 @@ export default async function HomePage() {
         </div>
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {featuredWithMedia.map(({ vehicle, primaryMedia }) => (
-            <VehicleCard key={vehicle.id} vehicle={vehicle} primaryMedia={primaryMedia} />
+            <VehicleCard
+              key={vehicle.id}
+              vehicle={vehicle}
+              primaryMedia={primaryMedia}
+              whatsapp={whatsappConfig}
+            />
           ))}
         </div>
       </section>
@@ -133,12 +142,18 @@ export default async function HomePage() {
         <h2 className="mx-auto max-w-2xl font-display text-headline-lg text-ink">
           Siap menemukan kendaraan impian Anda?
         </h2>
-        <Link
-          href="/contact"
-          className="mt-8 inline-flex h-13 items-center bg-primary px-8 font-body text-label uppercase tracking-[0.1em] text-primary-ink transition-colors hover:bg-primary-hover"
-        >
-          Hubungi Sales Advisor
-        </Link>
+        <div className="mt-8">
+          {genericWhatsappHref ? (
+            <WhatsAppCta href={genericWhatsappHref} label="Hubungi via WhatsApp" />
+          ) : (
+            <Link
+              href="/contact"
+              className="inline-flex h-13 items-center bg-primary px-8 font-body text-label uppercase tracking-[0.1em] text-primary-ink transition-colors hover:bg-primary-hover"
+            >
+              Hubungi Kami
+            </Link>
+          )}
+        </div>
       </section>
     </>
   );

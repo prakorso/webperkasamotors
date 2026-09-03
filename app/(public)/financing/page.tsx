@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { FinancingCalculator } from "@/components/public/financing-calculator";
+import { getWebsiteSettings } from "@/lib/data/site-settings";
 
 export const metadata: Metadata = {
   title: "Simulasi Kredit",
   description: "Estimate your monthly installment for a Perkasa Motors vehicle.",
 };
 
-export default function FinancingPage() {
+export default async function FinancingPage() {
+  const settings = await getWebsiteSettings();
+
   return (
     <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
       <div className="mb-12 max-w-2xl">
@@ -17,7 +20,13 @@ export default function FinancingPage() {
           Hitung estimasi cicilan Anda.
         </h1>
       </div>
-      <FinancingCalculator />
+      <FinancingCalculator
+        whatsapp={{
+          number: settings.whatsapp,
+          companyName: settings.companyName,
+          genericTemplate: settings.whatsappGenericTemplate,
+        }}
+      />
     </div>
   );
 }

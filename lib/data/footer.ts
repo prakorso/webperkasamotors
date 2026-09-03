@@ -40,6 +40,7 @@ export async function getFooterSettings(): Promise<FooterSettings> {
     tiktokUrl: settings.tiktokUrl,
     youtubeUrl: settings.youtubeUrl,
     copyrightText: settings.copyrightText,
+    whatsappGenericTemplate: settings.whatsappGenericTemplate,
     navGroups: Array.from(groups.entries()).map(([groupLabel, items]) => ({
       groupLabel: groupLabel || null,
       items,

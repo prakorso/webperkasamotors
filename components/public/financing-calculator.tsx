@@ -3,15 +3,28 @@
 import { useMemo, useState } from "react";
 import { Input, Label } from "@/components/ui/input";
 import { formatIDR } from "@/lib/utils/format";
+import { WhatsAppCta } from "@/components/public/whatsapp-cta";
+import { buildWhatsAppUrl, genericWhatsAppMessage } from "@/lib/utils/whatsapp";
 
 const TENORS = [12, 24, 36, 48, 60];
 
+interface FinancingCalculatorProps {
+  /** Raw CMS values for the "Tanya Simulasi via WhatsApp" CTA below the result. The calculator adds the current estimate to the message client-side; nothing is persisted. */
+  whatsapp: {
+    number: string | null;
+    companyName: string;
+    genericTemplate: string | null;
+  };
+}
+
 /**
- * WORKING — this is real client-side arithmetic, not mock data. It needs
- * no backend, so it's fully functional in Phase 1 unlike the other forms
- * on this site.
+ * WORKING — real client-side arithmetic, no backend. The only addition
+ * for the direct-to-WhatsApp flow is a CTA under the result: it opens
+ * WhatsApp with the generic message plus the current estimate as context.
+ * No lead submission, no persistence, no new table — the calculator
+ * itself is unchanged.
  */
-export function FinancingCalculator() {
+export function FinancingCalculator({ whatsapp }: FinancingCalculatorProps) {
   const [price, setPrice] = useState(500_000_000);
   const [downPaymentPct, setDownPaymentPct] = useState(20);
   const [tenor, setTenor] = useState(36);
@@ -32,6 +45,14 @@ export function FinancingCalculator() {
       totalPayment: Math.round(payment * tenor + dp),
     };
   }, [price, downPaymentPct, tenor, rate]);
+
+  const whatsappHref = useMemo(() => {
+    const base = genericWhatsAppMessage(whatsapp.companyName, whatsapp.genericTemplate);
+    const context =
+      ` Dari simulasi kredit di website: estimasi cicilan sekitar ${formatIDR(monthlyPayment)}/bulan` +
+      ` (harga ${formatIDR(price)}, DP ${downPaymentPct}%, tenor ${tenor} bulan).`;
+    return buildWhatsAppUrl(whatsapp.number, base + context);
+  }, [whatsapp, monthlyPayment, price, downPaymentPct, tenor]);
 
   return (
     <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
@@ -129,6 +150,15 @@ export function FinancingCalculator() {
           Estimasi ini bersifat indikatif dan dihitung sepenuhnya di
           browser Anda — belum terhubung ke pengajuan kredit sungguhan.
         </p>
+
+        {whatsappHref && (
+          <WhatsAppCta
+            href={whatsappHref}
+            label="Tanya Simulasi via WhatsApp"
+            size="md"
+            className="mt-6 w-full"
+          />
+        )}
       </div>
     </div>
   );

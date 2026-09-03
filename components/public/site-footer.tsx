@@ -8,6 +8,7 @@ import {
   YoutubeIcon,
 } from "@/components/icons/social-icons";
 import { normalizeIndonesianPhone } from "@/lib/utils/phone";
+import { genericWhatsAppMessage } from "@/lib/utils/whatsapp";
 
 /**
  * PHASE 2C: fully database-driven (Footer Manager, via lib/data/footer.ts)
@@ -32,6 +33,13 @@ export async function SiteFooter() {
   const whatsappNumber = footer.whatsapp
     ? (normalizeIndonesianPhone(footer.whatsapp) ?? footer.whatsapp.replace(/\D/g, ""))
     : null;
+  // Same generic pre-filled message every other non-vehicle CTA on the
+  // site uses. Destination behavior is unchanged — still footer.whatsapp.
+  const whatsappHref = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+        genericWhatsAppMessage(footer.companyName, footer.whatsappGenericTemplate)
+      )}`
+    : null;
 
   return (
     <footer className="border-t border-border bg-ink text-paper">
@@ -55,10 +63,10 @@ export async function SiteFooter() {
                     </a>
                   </li>
                 )}
-                {footer.whatsapp && whatsappNumber && (
+                {footer.whatsapp && whatsappHref && (
                   <li>
                     <a
-                      href={`https://wa.me/${whatsappNumber}`}
+                      href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={`Chat on WhatsApp: ${footer.whatsapp}`}

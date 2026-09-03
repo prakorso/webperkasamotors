@@ -22,6 +22,8 @@ export interface FooterSettings {
   tiktokUrl: string | null;
   youtubeUrl: string | null;
   copyrightText: string;
+  /** Generic WhatsApp message template — used to pre-fill the footer's WhatsApp link, same value the rest of the site's generic CTAs use. */
+  whatsappGenericTemplate: string | null;
   navGroups: FooterNavGroup[];
   legalLinks: NavigationItem[];
 }

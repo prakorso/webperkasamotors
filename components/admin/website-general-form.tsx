@@ -46,7 +46,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
     defaultCtaUrl: settings.defaultCtaUrl ?? "",
     copyrightText: settings.copyrightText,
     whatsappLeadTemplate: settings.whatsappLeadTemplate ?? "",
-    whatsappLeadNumber: settings.whatsappLeadNumber ?? "",
+    whatsappGenericTemplate: settings.whatsappGenericTemplate ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +79,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
       defaultCtaUrl: orNull(form.defaultCtaUrl),
       copyrightText: form.copyrightText.trim() || "All rights reserved.",
       whatsappLeadTemplate: orNull(form.whatsappLeadTemplate),
-      whatsappLeadNumber: orNull(form.whatsappLeadNumber),
+      whatsappGenericTemplate: orNull(form.whatsappGenericTemplate),
     };
 
     const result = await updateWebsiteSettings(input);
@@ -160,8 +160,8 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
       </Fieldset>
 
       <Fieldset title="WhatsApp">
-        <div>
-          <Label htmlFor="whatsapp">General WhatsApp</Label>
+        <div className="md:col-span-2">
+          <Label htmlFor="whatsapp">WhatsApp Business Number</Label>
           <Input
             id="whatsapp"
             value={form.whatsapp}
@@ -169,38 +169,39 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
             placeholder="+62 8xx xxxx xxxx"
           />
           <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Used by the footer&apos;s WhatsApp link and as the fallback destination for vehicle
-            leads below.
-          </p>
-        </div>
-        <div>
-          <Label htmlFor="whatsappLeadNumber">Lead WhatsApp Number</Label>
-          <Input
-            id="whatsappLeadNumber"
-            value={form.whatsappLeadNumber}
-            onChange={(e) => set("whatsappLeadNumber", e.target.value)}
-            placeholder="+62 8xx xxxx xxxx"
-          />
-          <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Where vehicle inquiry leads open in WhatsApp. Leave empty to use the General WhatsApp
-            number.
+            Destination for every WhatsApp button on the public site, and the footer&apos;s
+            WhatsApp link.
           </p>
         </div>
         <div className="md:col-span-2">
-          <Label htmlFor="whatsappLeadTemplate">WhatsApp Lead Message</Label>
+          <Label htmlFor="whatsappLeadTemplate">Product Inquiry Message</Label>
           <Textarea
             id="whatsappLeadTemplate"
-            rows={4}
+            rows={3}
             value={form.whatsappLeadTemplate}
             onChange={(e) => set("whatsappLeadTemplate", e.target.value)}
-            placeholder="Halo {company}, saya {name}. Saya tertarik dengan {vehicle}. Boleh saya mendapatkan informasi mengenai detail unit, harga, dan ketersediaannya?"
+            placeholder="Halo {company}, saya tertarik dengan {vehicle} yang saya lihat di website. Mohon info mengenai unit ini."
           />
           <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Pre-fills the message when someone submits the inquiry form on a vehicle page.
-            Available variables: <code className="font-mono text-ink">{"{name}"}</code>,{" "}
+            Pre-fills WhatsApp when a visitor taps the CTA on a specific vehicle. Variables:{" "}
             <code className="font-mono text-ink">{"{vehicle}"}</code>,{" "}
             <code className="font-mono text-ink">{"{company}"}</code>. Leave empty to use the
-            default template shown above as a placeholder.
+            default shown above.
+          </p>
+        </div>
+        <div className="md:col-span-2">
+          <Label htmlFor="whatsappGenericTemplate">Generic WhatsApp Message</Label>
+          <Textarea
+            id="whatsappGenericTemplate"
+            rows={3}
+            value={form.whatsappGenericTemplate}
+            onChange={(e) => set("whatsappGenericTemplate", e.target.value)}
+            placeholder="Halo {company}, saya ingin mengetahui lebih lanjut mengenai unit yang tersedia."
+          />
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            Pre-fills WhatsApp for general contact buttons — homepage, header, contact page,
+            and financing. Variable: <code className="font-mono text-ink">{"{company}"}</code>.
+            Leave empty to use the default shown above.
           </p>
         </div>
       </Fieldset>

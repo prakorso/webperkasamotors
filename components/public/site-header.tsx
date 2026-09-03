@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { WhatsappIcon } from "@/components/icons/social-icons";
 import { MobileNav, MobileSearchButton } from "./mobile-nav";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getNavigationItems } from "@/lib/data/navigation";
+import { genericWhatsAppUrl } from "@/lib/utils/whatsapp";
 
 /**
  * Three intentional compositions, not one scaled down:
@@ -35,6 +37,10 @@ export async function SiteHeader() {
 
   const links = navItems.filter((item) => !item.isCta);
   const cta = navItems.find((item) => item.isCta);
+  // The header CTA ("Hubungi Kami") opens WhatsApp directly with the
+  // generic message — no lead form. Falls back to its configured nav href
+  // (e.g. /contact) only if no usable WhatsApp number is set.
+  const ctaWhatsAppHref = genericWhatsAppUrl(settings);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-surface">
@@ -72,22 +78,33 @@ export async function SiteHeader() {
           >
             <Search size={20} aria-hidden />
           </button>
-          {cta && (
-            <Link
-              href={cta.href}
-              target={cta.isExternal ? "_blank" : undefined}
-              rel={cta.isExternal ? "noopener noreferrer" : undefined}
-              className="flex h-11 items-center bg-primary px-6 font-body text-label uppercase tracking-[0.1em] text-primary-ink transition-colors hover:bg-primary-hover"
-            >
-              {cta.label}
-            </Link>
-          )}
+          {cta &&
+            (ctaWhatsAppHref ? (
+              <a
+                href={ctaWhatsAppHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-11 items-center gap-2 bg-primary px-6 font-body text-label uppercase tracking-[0.1em] text-primary-ink transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <WhatsappIcon size={14} aria-hidden="true" />
+                {cta.label}
+              </a>
+            ) : (
+              <Link
+                href={cta.href}
+                target={cta.isExternal ? "_blank" : undefined}
+                rel={cta.isExternal ? "noopener noreferrer" : undefined}
+                className="flex h-11 items-center bg-primary px-6 font-body text-label uppercase tracking-[0.1em] text-primary-ink transition-colors hover:bg-primary-hover"
+              >
+                {cta.label}
+              </Link>
+            ))}
         </div>
 
         {/* Tablet + mobile: compact search + menu group */}
         <div className="flex items-center gap-1 xl:hidden">
           <MobileSearchButton />
-          <MobileNav links={links} cta={cta} />
+          <MobileNav links={links} cta={cta} ctaWhatsAppHref={ctaWhatsAppHref ?? undefined} />
         </div>
       </div>
     </header>

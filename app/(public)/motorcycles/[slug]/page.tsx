@@ -8,6 +8,8 @@ import {
   getVehicleRedirectTarget,
 } from "@/lib/data/vehicles";
 import { getSocialContentForVehicle } from "@/lib/data/social-content";
+import { getWebsiteSettings } from "@/lib/data/site-settings";
+import { vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 import { vehicleTitle, formatIDR } from "@/lib/utils/format";
 
 export async function generateMetadata(
@@ -44,10 +46,11 @@ export default async function MotorcycleDetailPage(
     notFound();
   }
 
-  const [media, related, socialContent] = await Promise.all([
+  const [media, related, socialContent, settings] = await Promise.all([
     getVehicleMedia(vehicle.id),
     getRelatedVehicles(vehicle),
     getSocialContentForVehicle(vehicle.id),
+    getWebsiteSettings(),
   ]);
   const relatedWithMedia = await Promise.all(
     related.map(async (v) => ({
@@ -62,6 +65,7 @@ export default async function MotorcycleDetailPage(
       media={media}
       relatedVehicles={relatedWithMedia}
       socialContent={socialContent}
+      whatsapp={vehicleWhatsAppConfig(settings)}
     />
   );
 }

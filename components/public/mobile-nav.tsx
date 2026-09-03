@@ -4,10 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, Search, X } from "lucide-react";
 import type { NavigationItem } from "@/lib/types";
+import { WhatsappIcon } from "@/components/icons/social-icons";
 
 interface MobileNavProps {
   links: NavigationItem[];
   cta?: NavigationItem;
+  /** When set, the CTA opens WhatsApp directly (generic message) instead of navigating to cta.href. */
+  ctaWhatsAppHref?: string;
 }
 
 /**
@@ -20,7 +23,7 @@ interface MobileNavProps {
  * importing a hardcoded array — the type import above is type-only, so it
  * doesn't pull lib/data's "server-only" module into the client bundle.
  */
-export function MobileNav({ links, cta }: MobileNavProps) {
+export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -73,15 +76,27 @@ export function MobileNav({ links, cta }: MobileNavProps) {
                 {link.label}
               </Link>
             ))}
-            {cta && (
-              <Link
-                href={cta.href}
-                onClick={() => setOpen(false)}
-                className="mt-4 flex h-11 items-center justify-center bg-primary font-body text-label uppercase tracking-[0.1em] text-primary-ink"
-              >
-                {cta.label}
-              </Link>
-            )}
+            {cta &&
+              (ctaWhatsAppHref ? (
+                <a
+                  href={ctaWhatsAppHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setOpen(false)}
+                  className="mt-4 flex h-11 items-center justify-center gap-2 bg-primary font-body text-label uppercase tracking-[0.1em] text-primary-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <WhatsappIcon size={14} aria-hidden="true" />
+                  {cta.label}
+                </a>
+              ) : (
+                <Link
+                  href={cta.href}
+                  onClick={() => setOpen(false)}
+                  className="mt-4 flex h-11 items-center justify-center bg-primary font-body text-label uppercase tracking-[0.1em] text-primary-ink"
+                >
+                  {cta.label}
+                </Link>
+              ))}
           </nav>
         </div>
       )}

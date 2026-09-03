@@ -1,4 +1,5 @@
 import type { Vehicle, VehicleMedia } from "@/lib/types";
+import type { VehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 import { VehicleCard } from "./vehicle-card";
 import { Pagination } from "./pagination";
 
@@ -10,6 +11,8 @@ interface VehicleCatalogueProps {
   page: number;
   totalPages: number;
   basePath: string;
+  /** Passed straight through to each VehicleCard so its "Saya Tertarik" CTA opens WhatsApp with that vehicle's context. */
+  whatsapp?: VehicleWhatsAppConfig;
 }
 
 /**
@@ -29,6 +32,7 @@ export function VehicleCatalogue({
   page,
   totalPages,
   basePath,
+  whatsapp,
 }: VehicleCatalogueProps) {
   return (
     <div className="mx-auto max-w-container px-6 py-12 md:px-8 lg:px-margin lg:py-16">
@@ -49,6 +53,7 @@ export function VehicleCatalogue({
                 key={vehicle.id}
                 vehicle={vehicle}
                 primaryMedia={mediaByVehicleId[vehicle.id]}
+                whatsapp={whatsapp}
               />
             ))}
           </div>

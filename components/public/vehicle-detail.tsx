@@ -1,9 +1,12 @@
+import Link from "next/link";
 import type { Vehicle, VehicleMedia, SocialContent } from "@/lib/types";
 import { formatIDR, formatMileage, vehicleTitle } from "@/lib/utils/format";
 import { VehicleStatusBadge } from "@/components/ui/vehicle-status-badge";
+import { buttonVariants } from "@/components/ui/button";
+import { vehicleWhatsAppUrl, type VehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 import { VehicleGallery } from "./vehicle-gallery";
 import { VehicleCard } from "./vehicle-card";
-import { InquiryForm } from "./inquiry-form";
+import { WhatsAppCta } from "./whatsapp-cta";
 import { SocialContentStrip } from "./social-content-strip";
 import { SectionHeading } from "./section-heading";
 
@@ -26,6 +29,7 @@ interface VehicleDetailProps {
   media: VehicleMedia[];
   relatedVehicles: Array<{ vehicle: Vehicle; primaryMedia?: VehicleMedia }>;
   socialContent: SocialContent[];
+  whatsapp: VehicleWhatsAppConfig;
 }
 
 export function VehicleDetail({
@@ -33,8 +37,10 @@ export function VehicleDetail({
   media,
   relatedVehicles,
   socialContent,
+  whatsapp,
 }: VehicleDetailProps) {
   const title = vehicleTitle(vehicle);
+  const whatsappHref = vehicleWhatsAppUrl(vehicle, whatsapp);
 
   return (
     <div className="mx-auto max-w-container px-6 py-10 md:px-8 lg:px-margin lg:py-16">
@@ -82,7 +88,21 @@ export function VehicleDetail({
           <p className="mt-8 font-body text-body text-ink">{vehicle.description}</p>
 
           <div className="mt-8">
-            <InquiryForm vehicleTitle={title} vehicleSlug={vehicle.slug} />
+            {whatsappHref ? (
+              <WhatsAppCta
+                href={whatsappHref}
+                label="Saya Tertarik dengan Unit Ini"
+                className="w-full sm:w-auto"
+                ariaLabel={`Tanya ${title} lewat WhatsApp`}
+              />
+            ) : (
+              <Link
+                href="/contact"
+                className={buttonVariants({ variant: "primary", size: "lg" })}
+              >
+                Hubungi Kami
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -97,7 +117,12 @@ export function VehicleDetail({
           <SectionHeading title="Related Vehicles" />
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {relatedVehicles.map(({ vehicle: related, primaryMedia }) => (
-              <VehicleCard key={related.id} vehicle={related} primaryMedia={primaryMedia} />
+              <VehicleCard
+                key={related.id}
+                vehicle={related}
+                primaryMedia={primaryMedia}
+                whatsapp={whatsapp}
+              />
             ))}
           </div>
         </section>
