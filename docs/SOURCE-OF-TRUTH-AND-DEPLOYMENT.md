@@ -32,13 +32,16 @@ patch that doesn't exist in `main`. If Netlify's deployed output and
 GitHub disagree, GitHub is right — the discrepancy itself is the bug to
 fix.
 
-**Known gap:** there is no `netlify.toml` in this repo today — build
-command, publish directory, and Node version currently live only in the
-Netlify dashboard. That's dashboard-only configuration this policy asks
-us to avoid when it can be represented in the repo instead. Codifying it
-needs the actual dashboard values (they're not guessable safely); ask
-before adding one so it doesn't silently override or conflict with
-what's already configured live.
+**Known gap:** there is no `netlify.toml` (and no `.nvmrc`/`engines`
+field) in this repo today. Confirmed dashboard-only, not derivable from
+the repo: build command, publish directory, Node version, whether the
+Next.js Runtime plugin is enabled, redirects, headers, and any
+environment-specific overrides. That's dashboard-only configuration this
+policy asks us to avoid when it can be represented in the repo instead.
+Codifying it needs the actual current dashboard values copied over
+first — they are not guessable safely, and a wrong guess risks breaking
+a working deploy — so ask before adding a `netlify.toml`, and add it as
+a match of the existing live settings, not a redesign of them.
 
 ## 3. CMS content ≠ source code
 
@@ -82,6 +85,14 @@ project has an MCP connection to it — see recent session history), the
 matching `.sql` file must still be committed to `supabase/migrations/` in
 the same change. Applying schema live without a corresponding file
 committed to GitHub is exactly the drift Part 1 warns about.
+
+**Note on timestamps:** the timestamp Supabase records for an applied
+migration is stamped at apply time, not read from the filename — so a
+repo filename like `20260912020000_about_page_sections.sql` and its
+remote-recorded version (e.g. `20260912042652`) legitimately differ.
+Verified 1:1 by name across every migration in this repo — this is the
+established convention, not drift. Match migrations by name/order, never
+"fix" a timestamp to make it equal the remote value.
 
 ## 5. Deployment flow
 
