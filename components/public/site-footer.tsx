@@ -3,6 +3,7 @@ import { getFooterSettings } from "@/lib/data/footer";
 import {
   FacebookIcon,
   InstagramIcon,
+  LinkedinIcon,
   TiktokIcon,
   WhatsappIcon,
   YoutubeIcon,
@@ -22,7 +23,11 @@ export async function SiteFooter() {
   const footer = await getFooterSettings();
   const hasContact = footer.phone || footer.whatsapp || footer.email || footer.address;
   const hasSocial =
-    footer.instagramUrl || footer.facebookUrl || footer.tiktokUrl || footer.youtubeUrl;
+    footer.instagramUrl ||
+    footer.facebookUrl ||
+    footer.tiktokUrl ||
+    footer.youtubeUrl ||
+    footer.linkedinUrl;
   // Bug fix (discovered during the Leads/WhatsApp phase): this used to be
   // footer.whatsapp.replace(/\D/g, ""), which strips non-digits but never
   // turns a leading "0" into the "62" country code wa.me actually needs —
@@ -141,6 +146,19 @@ export async function SiteFooter() {
                         className="block text-paper/80 transition-colors hover:text-primary"
                       >
                         <YoutubeIcon />
+                      </a>
+                    </li>
+                  )}
+                  {footer.linkedinUrl && (
+                    <li>
+                      <a
+                        href={footer.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="LinkedIn"
+                        className="block text-paper/80 transition-colors hover:text-primary"
+                      >
+                        <LinkedinIcon />
                       </a>
                     </li>
                   )}

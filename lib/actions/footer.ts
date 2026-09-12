@@ -18,6 +18,7 @@ export interface UpdateFooterSettingsInput {
   facebookUrl: string | null;
   tiktokUrl: string | null;
   youtubeUrl: string | null;
+  linkedinUrl: string | null;
   copyrightText: string;
 }
 
@@ -50,6 +51,7 @@ export async function updateFooterSettings(
       facebook_url: input.facebookUrl,
       tiktok_url: input.tiktokUrl,
       youtube_url: input.youtubeUrl,
+      linkedin_url: input.linkedinUrl,
       copyright_text: input.copyrightText,
       updated_by: user.id,
     })

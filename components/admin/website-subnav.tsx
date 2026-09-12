@@ -9,6 +9,7 @@ const TABS = [
   { href: "/admin/website/navigation", label: "Header & Navigation" },
   { href: "/admin/website/footer", label: "Footer" },
   { href: "/admin/website/homepage", label: "Homepage" },
+  { href: "/admin/website/about", label: "About" },
 ];
 
 export function WebsiteSubnav() {

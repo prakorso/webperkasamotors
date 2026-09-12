@@ -39,6 +39,7 @@ export function WebsiteFooterForm({ footer }: { footer: FooterSettings }) {
     facebookUrl: footer.facebookUrl ?? "",
     tiktokUrl: footer.tiktokUrl ?? "",
     youtubeUrl: footer.youtubeUrl ?? "",
+    linkedinUrl: footer.linkedinUrl ?? "",
     copyrightText: footer.copyrightText,
   });
   const [saving, setSaving] = useState(false);
@@ -65,6 +66,7 @@ export function WebsiteFooterForm({ footer }: { footer: FooterSettings }) {
       facebookUrl: orNull(form.facebookUrl),
       tiktokUrl: orNull(form.tiktokUrl),
       youtubeUrl: orNull(form.youtubeUrl),
+      linkedinUrl: orNull(form.linkedinUrl),
       copyrightText: form.copyrightText.trim() || "All rights reserved.",
     };
 
@@ -154,6 +156,14 @@ export function WebsiteFooterForm({ footer }: { footer: FooterSettings }) {
             id="footer-youtube"
             value={form.youtubeUrl}
             onChange={(e) => set("youtubeUrl", e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="footer-linkedin">LinkedIn URL</Label>
+          <Input
+            id="footer-linkedin"
+            value={form.linkedinUrl}
+            onChange={(e) => set("linkedinUrl", e.target.value)}
           />
         </div>
       </Fieldset>

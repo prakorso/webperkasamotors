@@ -39,6 +39,7 @@ export async function getFooterSettings(): Promise<FooterSettings> {
     facebookUrl: settings.facebookUrl,
     tiktokUrl: settings.tiktokUrl,
     youtubeUrl: settings.youtubeUrl,
+    linkedinUrl: settings.linkedinUrl,
     copyrightText: settings.copyrightText,
     whatsappGenericTemplate: settings.whatsappGenericTemplate,
     navGroups: Array.from(groups.entries()).map(([groupLabel, items]) => ({

@@ -40,6 +40,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
     facebookUrl: settings.facebookUrl ?? "",
     tiktokUrl: settings.tiktokUrl ?? "",
     youtubeUrl: settings.youtubeUrl ?? "",
+    linkedinUrl: settings.linkedinUrl ?? "",
     seoTitle: settings.seoTitle ?? "",
     seoDescription: settings.seoDescription ?? "",
     defaultCtaLabel: settings.defaultCtaLabel ?? "",
@@ -73,6 +74,7 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
       facebookUrl: orNull(form.facebookUrl),
       tiktokUrl: orNull(form.tiktokUrl),
       youtubeUrl: orNull(form.youtubeUrl),
+      linkedinUrl: orNull(form.linkedinUrl),
       seoTitle: orNull(form.seoTitle),
       seoDescription: orNull(form.seoDescription),
       defaultCtaLabel: orNull(form.defaultCtaLabel),
@@ -241,6 +243,15 @@ export function WebsiteGeneralForm({ settings }: { settings: WebsiteSettings }) 
             value={form.youtubeUrl}
             onChange={(e) => set("youtubeUrl", e.target.value)}
             placeholder="https://youtube.com/…"
+          />
+        </div>
+        <div>
+          <Label htmlFor="linkedinUrl">LinkedIn URL</Label>
+          <Input
+            id="linkedinUrl"
+            value={form.linkedinUrl}
+            onChange={(e) => set("linkedinUrl", e.target.value)}
+            placeholder="https://linkedin.com/company/…"
           />
         </div>
       </Fieldset>

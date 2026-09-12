@@ -24,6 +24,7 @@ export interface UpdateWebsiteSettingsInput {
   facebookUrl: string | null;
   tiktokUrl: string | null;
   youtubeUrl: string | null;
+  linkedinUrl: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
   defaultCtaLabel: string | null;
@@ -56,6 +57,7 @@ export async function updateWebsiteSettings(
       facebook_url: input.facebookUrl,
       tiktok_url: input.tiktokUrl,
       youtube_url: input.youtubeUrl,
+      linkedin_url: input.linkedinUrl,
       seo_title: input.seoTitle,
       seo_description: input.seoDescription,
       default_cta_label: input.defaultCtaLabel,

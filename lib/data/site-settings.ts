@@ -67,6 +67,7 @@ const SAFE_DEFAULTS: WebsiteSettings = {
   facebookUrl: null,
   tiktokUrl: null,
   youtubeUrl: null,
+  linkedinUrl: null,
   seoTitle: "Perkasa Motors — Premium Automotive Showroom",
   seoDescription:
     "Perkasa Motors is a curated premium automotive showroom — precision, performance, and Perkasa.",
@@ -87,7 +88,7 @@ const SAFE_DEFAULTS: WebsiteSettings = {
 
 const SETTINGS_COLUMNS =
   "company_name, tagline, logo_storage_path, favicon_storage_path, phone, whatsapp, " +
-  "email, address, instagram_url, facebook_url, tiktok_url, youtube_url, seo_title, " +
+  "email, address, instagram_url, facebook_url, tiktok_url, youtube_url, linkedin_url, seo_title, " +
   "seo_description, seo_og_image_storage_path, default_cta_label, default_cta_url, " +
   "copyright_text, footer_description, whatsapp_lead_template, whatsapp_generic_template, " +
   "whatsapp_lead_number, " +
@@ -114,6 +115,7 @@ interface SettingsRow {
   facebook_url: string | null;
   tiktok_url: string | null;
   youtube_url: string | null;
+  linkedin_url: string | null;
   seo_title: string | null;
   seo_description: string | null;
   seo_og_image_storage_path: string | null;
@@ -220,6 +222,7 @@ function mapSettingsRow(row: SettingsRow): WebsiteSettings {
     facebookUrl: row.facebook_url,
     tiktokUrl: row.tiktok_url,
     youtubeUrl: row.youtube_url,
+    linkedinUrl: row.linkedin_url,
     seoTitle: row.seo_title,
     seoDescription: row.seo_description,
     seoOgImageUrl: resolvePublicUrl(row.seo_og_image_storage_path),

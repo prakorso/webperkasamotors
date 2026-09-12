@@ -16,6 +16,7 @@ export interface WebsiteSettings {
   facebookUrl: string | null;
   tiktokUrl: string | null;
   youtubeUrl: string | null;
+  linkedinUrl: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
   seoOgImageUrl: string | null;
