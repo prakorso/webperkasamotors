@@ -80,6 +80,22 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
   // auto-timer), but instantly rather than crossfading.
   const transitionClass = prefersReducedMotion ? "" : "transition-opacity duration-700 ease-in-out";
 
+  // PHASE 1.5 fix: the background image/section above crossfades over the
+  // full 700ms, which is right for a smooth image transition but is wrong
+  // for the text — two headlines both mid-fade are both readable at once
+  // (confirmed on screen at 768px). Text now has its own, faster,
+  // offset timing, independent of the image: the outgoing slide's text
+  // drops to 0 quickly with no delay, the incoming slide's text waits
+  // until the outgoing one is guaranteed fully gone before it starts
+  // fading in. 200ms out + a 300ms delay before 500ms in leaves a
+  // ~100ms gap where neither is visible — text exits, a beat of just the
+  // image, then the new text enters, while the image keeps crossfading
+  // underneath the whole time. Reduced motion still swaps instantly.
+  const textOutClass = prefersReducedMotion ? "opacity-0" : "opacity-0 transition-opacity duration-200 ease-in";
+  const textInClass = prefersReducedMotion
+    ? "opacity-100"
+    : "opacity-100 transition-opacity duration-500 delay-300 ease-out";
+
   return (
     <div
       // Explicit height on the wrapper itself (matching Hero's own h-[..vh]
@@ -109,7 +125,11 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
               : `pointer-events-none absolute inset-0 z-0 opacity-0 ${transitionClass}`
           }
         >
-          <Hero {...slide} priority={i === 0} />
+          <Hero
+            {...slide}
+            priority={i === 0}
+            textClassName={i === safeIndex ? textInClass : textOutClass}
+          />
         </div>
       ))}
 

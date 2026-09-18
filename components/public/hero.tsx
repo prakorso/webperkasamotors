@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils/cn";
 
 export interface HeroContent {
   eyebrow: string | null;
@@ -43,6 +44,14 @@ export const DEFAULT_HERO: HeroContent = {
  * eager-loading behavior it always had. HeroSlideshow is the only caller
  * that ever passes false, for every slide after the first — see its own
  * comment for why.
+ *
+ * textClassName is an optional override merged onto the text block (the
+ * eyebrow/headline/description/CTA column), separate from the image
+ * behind it. HeroSlideshow uses this to give outgoing/incoming text its
+ * own fast-out/delayed-in timing instead of crossfading in lockstep with
+ * the (slower) background image — see that file's comment for why. Plain
+ * single-Hero callers never pass it, so their text has no transition of
+ * its own (unchanged behavior).
  */
 export function Hero({
   eyebrow,
@@ -52,7 +61,8 @@ export function Hero({
   ctaLabel,
   ctaUrl,
   priority = true,
-}: HeroContent & { priority?: boolean }) {
+  textClassName,
+}: HeroContent & { priority?: boolean; textClassName?: string }) {
   const headlineLines = headline.split("\n").filter(Boolean);
 
   return (
@@ -68,7 +78,7 @@ export function Hero({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(215,25,32,0.18),transparent_60%)]" />
       )}
       <div className="relative z-10 mx-auto w-full max-w-container px-6 md:px-8 lg:px-margin">
-        <div className="max-w-xl lg:max-w-2xl">
+        <div className={cn("max-w-xl lg:max-w-2xl", textClassName)}>
           {eyebrow && (
             <p className="mb-3 font-body text-label uppercase tracking-[0.1em] text-primary">{eyebrow}</p>
           )}
