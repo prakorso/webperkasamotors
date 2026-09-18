@@ -4,7 +4,11 @@ import type { Vehicle, VehicleMedia } from "@/lib/types";
 import { formatIDR, formatMileage, vehicleTitle } from "@/lib/utils/format";
 import { VehicleStatusBadge } from "@/components/ui/vehicle-status-badge";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
-import { vehicleWhatsAppUrl, type VehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
+import {
+  vehicleWhatsAppUrl,
+  genericVehicleWhatsAppUrl,
+  type VehicleWhatsAppConfig,
+} from "@/lib/utils/whatsapp";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -23,7 +27,16 @@ interface VehicleCardProps {
 export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProps) {
   const basePath = vehicle.vehicleType === "CAR" ? "/cars" : "/motorcycles";
   const detailHref = `${basePath}/${vehicle.slug}`;
-  const whatsappHref = whatsapp ? vehicleWhatsAppUrl(vehicle, whatsapp) : null;
+  // AVAILABLE = acquisition state → the normal per-vehicle CTA. Anything
+  // else (SOLD, RESERVED) is a social-proof/information state — the card
+  // must not produce a message implying this exact unit can still be
+  // bought, so it falls back to a generic "ask about other units" CTA.
+  const isAvailable = vehicle.status === "AVAILABLE";
+  const whatsappHref = whatsapp
+    ? isAvailable
+      ? vehicleWhatsAppUrl(vehicle, whatsapp)
+      : genericVehicleWhatsAppUrl(whatsapp)
+    : null;
 
   return (
     <div className="group flex flex-col border border-border bg-surface transition-colors hover:border-ink">
@@ -80,11 +93,15 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
         <div className="px-6 pb-6">
           <WhatsAppCta
             href={whatsappHref}
-            label="Saya Tertarik"
+            label={isAvailable ? "Saya Tertarik" : "Tanya Unit Lain"}
             variant="secondary"
             size="md"
             className="w-full"
-            ariaLabel={`Tanya ${vehicleTitle(vehicle)} lewat WhatsApp`}
+            ariaLabel={
+              isAvailable
+                ? `Tanya ${vehicleTitle(vehicle)} lewat WhatsApp`
+                : "Tanya unit lain yang tersedia lewat WhatsApp"
+            }
           />
         </div>
       )}

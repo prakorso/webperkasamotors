@@ -98,6 +98,8 @@ export interface VehicleWhatsAppConfig {
   companyName: string;
   /** website_settings.whatsapp_lead_template — the product template, or null for the default. */
   productTemplate: string | null;
+  /** website_settings.whatsapp_generic_template — used for non-AVAILABLE vehicles (SOLD/RESERVED), where a message implying interest in acquiring *that exact unit* would be misleading. Null for the default. */
+  genericTemplate: string | null;
 }
 
 /** One-call helper for a vehicle CTA's href. Returns null when no usable number is configured. */
@@ -111,12 +113,32 @@ export function vehicleWhatsAppUrl(
   );
 }
 
+/**
+ * The CTA for a vehicle that is NOT available (SOLD, RESERVED, ...) — a
+ * plain generic inquiry, deliberately not built from the vehicle record
+ * (vehicleWhatsAppUrl/productWhatsAppMessage), since that message says
+ * "saya tertarik dengan {vehicle}... mohon info mengenai unit ini", which
+ * would misleadingly read as interest in buying a unit that's gone.
+ * Reuses the same generic message/URL building blocks as
+ * genericWhatsAppUrl() (lib/utils/whatsapp.ts) — no new WhatsApp logic,
+ * just composed against VehicleWhatsAppConfig's narrower shape instead of
+ * a full WebsiteSettings, since that's what the vehicle card/detail
+ * components already receive.
+ */
+export function genericVehicleWhatsAppUrl(config: VehicleWhatsAppConfig): string | null {
+  return buildWhatsAppUrl(
+    config.number,
+    genericWhatsAppMessage(config.companyName, config.genericTemplate)
+  );
+}
+
 /** Pulls the vehicle-CTA config out of the site settings row — one place, so every catalogue/detail page passes the same thing down. */
 export function vehicleWhatsAppConfig(settings: WebsiteSettings): VehicleWhatsAppConfig {
   return {
     number: settings.whatsapp,
     companyName: settings.companyName,
     productTemplate: settings.whatsappLeadTemplate,
+    genericTemplate: settings.whatsappGenericTemplate,
   };
 }
 
