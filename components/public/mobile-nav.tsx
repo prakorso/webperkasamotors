@@ -42,6 +42,19 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
+  // Lock background scroll while the panel is open, and restore whatever
+  // was there before on close/unmount — without this, the page behind the
+  // panel kept scrolling (and stayed visibly un-dimmed, see the backdrop
+  // below), so it read as part of the page rather than an overlay.
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   return (
     <>
       <button
@@ -57,13 +70,23 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
       </button>
 
       {open && (
-        <div
-          id="mobile-nav-panel"
-          ref={panelRef}
-          tabIndex={-1}
-          className="absolute inset-x-0 top-full border-t border-border bg-surface xl:hidden"
-        >
-          <nav aria-label="Primary" className="flex flex-col px-6 py-4">
+        <>
+          {/* Backdrop: dims and visually separates the page from the open
+              panel, and doubles as a large tap target to close it — the
+              panel previously floated over still-visible, still-scrollable
+              page content with no separation at all. */}
+          <div
+            aria-hidden="true"
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 top-16 z-40 bg-ink/40 md:top-[72px] xl:hidden"
+          />
+          <div
+            id="mobile-nav-panel"
+            ref={panelRef}
+            tabIndex={-1}
+            className="absolute inset-x-0 top-full z-50 border-t border-border bg-surface xl:hidden"
+          >
+            <nav aria-label="Primary" className="flex flex-col px-6 py-4">
             {links.map((link) => (
               <Link
                 key={link.id}
@@ -97,8 +120,9 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
                   {cta.label}
                 </Link>
               ))}
-          </nav>
-        </div>
+            </nav>
+          </div>
+        </>
       )}
     </>
   );

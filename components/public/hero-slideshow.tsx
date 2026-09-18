@@ -82,7 +82,18 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
 
   return (
     <div
-      className="relative"
+      // Explicit height on the wrapper itself (matching Hero's own h-[..vh]
+      // scale) — every slide below is `absolute inset-0`, including the
+      // active one, so sizing never depends on which single slide happens
+      // to be "in flow". Previously only the active slide was in normal
+      // flow and the rest were absolute; at the moment the active index
+      // changed, the outgoing slide switched to absolute while the
+      // incoming one switched out of it in the same render, and both were
+      // still mid-opacity-transition — a real window where two slides
+      // could render fully stacked and visible together (observed at
+      // 768px). Every slide now uses the same absolute/inset-0 box at all
+      // times, so only opacity (never layout) ever changes between them.
+      className="relative h-[68vh] w-full overflow-hidden md:h-[70vh] lg:h-[80vh]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
@@ -94,8 +105,8 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
           aria-hidden={i !== safeIndex}
           className={
             i === safeIndex
-              ? `opacity-100 ${transitionClass}`
-              : `pointer-events-none absolute inset-0 opacity-0 ${transitionClass}`
+              ? `absolute inset-0 z-10 opacity-100 ${transitionClass}`
+              : `pointer-events-none absolute inset-0 z-0 opacity-0 ${transitionClass}`
           }
         >
           <Hero {...slide} priority={i === 0} />

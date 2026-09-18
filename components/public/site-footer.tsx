@@ -48,7 +48,11 @@ export async function SiteFooter() {
 
   return (
     <footer className="border-t border-border bg-ink text-paper">
-      <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
+        {/* py-section (120px) is the editorial rhythm for content
+            sections — the footer is navigational chrome, not content, so
+            it gets a lighter desktop rhythm (80px) instead of inheriting
+            the same generous spacing as a homepage section. */}
+      <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-20">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           <div className="lg:col-span-6">
             <p className="font-display text-headline-lg">{footer.companyName}</p>

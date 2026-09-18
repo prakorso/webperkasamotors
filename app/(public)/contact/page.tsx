@@ -31,7 +31,7 @@ export default async function ContactPage() {
         </div>
 
         <div className="lg:col-span-6 lg:col-start-7">
-          <div className="flex flex-col gap-6 border border-border bg-surface p-8">
+          <div className="flex flex-col gap-6 border border-border bg-surface p-6 md:p-8">
             <div>
               <p className="font-body text-body text-ink">Chat langsung dengan tim Perkasa Motors.</p>
               <p className="mt-2 font-body text-[13px] text-muted">
@@ -40,7 +40,15 @@ export default async function ContactPage() {
             </div>
 
             {whatsappHref ? (
-              <WhatsAppCta href={whatsappHref} label="Hubungi via WhatsApp" className="w-full sm:w-auto" />
+              <WhatsAppCta
+                href={whatsappHref}
+                label="Hubungi via WhatsApp"
+                // Sits inside a padded card (p-6/p-8) at "lg" size (px-8) —
+                // at 320–375px viewport widths the remaining content width
+                // is tight enough for a 20-character label plus icon that
+                // it's safer to allow a wrap than assume it always fits.
+                className="h-auto min-h-13 w-full whitespace-normal py-3 text-center sm:w-auto"
+              />
             ) : (
               <Link
                 href="/"

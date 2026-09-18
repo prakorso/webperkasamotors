@@ -92,7 +92,17 @@ export function VehicleDetail({
               <WhatsAppCta
                 href={whatsappHref}
                 label="Saya Tertarik dengan Unit Ini"
-                className="w-full sm:w-auto"
+                // buttonVariants defaults to whitespace-nowrap, sized for
+                // short labels — at 12px+tracked-uppercase this specific
+                // 29-character label is wider than a 320-375px viewport
+                // can hold at "lg" size (h-13, px-8), which would either
+                // clip the text or push the page into horizontal scroll.
+                // Overriding to wrap + auto height (twMerge resolves the
+                // whitespace/height conflicts in favor of these) keeps it
+                // on one line wherever there's room and lets it break to
+                // two lines, still centered and fully tappable, wherever
+                // there isn't.
+                className="h-auto min-h-13 w-full whitespace-normal py-3 text-center sm:w-auto"
                 ariaLabel={`Tanya ${title} lewat WhatsApp`}
               />
             ) : (

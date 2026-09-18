@@ -42,7 +42,7 @@ export function VehicleCatalogue({
       </div>
 
       {vehicles.length === 0 ? (
-        <p className="border border-border bg-surface p-10 text-center font-body text-body text-muted">
+        <p className="border border-border bg-surface p-6 text-center font-body text-body text-muted md:p-10">
           No vehicles available in this category right now.
         </p>
       ) : (

@@ -12,7 +12,25 @@ import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getActiveHomepageBenefits } from "@/lib/data/homepage-benefits";
 import { getActiveTestimonials } from "@/lib/data/testimonials";
 import { genericWhatsAppUrl, vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
+import { cn } from "@/lib/utils/cn";
 import type { HeroSlideSettings, AboutSectionSettings, WhyPerkasaSectionSettings, HomepageBenefit } from "@/lib/types";
+
+/**
+ * Featured Stock grid columns, keyed by how many featured vehicles there
+ * actually are. A small, growing inventory means this is very often 1–2
+ * items right now — a static `lg:grid-cols-4` would leave 2–3 empty
+ * trailing column tracks next to the real cards, which reads as broken
+ * or unfinished rather than as a small, intentional catalogue. Matching
+ * the column count to the real count means the grid is always full.
+ * (Static class strings, not a template literal, so Tailwind's build-time
+ * scanner can find and keep them.)
+ */
+const FEATURED_GRID_COLS: Record<number, string> = {
+  1: "mx-auto max-w-sm sm:grid-cols-1 lg:grid-cols-1",
+  2: "mx-auto max-w-3xl sm:grid-cols-2 lg:grid-cols-2",
+  3: "sm:grid-cols-2 lg:grid-cols-3",
+  4: "sm:grid-cols-2 lg:grid-cols-4",
+};
 
 /**
  * A slide participates in the public rotation only if it's marked active
@@ -120,7 +138,7 @@ export default async function HomePage() {
             Lihat Semua →
           </Link>
         </div>
-        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={cn("mt-10 grid grid-cols-1 gap-6", FEATURED_GRID_COLS[featuredWithMedia.length] ?? FEATURED_GRID_COLS[4])}>
           {featuredWithMedia.map(({ vehicle, primaryMedia }) => (
             <VehicleCard
               key={vehicle.id}
@@ -144,7 +162,11 @@ export default async function HomePage() {
         </h2>
         <div className="mt-8">
           {genericWhatsappHref ? (
-            <WhatsAppCta href={genericWhatsappHref} label="Hubungi via WhatsApp" />
+            <WhatsAppCta
+              href={genericWhatsappHref}
+              label="Hubungi via WhatsApp"
+              className="h-auto min-h-13 whitespace-normal py-3 text-center"
+            />
           ) : (
             <Link
               href="/contact"

@@ -117,7 +117,7 @@ export function FinancingCalculator({ whatsapp }: FinancingCalculatorProps) {
         </div>
       </div>
 
-      <div className="flex flex-col justify-between border border-border bg-surface p-8 lg:col-span-6">
+      <div className="flex flex-col justify-between border border-border bg-surface p-6 lg:col-span-6 lg:p-8">
         <div>
           <p className="font-body text-label uppercase tracking-[0.1em] text-muted">
             Estimasi Cicilan / Bulan
@@ -156,7 +156,11 @@ export function FinancingCalculator({ whatsapp }: FinancingCalculatorProps) {
             href={whatsappHref}
             label="Tanya Simulasi via WhatsApp"
             size="md"
-            className="mt-6 w-full"
+            // Same overflow risk as the vehicle-detail CTA (27 characters,
+            // nowrap by default) — this one sits inside a p-6/p-8 card,
+            // which narrows the available width further, so it's even
+            // tighter at 320–375px. Same wrap + auto-height override.
+            className="h-auto min-h-11 w-full whitespace-normal py-2.5 text-center"
           />
         )}
       </div>

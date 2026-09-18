@@ -45,8 +45,14 @@
   --text-display-md--letter-spacing: -0.03em;
   --text-display-md--font-weight: 700;
 
-  /* Mobile hero */
-  --text-display-sm: 2.5rem; /* 40px */
+  /* Mobile hero — fluid 36px (320px viewport) to 40px (767px viewport),
+   * instead of one flat size across the whole mobile range. Endpoints are
+   * unchanged from the previous static 2.5rem (40px), so nothing at the
+   * true minimum/maximum viewport shrinks or grows beyond what shipped
+   * before — only the interior of the range is smoother. Reduces the
+   * "rigid" feel of a hero headline that stayed exactly the same size on
+   * a 320px phone and a 767px tablet. */
+  --text-display-sm: clamp(2.25rem, 2.07rem + 0.89vw, 2.5rem);
   --text-display-sm--line-height: 2.75rem; /* 44px */
   --text-display-sm--letter-spacing: -0.02em;
   --text-display-sm--font-weight: 700;
@@ -66,9 +72,13 @@
   --text-body: 1rem; /* 16px */
   --text-body--line-height: 1.5rem;
 
+  /* 0.1em -> 0.08em: this token drives nav links, eyebrows, spec labels,
+   * and every CTA button (uppercase + bold at 12px is already assertive;
+   * the wider tracking was tipping it toward corporate/SaaS rather than
+   * editorial). Still comfortably readable at 12px, just less shouty. */
   --text-label: 0.75rem; /* 12px */
   --text-label--line-height: 1rem;
-  --text-label--letter-spacing: 0.1em;
+  --text-label--letter-spacing: 0.08em;
   --text-label--font-weight: 700;
 
   /* -- Spacing: spacious editorial scale (public site) -- */

@@ -54,7 +54,7 @@ export default async function AboutPage() {
     <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
       <IntroSection section={intro} />
       {rest.map((section) => (
-        <div key={section.id} className="mt-16 border-t border-border pt-16">
+        <div key={section.id} className="mt-12 border-t border-border pt-12 lg:mt-16 lg:pt-16">
           <SectionHeading eyebrow={section.eyebrow ?? undefined} title={section.headline ?? ""} />
           {section.body && <ArticleContent content={section.body} />}
         </div>
