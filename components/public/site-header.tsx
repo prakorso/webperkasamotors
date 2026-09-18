@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { WhatsappIcon } from "@/components/icons/social-icons";
-import { MobileNav, MobileSearchButton } from "./mobile-nav";
+import { MobileNav } from "./mobile-nav";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getNavigationItems } from "@/lib/data/navigation";
 import { genericWhatsAppUrl } from "@/lib/utils/whatsapp";
@@ -10,8 +9,11 @@ import { genericWhatsAppUrl } from "@/lib/utils/whatsapp";
 /**
  * Three intentional compositions, not one scaled down:
  *  - Desktop (xl: 1280px+)  full nav + CTA, spacious padding
- *  - Tablet  (md: 768–1279) logo + search + menu, reduced padding
- *  - Mobile  (<768)         logo + search + hamburger, compact padding
+ *  - Tablet  (md: 768–1279) logo + menu, reduced padding
+ *  - Mobile  (<768)         logo + hamburger, compact padding
+ * PHASE 2A: the search icon (desktop and tablet/mobile) was removed —
+ * it was decorative-only, with no onClick, no search route, and no
+ * actual search implementation behind it.
  * The wordmark carries `whitespace-nowrap` at every breakpoint so it can
  * never wrap onto two lines regardless of available width.
  *
@@ -69,15 +71,8 @@ export async function SiteHeader() {
           ))}
         </nav>
 
-        {/* Desktop only: search + primary CTA */}
+        {/* Desktop only: primary CTA */}
         <div className="hidden items-center gap-4 xl:flex">
-          <button
-            type="button"
-            aria-label="Search"
-            className="text-muted transition-colors hover:text-primary"
-          >
-            <Search size={20} aria-hidden />
-          </button>
           {cta &&
             (ctaWhatsAppHref ? (
               <a
@@ -101,9 +96,8 @@ export async function SiteHeader() {
             ))}
         </div>
 
-        {/* Tablet + mobile: compact search + menu group */}
+        {/* Tablet + mobile: menu */}
         <div className="flex items-center gap-1 xl:hidden">
-          <MobileSearchButton />
           <MobileNav links={links} cta={cta} ctaWhatsAppHref={ctaWhatsAppHref ?? undefined} />
         </div>
       </div>

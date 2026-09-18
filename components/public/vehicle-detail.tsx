@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Vehicle, VehicleMedia, SocialContent } from "@/lib/types";
+import type { Vehicle, VehicleMedia } from "@/lib/types";
 import { formatIDR, formatMileage, vehicleTitle } from "@/lib/utils/format";
 import { VehicleStatusBadge } from "@/components/ui/vehicle-status-badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { vehicleWhatsAppUrl, type VehicleWhatsAppConfig } from "@/lib/utils/what
 import { VehicleGallery } from "./vehicle-gallery";
 import { VehicleCard } from "./vehicle-card";
 import { WhatsAppCta } from "./whatsapp-cta";
-import { SocialContentStrip } from "./social-content-strip";
 import { SectionHeading } from "./section-heading";
 
 const SPEC_ROWS: Array<{ label: string; value: (v: Vehicle) => string }> = [
@@ -28,7 +27,6 @@ interface VehicleDetailProps {
   vehicle: Vehicle;
   media: VehicleMedia[];
   relatedVehicles: Array<{ vehicle: Vehicle; primaryMedia?: VehicleMedia }>;
-  socialContent: SocialContent[];
   whatsapp: VehicleWhatsAppConfig;
 }
 
@@ -36,7 +34,6 @@ export function VehicleDetail({
   vehicle,
   media,
   relatedVehicles,
-  socialContent,
   whatsapp,
 }: VehicleDetailProps) {
   const title = vehicleTitle(vehicle);
@@ -116,11 +113,6 @@ export function VehicleDetail({
           </div>
         </div>
       </div>
-
-      <section className="mt-16 lg:mt-24">
-        <SectionHeading eyebrow="Social" title="From Instagram" />
-        <SocialContentStrip items={socialContent} />
-      </section>
 
       {relatedVehicles.length > 0 && (
         <section className="mt-16 lg:mt-24">

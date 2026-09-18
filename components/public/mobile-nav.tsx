@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Menu, Search, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import type { NavigationItem } from "@/lib/types";
 import { WhatsappIcon } from "@/components/icons/social-icons";
 
@@ -15,8 +15,8 @@ interface MobileNavProps {
 
 /**
  * Client component: the interactive hamburger/menu behavior shared by the
- * tablet (search + menu) and mobile (logo + search + hamburger) header
- * compositions. Desktop never renders this — it shows the full nav inline.
+ * tablet and mobile header compositions. Desktop never renders this — it
+ * shows the full nav inline.
  *
  * PHASE 2C: links/cta come from SiteHeader (which fetches them server-side
  * via lib/data/navigation.ts) as props, rather than this component
@@ -125,17 +125,5 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
         </>
       )}
     </>
-  );
-}
-
-export function MobileSearchButton() {
-  return (
-    <button
-      type="button"
-      aria-label="Search"
-      className="flex h-11 w-11 items-center justify-center text-ink transition-colors hover:text-primary"
-    >
-      <Search size={20} aria-hidden />
-    </button>
   );
 }

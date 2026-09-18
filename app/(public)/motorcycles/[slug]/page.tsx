@@ -7,7 +7,6 @@ import {
   getRelatedVehicles,
   getVehicleRedirectTarget,
 } from "@/lib/data/vehicles";
-import { getSocialContentForVehicle } from "@/lib/data/social-content";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 import { vehicleTitle, formatIDR } from "@/lib/utils/format";
@@ -46,10 +45,9 @@ export default async function MotorcycleDetailPage(
     notFound();
   }
 
-  const [media, related, socialContent, settings] = await Promise.all([
+  const [media, related, settings] = await Promise.all([
     getVehicleMedia(vehicle.id),
     getRelatedVehicles(vehicle),
-    getSocialContentForVehicle(vehicle.id),
     getWebsiteSettings(),
   ]);
   const relatedWithMedia = await Promise.all(
@@ -64,7 +62,6 @@ export default async function MotorcycleDetailPage(
       vehicle={vehicle}
       media={media}
       relatedVehicles={relatedWithMedia}
-      socialContent={socialContent}
       whatsapp={vehicleWhatsAppConfig(settings)}
     />
   );
