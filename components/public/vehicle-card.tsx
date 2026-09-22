@@ -39,10 +39,10 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
     : null;
 
   return (
-    <div className="group flex flex-col border border-border bg-surface transition-colors hover:border-ink">
+    <div className="group flex flex-col rounded-[20px] border border-border/80 bg-surface shadow-[0_14px_40px_rgba(17,19,21,0.06)] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-[0_24px_60px_rgba(17,19,21,0.1)]">
       <Link
         href={detailHref}
-        className="flex flex-1 flex-col focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+        className="flex flex-1 flex-col rounded-[20px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
       >
         {/* aspect-[4/5] (not the old 4/3): real uploads are native 4:5
          *  portrait photos (1080x1350 — confirmed against live vehicle_media,
@@ -54,26 +54,26 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
          *  is the right call instead) needs little to no vertical crop for
          *  the common case, while still cropping predictably for whatever
          *  isn't exactly 4:5. */}
-        <div className="relative aspect-[4/5] overflow-hidden bg-surface-muted">
+        <div className="relative mx-2 mt-2 aspect-[4/5] overflow-hidden rounded-[16px] bg-surface-muted">
           {primaryMedia && (
             <Image
               src={primaryMedia.url}
               alt={primaryMedia.altText}
               fill
               sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035]"
             />
           )}
           <div className="absolute left-3 top-3">
             <VehicleStatusBadge status={vehicle.status} />
           </div>
         </div>
-        <div className="flex flex-1 flex-col gap-3 p-6">
-          <p className="font-body text-label uppercase tracking-[0.1em] text-muted">
+        <div className="flex flex-1 flex-col gap-3 p-5 md:p-6">
+          <p className="font-body text-label font-semibold uppercase tracking-[0.06em] text-muted">
             {vehicle.year}
           </p>
-          <h3 className="font-display text-headline-sm text-ink">{vehicleTitle(vehicle)}</h3>
-          <dl className="grid grid-cols-2 gap-y-1 border-y border-border py-3 font-body text-[13px] text-muted">
+          <h3 className="font-display text-headline-sm leading-tight text-ink">{vehicleTitle(vehicle)}</h3>
+          <dl className="grid grid-cols-2 gap-y-1 border-y border-border/70 py-3 font-body text-[13px] text-muted">
             <div>
               <dt className="sr-only">Transmission</dt>
               <dd>{vehicle.transmission === "AUTOMATIC" ? "Automatic" : vehicle.transmission}</dd>
@@ -83,14 +83,14 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
               <dd>{formatMileage(vehicle.mileageKm)}</dd>
             </div>
           </dl>
-          <p className="mt-auto font-body text-body-lg font-semibold text-ink">
+          <p className="mt-auto font-display text-[22px] font-semibold tabular-nums text-ink">
             {formatIDR(vehicle.price)}
           </p>
         </div>
       </Link>
 
       {whatsappHref && (
-        <div className="px-6 pb-6">
+        <div className="px-5 pb-5 md:px-6 md:pb-6">
           <WhatsAppCta
             href={whatsappHref}
             label={isAvailable ? "Saya Tertarik" : "Tanya Unit Lain"}

@@ -66,23 +66,34 @@ export function Hero({
   const headlineLines = headline.split("\n").filter(Boolean);
 
   return (
-    <section className="relative flex h-[68vh] w-full items-center overflow-hidden bg-ink md:h-[70vh] lg:h-[80vh]">
+    <section className="relative flex h-[72svh] min-h-[540px] w-full items-center overflow-hidden bg-ink md:h-[74svh] lg:h-[82svh] lg:min-h-[680px]">
       {imageUrl ? (
         <>
-          <Image src={imageUrl} alt="" fill priority={priority} sizes="100vw" className="object-cover" />
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            priority={priority}
+            sizes="100vw"
+            className="object-cover object-center brightness-[0.82] saturate-[1.04]"
+          />
           {/* Dark scrim over a real photo — keeps text-paper headline/body
               legible the same way the default gradient treatment does. */}
-          <div className="absolute inset-0 bg-ink/60" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(17,19,21,0.82)_0%,rgba(17,19,21,0.56)_42%,rgba(17,19,21,0.18)_100%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-ink/60 to-transparent" />
         </>
       ) : (
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(215,25,32,0.18),transparent_60%)]" />
+        <>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_24%,rgba(215,25,32,0.2),transparent_34%),linear-gradient(135deg,#111315_0%,#232729_52%,#111315_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(17,19,21,0.18),rgba(17,19,21,0.6))]" />
+        </>
       )}
       <div className="relative z-10 mx-auto w-full max-w-container px-6 md:px-8 lg:px-margin">
         <div className={cn("max-w-xl lg:max-w-2xl", textClassName)}>
           {eyebrow && (
-            <p className="mb-3 font-body text-label uppercase tracking-[0.1em] text-primary">{eyebrow}</p>
+            <p className="mb-4 font-body text-label uppercase tracking-[0.06em] text-paper/75">{eyebrow}</p>
           )}
-          <h1 className="font-display text-display-sm text-paper md:text-display-md lg:text-display-lg">
+          <h1 className="font-display text-display-sm text-paper drop-shadow-[0_16px_34px_rgba(0,0,0,0.22)] md:text-display-md lg:text-display-lg">
             {headlineLines.map((line, i) => (
               <span key={i}>
                 {line}
@@ -91,7 +102,7 @@ export function Hero({
             ))}
           </h1>
           {description && (
-            <p className="mt-6 max-w-md font-body text-body text-paper/70 lg:text-body-lg">{description}</p>
+            <p className="mt-6 max-w-lg font-body text-body text-paper/78 lg:text-body-lg">{description}</p>
           )}
           <div className="mt-8">
             <Link href={ctaUrl} className={buttonVariants({ variant: "primary", size: "lg" })}>

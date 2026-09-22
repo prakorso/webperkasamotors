@@ -24,7 +24,7 @@ export default async function ArticlesPage(props: PageProps<"/articles">) {
       </div>
 
       {articles.length === 0 ? (
-        <p className="border border-border bg-surface p-10 text-center font-body text-body text-muted">
+        <p className="rounded-[24px] border border-border/80 bg-surface p-10 text-center font-body text-body text-muted shadow-[0_12px_32px_rgba(17,19,21,0.05)]">
           No articles published yet — check back soon.
         </p>
       ) : (

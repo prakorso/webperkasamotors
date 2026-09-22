@@ -56,13 +56,13 @@ export function VehicleDetail({
           <VehicleGallery media={media} />
         </div>
 
-        <div className="md:col-span-1 lg:col-span-5">
+        <div className="rounded-[24px] border border-border/80 bg-surface p-6 shadow-[0_16px_48px_rgba(17,19,21,0.06)] md:col-span-1 md:p-7 lg:col-span-5 lg:p-8">
           <VehicleStatusBadge status={vehicle.status} />
           <h1 className="mt-4 font-display text-headline-lg text-ink lg:text-display-sm">
             {title}
           </h1>
           <p className="mt-2 font-body text-body text-muted">{vehicle.stockNumber}</p>
-          <p className="mt-6 font-display text-headline-lg text-primary">
+          <p className="mt-6 font-display text-headline-lg font-semibold tabular-nums text-ink">
             {formatIDR(vehicle.price)}
           </p>
 
@@ -71,7 +71,7 @@ export function VehicleDetail({
               {vehicle.highlights.map((h) => (
                 <li
                   key={h}
-                  className="border border-border bg-surface-muted px-3 py-1.5 font-body text-[12px] text-ink"
+                  className="rounded-[9px] border border-border bg-surface-muted px-3 py-1.5 font-body text-[12px] text-ink"
                 >
                   {h}
                 </li>
@@ -79,7 +79,7 @@ export function VehicleDetail({
             </ul>
           )}
 
-          <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border py-5 sm:grid-cols-3">
+          <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 rounded-[16px] border border-border/80 bg-paper p-5 sm:grid-cols-3">
             {SPEC_ROWS.map((row) => (
               <div key={row.label}>
                 <dt className="font-body text-[12px] uppercase tracking-[0.06em] text-muted">

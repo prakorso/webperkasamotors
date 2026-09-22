@@ -31,7 +31,7 @@ export default async function ContactPage() {
         </div>
 
         <div className="lg:col-span-6 lg:col-start-7">
-          <div className="flex flex-col gap-6 border border-border bg-surface p-6 md:p-8">
+          <div className="flex flex-col gap-6 rounded-[24px] border border-border/80 bg-surface p-6 shadow-[0_16px_48px_rgba(17,19,21,0.06)] md:p-8">
             <div>
               <p className="font-body text-body text-ink">Chat langsung dengan tim Perkasa Motors.</p>
               <p className="mt-2 font-body text-[13px] text-muted">

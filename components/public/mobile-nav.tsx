@@ -64,7 +64,7 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
         aria-expanded={open}
         aria-controls="mobile-nav-panel"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-11 w-11 items-center justify-center text-ink transition-colors hover:text-primary"
+        className="flex h-11 w-11 items-center justify-center rounded-[12px] text-ink transition-[background-color,color] duration-200 hover:bg-surface-muted hover:text-primary"
       >
         {open ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
       </button>
@@ -78,15 +78,15 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
           <div
             aria-hidden="true"
             onClick={() => setOpen(false)}
-            className="fixed inset-0 top-16 z-40 bg-ink/40 md:top-[72px] xl:hidden"
+            className="fixed inset-0 top-16 z-40 bg-ink/45 backdrop-blur-[2px] md:top-[72px] xl:hidden"
           />
           <div
             id="mobile-nav-panel"
             ref={panelRef}
             tabIndex={-1}
-            className="absolute inset-x-0 top-full z-50 border-t border-border bg-surface xl:hidden"
+            className="absolute inset-x-3 top-full z-50 rounded-b-[24px] border border-t-0 border-border bg-surface shadow-[0_24px_60px_rgba(17,19,21,0.16)] xl:hidden"
           >
-            <nav aria-label="Primary" className="flex flex-col px-6 py-4">
+            <nav aria-label="Primary" className="flex flex-col px-5 py-4">
             {links.map((link) => (
               <Link
                 key={link.id}
@@ -94,7 +94,7 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
                 onClick={() => setOpen(false)}
                 target={link.isExternal ? "_blank" : undefined}
                 rel={link.isExternal ? "noopener noreferrer" : undefined}
-                className="border-b border-border py-4 font-body text-body-lg text-ink last:border-b-0 hover:text-primary"
+                className="border-b border-border/80 py-4 font-body text-body font-medium text-ink transition-colors duration-200 last:border-b-0 hover:text-primary"
               >
                 {link.label}
               </Link>
@@ -106,7 +106,7 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setOpen(false)}
-                  className="mt-4 flex h-11 items-center justify-center gap-2 bg-primary font-body text-label uppercase tracking-[0.1em] text-primary-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="mt-4 flex h-11 items-center justify-center gap-2 rounded-[12px] border border-primary bg-primary font-body text-label font-semibold uppercase tracking-[0.06em] text-primary-ink shadow-[0_10px_24px_rgba(215,25,32,0.16)] transition-colors duration-200 hover:border-primary-hover hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                 >
                   <WhatsappIcon size={14} aria-hidden="true" />
                   {cta.label}
@@ -115,7 +115,7 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
                 <Link
                   href={cta.href}
                   onClick={() => setOpen(false)}
-                  className="mt-4 flex h-11 items-center justify-center bg-primary font-body text-label uppercase tracking-[0.1em] text-primary-ink"
+                  className="mt-4 flex h-11 items-center justify-center rounded-[12px] border border-primary bg-primary font-body text-label font-semibold uppercase tracking-[0.06em] text-primary-ink shadow-[0_10px_24px_rgba(215,25,32,0.16)] transition-colors duration-200 hover:border-primary-hover hover:bg-primary-hover"
                 >
                   {cta.label}
                 </Link>

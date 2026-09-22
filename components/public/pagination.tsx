@@ -49,7 +49,7 @@ export function Pagination({
         rel={page > 1 ? "prev" : undefined}
         tabIndex={page <= 1 ? -1 : undefined}
         className={cn(
-          "flex h-11 w-11 items-center justify-center border border-border font-body text-body text-ink transition-colors hover:border-ink",
+          "flex h-11 w-11 items-center justify-center rounded-[10px] border border-border font-body text-body text-ink transition-[border-color,background-color] duration-200 hover:border-ink hover:bg-surface-muted",
           page <= 1 && "pointer-events-none opacity-40"
         )}
       >
@@ -66,7 +66,7 @@ export function Pagination({
             href={href(p)}
             aria-current={p === page ? "page" : undefined}
             className={cn(
-              "flex h-11 w-11 items-center justify-center border font-body text-body transition-colors",
+              "flex h-11 w-11 items-center justify-center rounded-[10px] border font-body text-body transition-[border-color,background-color,color] duration-200",
               p === page
                 ? "border-ink bg-ink text-paper"
                 : "border-border text-ink hover:border-ink"
@@ -83,7 +83,7 @@ export function Pagination({
         rel={page < totalPages ? "next" : undefined}
         tabIndex={page >= totalPages ? -1 : undefined}
         className={cn(
-          "flex h-11 w-11 items-center justify-center border border-border font-body text-body text-ink transition-colors hover:border-ink",
+          "flex h-11 w-11 items-center justify-center rounded-[10px] border border-border font-body text-body text-ink transition-[border-color,background-color] duration-200 hover:border-ink hover:bg-surface-muted",
           page >= totalPages && "pointer-events-none opacity-40"
         )}
       >

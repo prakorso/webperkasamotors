@@ -17,22 +17,22 @@ export function ArticleCard({ article }: { article: Article }) {
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="group flex flex-col border border-border bg-surface transition-colors hover:border-ink"
+      className="group flex flex-col rounded-[20px] border border-border/80 bg-surface shadow-[0_12px_32px_rgba(17,19,21,0.05)] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-[0_20px_48px_rgba(17,19,21,0.09)]"
     >
-      <div className="relative aspect-[3/2] w-full overflow-hidden bg-surface-muted">
+      <div className="relative aspect-[3/2] w-full overflow-hidden rounded-t-[20px] bg-surface-muted">
         {article.coverImageUrl ? (
           <Image
             src={article.coverImageUrl}
             alt=""
             fill
             sizes="(min-width: 1024px) 33vw, 100vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035]"
           />
         ) : null}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-5">
         {article.category && (
-          <span className="font-body text-[11px] uppercase tracking-[0.08em] text-primary">
+          <span className="font-body text-[11px] font-semibold uppercase tracking-[0.06em] text-primary">
             {article.category}
           </span>
         )}

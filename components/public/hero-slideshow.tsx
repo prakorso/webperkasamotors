@@ -109,7 +109,7 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
       // could render fully stacked and visible together (observed at
       // 768px). Every slide now uses the same absolute/inset-0 box at all
       // times, so only opacity (never layout) ever changes between them.
-      className="relative h-[68vh] w-full overflow-hidden md:h-[70vh] lg:h-[80vh]"
+      className="relative h-[72svh] min-h-[540px] w-full overflow-hidden md:h-[74svh] lg:h-[82svh] lg:min-h-[680px]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
@@ -138,7 +138,7 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
           type="button"
           onClick={goToPrevious}
           aria-label="Previous slide"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-paper/30 text-paper transition-colors hover:border-paper hover:bg-paper/10"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-paper/25 bg-ink/20 text-paper shadow-[0_10px_24px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-[background-color,border-color] duration-200 hover:border-paper/70 hover:bg-paper/10"
         >
           <ChevronLeft size={18} aria-hidden />
         </button>
@@ -153,8 +153,8 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
               aria-current={i === safeIndex}
               className={
                 i === safeIndex
-                  ? "h-2 w-6 rounded-full bg-primary transition-all"
-                  : "h-2 w-2 rounded-full bg-paper/50 transition-all hover:bg-paper/80"
+                  ? "h-2 w-7 rounded-full bg-primary transition-all duration-200"
+                  : "h-2 w-2 rounded-full bg-paper/55 transition-all duration-200 hover:bg-paper/85"
               }
             />
           ))}
@@ -164,7 +164,7 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
           type="button"
           onClick={goToNext}
           aria-label="Next slide"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-paper/30 text-paper transition-colors hover:border-paper hover:bg-paper/10"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-paper/25 bg-ink/20 text-paper shadow-[0_10px_24px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-[background-color,border-color] duration-200 hover:border-paper/70 hover:bg-paper/10"
         >
           <ChevronRight size={18} aria-hidden />
         </button>

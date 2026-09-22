@@ -41,7 +41,7 @@ export function AboutSection({ eyebrow, headline, description, imageUrl, ctaLabe
         )}
       >
         {hasImage && (
-          <div className="relative aspect-[4/3] overflow-hidden bg-surface-muted lg:aspect-square">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] bg-surface-muted shadow-[0_18px_50px_rgba(17,19,21,0.1)] lg:aspect-square">
             <Image
               src={imageUrl!}
               alt={headline}

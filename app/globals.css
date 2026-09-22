@@ -4,45 +4,47 @@
  * Perkasa Motors design tokens.
  * Source of truth: the Google Stitch "Perkasa Motors Premium Showroom" project.
  * Single, deliberately light theme — matches the approved brand direction.
- * Do not add rounded-* utilities to brand surfaces; sharp 0px corners are the default.
+ * Geometry is intentionally controlled: softened premium editorial surfaces,
+ * not pill-shaped SaaS chrome.
  */
 @theme inline {
   /* -- Color: black / white base, single red accent -- */
-  --color-ink: #1a1c1c; /* primary text */
-  --color-paper: #f9f9f9; /* page background */
+  --color-ink: #111315; /* primary text */
+  --color-graphite: #232729; /* deep neutral surface */
+  --color-paper: #f7f7f5; /* page background */
   --color-surface: #ffffff; /* card / panel background */
-  --color-surface-muted: #eeeeee; /* subtle fill */
-  --color-border: #e0e0e0; /* editorial neutral border */
-  --color-muted: #5f5e5e; /* secondary text */
-  --color-muted-2: #8b8b8b; /* tertiary text */
+  --color-surface-muted: #eff0ee; /* subtle fill */
+  --color-border: #d9dee3; /* editorial neutral border */
+  --color-muted: #62666a; /* secondary text */
+  --color-muted-2: #8b9094; /* tertiary text */
 
   --color-primary: #d71920; /* CTA / accent fill */
   --color-primary-ink: #ffffff; /* text on primary */
-  --color-primary-hover: #121212; /* brand hover state: red -> near-black */
-  --color-accent-deep: #ae0011; /* secondary red, links / small accents */
+  --color-primary-hover: #a90f15; /* restrained action hover */
+  --color-accent-deep: #a90f15; /* secondary red, links / small accents */
 
   /* Semantic (kept distinct from the brand accent) */
-  --color-success: #2b6e4f;
-  --color-success-bg: #e8f4ee;
-  --color-warning: #a8590c;
-  --color-warning-bg: #fdf1e2;
-  --color-info: #2a5a86;
-  --color-info-bg: #e9f1f8;
+  --color-success: #2f684d;
+  --color-success-bg: #e8f3ed;
+  --color-warning: #8f651d;
+  --color-warning-bg: #f7efd9;
+  --color-info: #4b5563;
+  --color-info-bg: #eceff1;
 
   /* -- Typography -- */
   --font-display: var(--font-space-grotesk), ui-sans-serif, sans-serif;
   --font-body: var(--font-inter), ui-sans-serif, sans-serif;
 
   /* Desktop hero (lg: and up) */
-  --text-display-lg: 4.5rem; /* 72px */
-  --text-display-lg--line-height: 5rem; /* 80px */
-  --text-display-lg--letter-spacing: -0.04em;
+  --text-display-lg: 4.25rem; /* 68px */
+  --text-display-lg--line-height: 4.55rem; /* 72.8px */
+  --text-display-lg--letter-spacing: 0;
   --text-display-lg--font-weight: 700;
 
   /* Tablet hero (md: only) */
-  --text-display-md: 3.5rem; /* 56px */
-  --text-display-md--line-height: 3.75rem; /* 60px */
-  --text-display-md--letter-spacing: -0.03em;
+  --text-display-md: 3.25rem; /* 52px */
+  --text-display-md--line-height: 3.55rem; /* 56.8px */
+  --text-display-md--letter-spacing: 0;
   --text-display-md--font-weight: 700;
 
   /* Mobile hero — fluid 36px (320px viewport) to 40px (767px viewport),
@@ -53,13 +55,13 @@
    * "rigid" feel of a hero headline that stayed exactly the same size on
    * a 320px phone and a 767px tablet. */
   --text-display-sm: clamp(2.25rem, 2.07rem + 0.89vw, 2.5rem);
-  --text-display-sm--line-height: 2.75rem; /* 44px */
-  --text-display-sm--letter-spacing: -0.02em;
+  --text-display-sm--line-height: 2.8rem; /* 44.8px */
+  --text-display-sm--letter-spacing: 0;
   --text-display-sm--font-weight: 700;
 
   --text-headline-lg: 2rem; /* 32px */
-  --text-headline-lg--line-height: 2.5rem;
-  --text-headline-lg--letter-spacing: -0.01em;
+  --text-headline-lg--line-height: 2.35rem;
+  --text-headline-lg--letter-spacing: 0;
   --text-headline-lg--font-weight: 600;
 
   --text-headline-sm: 1.5rem; /* 24px */
@@ -72,14 +74,10 @@
   --text-body: 1rem; /* 16px */
   --text-body--line-height: 1.5rem;
 
-  /* 0.1em -> 0.08em: this token drives nav links, eyebrows, spec labels,
-   * and every CTA button (uppercase + bold at 12px is already assertive;
-   * the wider tracking was tipping it toward corporate/SaaS rather than
-   * editorial). Still comfortably readable at 12px, just less shouty. */
   --text-label: 0.75rem; /* 12px */
   --text-label--line-height: 1rem;
-  --text-label--letter-spacing: 0.08em;
-  --text-label--font-weight: 700;
+  --text-label--letter-spacing: 0.06em;
+  --text-label--font-weight: 600;
 
   /* -- Spacing: spacious editorial scale (public site) -- */
   --spacing-element: 1rem; /* 16px */
@@ -99,6 +97,7 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
+  text-rendering: geometricPrecision;
 }
 
 ::selection {
@@ -109,5 +108,16 @@ body {
 /* Visible focus state everywhere — never removed for a "cleaner" look. */
 :focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

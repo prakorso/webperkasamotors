@@ -30,7 +30,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
         <SectionHeading eyebrow="Testimoni" title="Apa Kata Pelanggan Kami" className="text-center" />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((item) => (
-            <figure key={item.id} className="flex flex-col border border-border bg-paper p-6 md:p-8">
+            <figure key={item.id} className="flex flex-col rounded-[20px] border border-border/80 bg-paper p-6 shadow-[0_12px_32px_rgba(17,19,21,0.05)] md:p-8">
               <Quote className="mb-4 text-primary/40" size={28} aria-hidden />
               <blockquote className="flex-1 font-body text-body text-ink">{item.testimonial}</blockquote>
               <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-6">

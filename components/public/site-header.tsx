@@ -45,7 +45,7 @@ export async function SiteHeader() {
   const ctaWhatsAppHref = genericWhatsAppUrl(settings);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-surface">
+    <header className="sticky top-0 z-50 border-b border-border/80 bg-surface/95 shadow-[0_8px_30px_rgba(17,19,21,0.05)] backdrop-blur-md">
       <div className="relative mx-auto flex h-16 max-w-container items-center justify-between px-6 md:h-[72px] md:px-8 xl:h-20 xl:px-margin">
         <Link href="/" className="whitespace-nowrap">
           <Logo
@@ -57,14 +57,14 @@ export async function SiteHeader() {
         </Link>
 
         {/* Desktop only: full navigation */}
-        <nav aria-label="Primary" className="hidden gap-8 xl:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-8 xl:flex">
           {links.map((link) => (
             <Link
               key={link.id}
               href={link.href}
               target={link.isExternal ? "_blank" : undefined}
               rel={link.isExternal ? "noopener noreferrer" : undefined}
-              className="font-body text-label uppercase tracking-[0.1em] text-muted transition-colors hover:text-primary"
+              className="font-body text-[12px] font-semibold uppercase tracking-[0.06em] text-muted transition-colors duration-200 hover:text-ink"
             >
               {link.label}
             </Link>
@@ -79,7 +79,7 @@ export async function SiteHeader() {
                 href={ctaWhatsAppHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-11 items-center gap-2 bg-primary px-6 font-body text-label uppercase tracking-[0.1em] text-primary-ink transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex h-11 items-center gap-2 rounded-[12px] border border-primary bg-primary px-6 font-body text-label font-semibold uppercase tracking-[0.06em] text-primary-ink shadow-[0_10px_24px_rgba(215,25,32,0.16)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:border-primary-hover hover:bg-primary-hover hover:shadow-[0_14px_30px_rgba(169,15,21,0.2)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary active:translate-y-px"
               >
                 <WhatsappIcon size={14} aria-hidden="true" />
                 {cta.label}
@@ -89,7 +89,7 @@ export async function SiteHeader() {
                 href={cta.href}
                 target={cta.isExternal ? "_blank" : undefined}
                 rel={cta.isExternal ? "noopener noreferrer" : undefined}
-                className="flex h-11 items-center bg-primary px-6 font-body text-label uppercase tracking-[0.1em] text-primary-ink transition-colors hover:bg-primary-hover"
+                className="flex h-11 items-center rounded-[12px] border border-primary bg-primary px-6 font-body text-label font-semibold uppercase tracking-[0.06em] text-primary-ink shadow-[0_10px_24px_rgba(215,25,32,0.16)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:border-primary-hover hover:bg-primary-hover hover:shadow-[0_14px_30px_rgba(169,15,21,0.2)] active:translate-y-px"
               >
                 {cta.label}
               </Link>

@@ -63,7 +63,7 @@ export default async function ArticleDetailPage(props: PageProps<"/articles/[slu
     <article className="mx-auto max-w-3xl px-6 py-12 md:px-8 lg:py-16">
       <Link
         href="/articles"
-        className="font-body text-[13px] uppercase tracking-[0.08em] text-muted hover:text-primary"
+        className="font-body text-[13px] font-semibold uppercase tracking-[0.06em] text-muted transition-colors hover:text-primary"
       >
         ← Articles
       </Link>
@@ -83,7 +83,7 @@ export default async function ArticleDetailPage(props: PageProps<"/articles/[slu
       </div>
 
       {article.coverImageUrl && (
-        <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden border border-border bg-surface-muted">
+        <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-[20px] border border-border/80 bg-surface-muted shadow-[0_18px_50px_rgba(17,19,21,0.08)]">
           <Image
             src={article.coverImageUrl}
             alt=""
@@ -104,7 +104,7 @@ export default async function ArticleDetailPage(props: PageProps<"/articles/[slu
           {article.tags.map((tag) => (
             <span
               key={tag}
-              className="border border-border bg-surface-muted px-3 py-1.5 font-body text-[12px] text-ink"
+              className="rounded-[9px] border border-border bg-surface-muted px-3 py-1.5 font-body text-[12px] text-ink"
             >
               {tag}
             </span>

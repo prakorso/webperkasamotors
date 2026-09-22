@@ -93,7 +93,7 @@ export function FinancingCalculator({ whatsapp }: FinancingCalculatorProps) {
                 onClick={() => setTenor(t)}
                 aria-pressed={tenor === t}
                 className={
-                  "h-10 border px-4 font-body text-[13px] transition-colors " +
+                  "h-11 rounded-[10px] border px-4 font-body text-[13px] transition-[background-color,border-color,color] duration-200 " +
                   (tenor === t
                     ? "border-ink bg-ink text-paper"
                     : "border-border bg-surface text-ink hover:border-ink")
@@ -117,12 +117,12 @@ export function FinancingCalculator({ whatsapp }: FinancingCalculatorProps) {
         </div>
       </div>
 
-      <div className="flex flex-col justify-between border border-border bg-surface p-6 lg:col-span-6 lg:p-8">
+      <div className="flex flex-col justify-between rounded-[24px] border border-border/80 bg-surface p-6 shadow-[0_16px_48px_rgba(17,19,21,0.06)] lg:col-span-6 lg:p-8">
         <div>
-          <p className="font-body text-label uppercase tracking-[0.1em] text-muted">
+          <p className="font-body text-label font-semibold uppercase tracking-[0.06em] text-muted">
             Estimasi Cicilan / Bulan
           </p>
-          <p className="mt-3 font-display text-display-sm text-primary">
+          <p className="mt-3 font-display text-display-sm font-semibold tabular-nums text-ink">
             {formatIDR(monthlyPayment)}
           </p>
         </div>

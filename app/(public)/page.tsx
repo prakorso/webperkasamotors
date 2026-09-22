@@ -133,7 +133,7 @@ export default async function HomePage() {
           <SectionHeading eyebrow="Showroom" title="Featured Stock" className="mb-0" />
           <Link
             href="/cars"
-            className="hidden font-body text-label uppercase tracking-[0.1em] text-primary hover:text-ink md:inline-block"
+            className="hidden font-body text-label font-semibold uppercase tracking-[0.06em] text-primary transition-colors hover:text-ink md:inline-block"
           >
             Lihat Semua →
           </Link>
@@ -170,7 +170,7 @@ export default async function HomePage() {
           ) : (
             <Link
               href="/contact"
-              className="inline-flex h-13 items-center bg-primary px-8 font-body text-label uppercase tracking-[0.1em] text-primary-ink transition-colors hover:bg-primary-hover"
+              className="inline-flex h-13 items-center rounded-[12px] border border-primary bg-primary px-8 font-body text-label font-semibold uppercase tracking-[0.06em] text-primary-ink shadow-[0_8px_20px_rgba(215,25,32,0.14)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-primary-hover hover:bg-primary-hover"
             >
               Hubungi Kami
             </Link>

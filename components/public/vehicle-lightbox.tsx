@@ -148,7 +148,7 @@ export function VehicleLightbox({
             type="button"
             onClick={toggleZoom}
             aria-label={zoom > 1 ? "Zoom out" : "Zoom in"}
-            className="flex h-10 w-10 items-center justify-center text-paper hover:text-primary"
+            className="flex h-10 w-10 items-center justify-center rounded-[10px] text-paper transition-colors hover:bg-paper/10 hover:text-primary"
           >
             {zoom > 1 ? <ZoomOut size={20} aria-hidden /> : <ZoomIn size={20} aria-hidden />}
           </button>
@@ -156,7 +156,7 @@ export function VehicleLightbox({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-10 w-10 items-center justify-center text-paper hover:text-primary"
+            className="flex h-10 w-10 items-center justify-center rounded-[10px] text-paper transition-colors hover:bg-paper/10 hover:text-primary"
           >
             <X size={22} aria-hidden />
           </button>
@@ -197,7 +197,7 @@ export function VehicleLightbox({
             type="button"
             onClick={() => goTo(index - 1)}
             aria-label="Previous photo"
-            className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink/50 text-paper transition-colors hover:bg-ink/80 md:left-4"
+            className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[12px] bg-ink/55 text-paper shadow-lg backdrop-blur-[2px] transition-colors hover:bg-ink/80 md:left-4"
           >
             <ChevronLeft size={24} aria-hidden />
           </button>
@@ -205,7 +205,7 @@ export function VehicleLightbox({
             type="button"
             onClick={() => goTo(index + 1)}
             aria-label="Next photo"
-            className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink/50 text-paper transition-colors hover:bg-ink/80 md:right-4"
+            className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[12px] bg-ink/55 text-paper shadow-lg backdrop-blur-[2px] transition-colors hover:bg-ink/80 md:right-4"
           >
             <ChevronRight size={24} aria-hidden />
           </button>

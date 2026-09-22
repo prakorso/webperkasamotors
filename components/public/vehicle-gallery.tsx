@@ -62,7 +62,7 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
 
   return (
     <div>
-      <div className="relative aspect-[4/3] w-full overflow-hidden border border-border bg-surface-muted lg:aspect-[16/9]">
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-border/80 bg-surface-muted shadow-[0_18px_50px_rgba(17,19,21,0.08)] lg:aspect-[16/9]">
         <button
           type="button"
           onClick={() => setLightboxOpen(true)}
@@ -87,7 +87,7 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
                 goTo(activeIndex - 1);
               }}
               aria-label="Previous photo"
-              className="absolute left-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-ink/50 text-paper transition-colors hover:bg-ink/80"
+              className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[12px] bg-ink/55 text-paper shadow-lg backdrop-blur-[2px] transition-colors hover:bg-ink/80"
             >
               <ChevronLeft size={18} aria-hidden />
             </button>
@@ -98,11 +98,11 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
                 goTo(activeIndex + 1);
               }}
               aria-label="Next photo"
-              className="absolute right-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-ink/50 text-paper transition-colors hover:bg-ink/80"
+              className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[12px] bg-ink/55 text-paper shadow-lg backdrop-blur-[2px] transition-colors hover:bg-ink/80"
             >
               <ChevronRight size={18} aria-hidden />
             </button>
-            <span className="absolute bottom-3 right-3 z-20 rounded-full bg-ink/60 px-2.5 py-1 font-body text-[12px] tabular-nums text-paper">
+            <span className="absolute bottom-4 right-4 z-20 rounded-[9px] bg-ink/65 px-2.5 py-1 font-body text-[12px] tabular-nums text-paper backdrop-blur-[2px]">
               {activeIndex + 1} / {media.length}
             </span>
           </>
@@ -121,8 +121,8 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
                 aria-label={`Show ${item.altText || "photo"}`}
                 aria-pressed={itemIndex === activeIndex}
                 className={cn(
-                  "relative aspect-[4/3] overflow-hidden border bg-surface-muted transition-colors lg:aspect-[16/9]",
-                  itemIndex === activeIndex ? "border-ink" : "border-border hover:border-muted"
+                  "relative aspect-[4/3] overflow-hidden rounded-[14px] border bg-surface-muted transition-[border-color,box-shadow] duration-200 lg:aspect-[16/9]",
+                  itemIndex === activeIndex ? "border-ink shadow-[0_8px_24px_rgba(17,19,21,0.1)]" : "border-border hover:border-muted"
                 )}
               >
                 <Image src={item.url} alt={item.altText} fill sizes="20vw" className="object-cover" />

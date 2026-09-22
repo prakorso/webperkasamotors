@@ -68,7 +68,7 @@ export function WhyPerkasaSection({ eyebrow, headline, description, benefits }: 
             return (
               <div
                 key={benefit.id}
-                className="flex flex-col items-center border border-border bg-paper p-6 text-center md:p-8"
+                className="flex flex-col items-center rounded-[20px] border border-border/80 bg-paper p-6 text-center shadow-[0_12px_32px_rgba(17,19,21,0.05)] md:p-8"
               >
                 <Icon className="mb-6 text-primary" size={40} aria-hidden />
                 <h3 className="mb-3 font-display text-headline-sm text-ink">{benefit.title}</h3>
