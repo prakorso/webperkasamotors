@@ -43,6 +43,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local QA evidence (screenshots, etc.) — not committed
+/evidence/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

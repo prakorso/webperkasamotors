@@ -468,3 +468,394 @@ how clean the code itself looks.
 installed), then re-run the browser QA against the routes and viewports listed in
 §2–§3 of this report. No further code investigation is needed first — the
 implementation has already passed every check that doesn't require a browser.
+
+*(§10's decision was superseded by Phase 2C.3C below, which succeeded in obtaining
+real browser evidence through a different mechanism. §§0–10 above are preserved
+unmodified as the historical record of what was and wasn't possible with
+Claude-in-Chrome specifically.)*
+
+---
+
+## 14. Phase 2C.3C — Real Browser QA via an alternative real-browser mechanism
+
+**Date:** 2026-09-30 (same day, second follow-up)
+**Starting HEAD for this attempt:** `b205707`
+
+### 14.1 Attempt history (preserved, not overwritten)
+
+- **Attempt 1** (original Phase 2C.3): Claude-in-Chrome unavailable — timeout on `tabs_context_mcp`.
+- **Attempt 2** (Phase 2C.3B): Claude-in-Chrome still unavailable — definitive "not connected" response, tried twice.
+- **Attempt 3** (Phase 2C.3C, this section): **succeeded**, using a different real-browser mechanism.
+
+### 14.2 Environment audit — what was already available
+
+Per this phase's explicit instruction to prefer an existing mechanism over installing
+a new one:
+
+| Mechanism | Status |
+|---|---|
+| `@playwright/test` in `package.json` / `node_modules` | Not present as a real dependency — the string appears once in `package-lock.json` but is not installed in `node_modules` and not a project dependency. Not usable without installing. |
+| Cached `npx` packages (`%LOCALAPPDATA%\npm-cache\_npx`) | Two cached entries found — `serve` and `skills`. Neither is a browser automation tool. |
+| Google Chrome | **Installed** at `C:\Program Files\Google\Chrome\Application\chrome.exe` (Chrome 154.0.8037.57). |
+| Microsoft Edge | Installed at `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe` (not used — Chrome was already found first and is sufficient). |
+| `ms-playwright` browser cache | Not present. |
+| Node.js built-in `fetch` / `WebSocket` | **Present** (Node v26.3.0) — both are stable globals in this Node version. |
+
+**Decision:** Chrome itself ships a real browser automation interface — the Chrome
+DevTools Protocol (CDP) — reachable over `--remote-debugging-port`, with no
+additional software required. Combined with Node's built-in `fetch`/`WebSocket`,
+this is a genuine "already available browser automation mechanism" per this phase's
+§4(B)/(C): it opens real pages, runs real JavaScript in the page context, resizes
+the viewport (`Emulation.setDeviceMetricsOverride`), reads the real console, and
+renders real CSS/layout — it is the actual Chrome rendering engine, not a
+simulation. **No new npm package was installed. `package.json` was not touched.**
+
+Launched with:
+```
+chrome.exe --headless=new --disable-gpu --remote-debugging-port=9222 --user-data-dir=<scratchpad>/chrome-profile --no-first-run --no-default-browser-check about:blank
+```
+
+Confirmed reachable:
+```
+$ curl http://localhost:9222/json/version
+{"Browser":"Chrome/154.0.8037.57","Protocol-Version":"1.3", ...}
+```
+
+A small (~170 line) driver script was written using only Node's built-in `fetch`
+and `WebSocket` — no dependency installed — to open tabs, navigate, set viewport
+size, evaluate JavaScript in-page, capture screenshots, and read
+console/network/exception events over CDP. The script itself lives in this
+session's scratchpad directory, not in the repository (it's a QA instrument, not
+application code).
+
+### 14.3 Application under test
+
+The already-running local production server on `http://localhost:3100` — started
+earlier from this exact branch's build (`next start`, no dependency or Netlify
+changes). No stash was applied. No production data was modified.
+
+### 14.4 Responsive QA matrix — real measured evidence
+
+All 7 routes × 4 viewports = 28 combinations, `window.innerWidth` /
+`document.documentElement.scrollWidth` read directly from each live page via
+`Runtime.evaluate`:
+
+| Route | Target | Actual Width | Scroll Width | Result | Notes |
+|---|---:|---:|---:|---|---|
+| `/` | 390 | 390 | 390 | PASS | clean |
+| `/` | 768 | 768 | 753 | PASS | clean |
+| `/` | 1024 | 1024 | 1009 | PASS | clean |
+| `/` | 1440 | 1440 | 1425 | PASS | clean |
+| `/cars` | 390 | 390 | 390 | PASS | clean |
+| `/cars` | 768 | 768 | 753 | PASS | clean |
+| `/cars` | 1024 | 1024 | 1009 | PASS | clean |
+| `/cars` | 1440 | 1440 | 1425 | PASS | clean |
+| `/motorcycles` | 390 | 390 | 390 | PASS | clean |
+| `/motorcycles` | 768 | 768 | 753 | PASS | clean |
+| `/motorcycles` | 1024 | 1024 | 1009 | PASS | clean |
+| `/motorcycles` | 1440 | 1440 | 1425 | PASS | clean |
+| `/cars/hyundai-grand-avega-hatchback-2012` (AVAILABLE) | 390 | 390 | 390 | PASS | clean |
+| `/cars/hyundai-grand-avega-hatchback-2012` (AVAILABLE) | 768 | 768 | 753 | PASS | clean |
+| `/cars/hyundai-grand-avega-hatchback-2012` (AVAILABLE) | 1024 | 1024 | 1009 | PASS | clean |
+| `/cars/hyundai-grand-avega-hatchback-2012` (AVAILABLE) | 1440 | 1440 | 1425 | PASS | clean |
+| `/cars/hyundai-grand-avega-hatchback-2013-2` (SOLD) | 390 | 390 | 390 | PASS | clean |
+| `/cars/hyundai-grand-avega-hatchback-2013-2` (SOLD) | 768 | 768 | 753 | PASS | clean |
+| `/cars/hyundai-grand-avega-hatchback-2013-2` (SOLD) | 1024 | 1024 | 1009 | PASS | clean |
+| `/cars/hyundai-grand-avega-hatchback-2013-2` (SOLD) | 1440 | 1440 | 1425 | PASS | clean |
+| `/motorcycles/suzuki-gsx-r-sport-2017` (AVAILABLE) | 390 | 390 | 390 | PASS | clean |
+| `/motorcycles/suzuki-gsx-r-sport-2017` (AVAILABLE) | 768 | 768 | 753 | PASS | clean |
+| `/motorcycles/suzuki-gsx-r-sport-2017` (AVAILABLE) | 1024 | 1024 | 1009 | PASS | clean |
+| `/motorcycles/suzuki-gsx-r-sport-2017` (AVAILABLE) | 1440 | 1440 | 1425 | PASS | clean |
+| `/motorcycles/yamaha-r15-v3-sport-2019` (SOLD) | 390 | 390 | 390 | PASS | clean |
+| `/motorcycles/yamaha-r15-v3-sport-2019` (SOLD) | 768 | 768 | 753 | PASS | clean |
+| `/motorcycles/yamaha-r15-v3-sport-2019` (SOLD) | 1024 | 1024 | 1009 | PASS | clean |
+| `/motorcycles/yamaha-r15-v3-sport-2019` (SOLD) | 1440 | 1440 | 1425 | PASS | clean |
+
+**No horizontal overflow anywhere.** `scrollWidth` never exceeds `innerWidth` on any
+route/viewport combination — in fact it's consistently a few px *under* at ≥768px,
+which is `document.documentElement.scrollWidth` correctly excluding the vertical
+scrollbar's own width (normal, not a defect). All target widths (390/768/1024/1440)
+were reachable exactly via `Emulation.setDeviceMetricsOverride` — no substitution or
+rounding needed, unlike a real device where the actual width can differ from the
+target.
+
+### 14.5 Console / runtime / network evidence
+
+Collected live for all 28 combinations via `Runtime.consoleAPICalled`,
+`Runtime.exceptionThrown`, and `Network.loadingFailed`/`responseReceived`:
+
+- **Console errors/warnings: 0** on every route at every viewport.
+- **Uncaught JS exceptions: 0** on every route at every viewport (this also rules out
+  hydration mismatches, which surface as console errors/exceptions — none were seen).
+- **Failed network requests: 0** genuine failures. (The first run of this check
+  logged `net::ERR_ABORTED` on Next.js's own link-prefetch/RSC fetches that get
+  cancelled every time this script navigates away mid-flight — that's normal
+  browser behavior for an automated rapid-navigation script, not a site defect, and
+  was excluded from the final count after correlating request IDs to URLs and
+  confirming what they were.)
+
+**Runtime console: PASS.**
+
+### 14.6 Image / DOM-level checks (queried directly, not inferred)
+
+For every one of the 28 combinations, via a direct DOM query after each navigation:
+
+- **Broken images (`img.complete && img.naturalWidth === 0`): 0** everywhere.
+- **Nested anchors (`querySelectorAll('a a').length`): 0** everywhere — confirms the
+  Phase 2C.2 server-HTML check with a second, independent method.
+- **Images with empty `alt`:** exactly 2 on the homepage, at every viewport — both are
+  the hero slideshow's background photos (`alt=""`), which is the correct,
+  deliberate pattern for a purely decorative background image (the actual headline
+  text is what conveys the meaning, not the photo). Zero elsewhere. Vehicle photos
+  on cards, catalogues, and detail pages/galleries all carry the Phase 2C.2
+  deterministic fallback, confirmed live, e.g. `"HYUNDAI GRAND AVEGA HATCHBACK 2012
+  — foto 2"`, `"SUZUKI GSX R SPORT 2017 — foto 3"`.
+
+**Image alt: PASS** (confirmed live, not just server-HTML-inferred as in the earlier
+attempts).
+
+### 14.7 CTA evidence (live `getBoundingClientRect` + `href`, not just text match)
+
+**AVAILABLE — `/cars/hyundai-grand-avega-hatchback-2012` @ 390×844:**
+Primary CTA: `<a>` "Saya Tertarik dengan Unit Ini", `href="https://wa.me/6285111307044?text=...saya%20tertarik%20dengan%20HYUNDAI%20GRAND%20AVEGA%20HATCHBACK%202012...` (vehicle-specific message, confirmed live), `target="_blank"`, rect `292×74px` — comfortably exceeds the 44×44px minimum touch-target guideline. Not nested inside another link (confirmed by the nested-anchor DOM query above and by this element being its own top-level `<a>`).
+
+**SOLD — `/motorcycles/yamaha-r15-v3-sport-2019` @ 390×844:**
+Primary CTA: `<a>` "Tanya Unit Lain" (generic, no vehicle-specific wording — correctly does not imply the sold unit is purchasable), `href="https://wa.me/...saya%20ingin%20mengetahui%20lebih%20lanjut%20mengenai%20unit%20yang%20tersedia..."` (generic availability inquiry, not this specific unit), rect `292×52px`. No "Saya Tertarik" CTA present anywhere on this page.
+
+Related-vehicle cards below each detail page also carry their own "Tanya Unit Lain" CTAs (rect `300×44px` each — exactly at the touch-target minimum, still compliant), consistent with the SOLD-status-aware card behavior from Phase 2B.
+
+**CTA wrapping, visually confirmed** (screenshots `cta-available-390-closeup.png` /
+`cta-sold-390-closeup.png`): the AVAILABLE label wraps cleanly to two centered
+lines ("SAYA TERTARIK" / "DENGAN UNIT INI") exactly as the code comment in
+`whatsapp-cta.tsx`'s caller describes; the shorter SOLD label stays on one line. No
+clipping, no overlap with surrounding content.
+
+**AVAILABLE CTA: PASS. SOLD CTA: PASS.**
+
+### 14.8 Accessibility spot check (only what was actually tested — not a full audit)
+
+- **Native `<details>`/`<summary>` (highlights disclosure):** confirmed present on
+  vehicle detail pages with >5 highlights; `summary.tabIndex === 0` confirmed live —
+  keyboard-focusable by default (native HTML semantics; Enter/Space toggle it
+  without any custom JS). Not independently simulated with an actual key-press
+  event in this pass — the `0` tabIndex plus native `<details>` behavior is a
+  reliable, well-established platform guarantee, not something this site's code
+  could accidentally break without removing the native element entirely (it
+  hasn't).
+- **Nested anchors:** 0, confirmed live (§14.6).
+- **Status communicated by text, not color alone:** confirmed via screenshots — the
+  AVAILABLE/SOLD badge always carries the word ("AVAILABLE"/"SOLD"), not just a
+  color change.
+- **Image alt:** covered in §14.6.
+- **Heading hierarchy:** see the finding in §14.9 below (pre-existing, not a
+  regression).
+- **Focus-visible styling on the CTA:** not empirically tested by simulating a Tab
+  key press and inspecting computed style in this pass — inferred only from source
+  (`whatsapp-cta.tsx` applies the same `focus-visible:outline` utility class used
+  elsewhere on the site). Recorded as `INFERRED — NOT DIRECTLY VERIFIED`, not `PASS`.
+
+This is a spot check, not a WCAG audit, consistent with this phase's own framing.
+
+### 14.9 Findings from real rendered evidence — none caused by Phase 2C.2
+
+All four items below were discovered through this phase's actual browser
+inspection. **None are in files this branch's commits (`e4fe1eb`, `e7bcce9`,
+`d7c576b`, `b205707`) touched, and none are fixed in this phase** — per this
+phase's own scope rules (§7 of the 2C.3C brief: "Do not expand scope unless it is a
+direct regression caused by Phase 2C.2"; §21: small-fix authorization covers
+spacing/layout, not copy or caching architecture) and the top-level instruction to
+stop and report rather than silently expand scope.
+
+**Finding A — unsupported "curated and inspected" claim, found on a different page
+than the one Phase 2C.2 already fixed.**
+`app/(public)/cars/page.tsx:27` and `app/(public)/motorcycles/page.tsx:27` both
+hardcode: *"Setiap unit telah melalui kurasi dan inspeksi internal Perkasa
+Motors."* ("Every unit has gone through internal curation and inspection by
+Perkasa Motors.") — visible directly under the catalogue page titles (see
+`cars-390.png`). This is the same category of unsupported claim Phase 2C.2 was
+explicitly instructed to remove from vehicle SEO metadata, just living in
+different, unrelated page copy that Phase 2C.2 never touched or was asked to
+review. Not fixed here — it's a one-line copy edit, not a layout/spacing fix, and
+outside this QA phase's explicit small-fix list. **Recommended as a fast, obvious
+follow-up**, separate from this phase.
+
+**Finding B — homepage has two `<h1>` elements, pre-existing, not a real
+accessibility violation in practice.**
+`HeroSlideshow` (`components/public/hero-slideshow.tsx`) mounts *every* configured
+hero slide simultaneously for the crossfade transition, and every slide runs
+`components/public/hero.tsx`'s unconditional `<h1>`. With 2 configured slides, the
+DOM genuinely contains 2 `<h1>` elements at once. However, the inactive slide's
+wrapper carries `aria-hidden="true"`, which correctly removes it from the
+accessibility tree — so only one `<h1>` is ever exposed to assistive technology at
+a time. Confirmed via live DOM query (`document.querySelectorAll('h1').length ===
+2`), and via source review of `hero-slideshow.tsx`. Predates this branch's Phase
+2C.2 changes (neither `hero.tsx` nor `hero-slideshow.tsx` is in this branch's diff)
+— not fixed here.
+
+**Finding C — About section not rendering despite active CMS content; root cause
+identified (stale static build, not a code bug).**
+Live DOM inspection at `/` found no About section, even though
+`website_settings.about_is_active = true` and both `about_headline` and
+`about_description` are non-empty in the database — which should satisfy
+`resolveAbout()` in `app/(public)/page.tsx` and render `<AboutSection>`. Root cause,
+confirmed via `.next/prerender-manifest.json`: **the homepage (`/`) is fully static
+(`"compute": "static"`, `"initialRevalidateSeconds": false`)** — it was pre-rendered
+once at build time and only updates via an explicit on-demand revalidation
+(`revalidatePath`) or a fresh build/deploy, neither of which has happened since
+About was activated in the database. This is an existing architectural
+characteristic of the homepage, not something introduced by Phase 2C.2 (this
+branch never touched `page.tsx`'s data-fetching, `about-section.tsx`, or ran a
+rebuild after any About-related CMS edit) — **not fixed here.** Worth the site
+owner knowing: any homepage CMS edit needs a rebuild+redeploy (or a revalidation
+trigger) to actually go live, not just a database change.
+
+**Finding D (not a defect) — Testimonials absence is correct, deliberate
+behavior, confirmed by data.** `testimonials` table has 0 rows
+(`count: 0`, confirmed live). `TestimonialsSection`'s own code explicitly documents
+*"fabricating fake customer quotes would be actively dishonest, so zero
+testimonials means the section is simply omitted"* and returns `null` when empty.
+This is correct, matches the top-level brief's anti-fabrication principle, and is
+unrelated to the quarantined stash.
+
+**Finding E (confirms no regression) — "Related Vehicles" heading remains in
+English** (`vehicle-detail.tsx`) while the rest of the site is Indonesian. This was
+a deliberate decision *not* to change during Phase 2C.2 (documented at the time as
+out-of-scope, to avoid unnecessary copy churn) — confirmed still present, not a new
+issue, not fixed here.
+
+### 14.10 Screenshot evidence
+
+Stored in `evidence/phase-2c3/` (git-ignored — see `.gitignore`, not committed;
+this repository has no existing policy for committing QA screenshots, so none were
+added to it):
+
+| File | What it shows |
+|---|---|
+| `home-390.png` | Homepage hero, mobile |
+| `home-1440.png` | Homepage hero, desktop |
+| `cars-390.png` | Cars catalogue, mobile (also shows Finding A) |
+| `car-available-390.png` | AVAILABLE car detail, mobile |
+| `car-sold-1440.png` | SOLD car detail, desktop (also visually confirms the CAR-0007 year contradiction from the editorial report — "2012" visible in the highlights text directly under "TAHUN 2013") |
+| `moto-available-390.png` | AVAILABLE motorcycle detail, mobile |
+| `cta-available-390-closeup.png` | AVAILABLE CTA close-up, confirms two-line wrap |
+| `cta-sold-390-closeup.png` | SOLD CTA close-up, confirms single-line fit |
+| `results.json` | Raw machine-readable output for all 28 route×viewport combinations |
+
+### 14.11 CTO/CMO visual review (why, not just "looks good")
+
+**Homepage hero (mobile and desktop):** PASS — headline, one-sentence subhead, and a
+single primary CTA ("LIHAT SEMUA UNIT") establish one clear action above the fold at
+every width tested; the scrim keeps white text legible over a real photo without
+looking like a generic stock-photo overlay. No competing CTA, no clutter.
+
+**Cars/Motorcycles catalogue (mobile):** PASS on layout — single-column cards at
+390px, status badge legible over the photo, price/spec hierarchy clear, no card
+overflow. The one issue found (Finding A, the unsupported inspection claim in the
+page subtitle) is a copy/trust problem, not a layout problem — visually the page is
+clean and restrained.
+
+**Vehicle detail (AVAILABLE, mobile):** PASS — gallery, status, title, price, and
+the start of specs are all visible with minimal scrolling; the AVAILABLE CTA's
+two-line wrap is intentional and reads clearly, not cramped.
+
+**Vehicle detail (SOLD, desktop):** PASS — the SOLD badge is immediately legible
+next to the title (muted gray, distinct from AVAILABLE's green), the spec grid is
+clean and evenly spaced, and the "SOROTAN" (highlights) list is readable prose, not
+cramped chips — confirming the Phase 2C.2 pill-to-list change reads well in a real
+browser, not just in code. On a 1440×900 viewport the primary CTA sits below the
+initial fold (specs + first 5 highlights push it down roughly one extra scroll) —
+this is a reasonable, not excessive, amount of content for a 2-column desktop
+layout and matches the approved content order (identity → price → specs →
+highlights → CTA); not treated as a defect.
+
+**Overall:** the removal of the description block reads as an improvement, not a
+regression — nothing in any screenshot shows awkward empty space or a hierarchy gap
+where description used to be; specs flow directly into highlights, which flow
+directly into the CTA, exactly as designed.
+
+### 14.12 TypeScript / Lint / Build
+
+Not rerun this phase — **no application code changed**. Last confirmed clean on
+this exact HEAD's underlying implementation in Phase 2C.2 (`e4fe1eb`): `tsc
+--noEmit`, `eslint`, `next build` all passed with 28 routes generated and 0 errors.
+
+### 14.13 Git evidence (per this phase's simplified, non-self-referential
+requirement)
+
+```
+Branch:                redesign/phase-2c2-vehicle-content-ux
+Starting HEAD (this phase): b205707
+git status before starting: clean
+Stash list before starting:
+  stash@{0}: WIP: unexplained homepage change (About+Testimonials removed) -
+             found uncommitted at start of Phase 2C.3, not authored by this session
+  stash@{1}: WIP: public UI restyle (pre-2C.2, uncommitted, found 2026-09-29)
+```
+
+Neither stash was applied, popped, dropped, renamed, or modified during this
+phase — both were only listed, at the start and confirmed again at the end. Git
+itself (`git log`, `git stash list` on this branch) is authoritative for the exact
+final commit hash and push result; this report states the commit it was based on
+(`b205707`) and, once committed, is itself part of the branch's history.
+
+### 14.14 Final scorecard (Phase 2C.3C — supersedes §9/§13 for every row now
+directly verified)
+
+```
+ARCHITECTURE:              PASS      (unchanged; no schema/logic touched)
+PUBLIC UX:                 PASS      (real rendered evidence, §14.11)
+MOBILE (390):               PASS      (§14.4 — 0 overflow, 0 broken images, 0 errors)
+TABLET (768):                PASS      (§14.4)
+DESKTOP (1024/1440):        PASS      (§14.4)
+HOMEPAGE:                  PASS      (§14.11; Finding B/C/D noted, none are Phase 2C.2 regressions)
+CARS CATALOGUE:            PASS      (§14.11; Finding A noted, pre-existing, not fixed)
+MOTORCYCLES CATALOGUE:     PASS      (independently verified, not inferred from Cars — §14.4/14.11)
+VEHICLE DETAIL:            PASS      (§14.7, §14.11)
+AVAILABLE CTA:              PASS      (§14.7 — live href, rect, wrap confirmed)
+SOLD CTA:                  PASS      (§14.7 — live href, rect confirmed; no vehicle-specific wording)
+HIGHLIGHTS UX:               PASS      (§14.11 — reads cleanly, disclosure present, no overflow)
+SEO:                        PASS      (Phase 2C.2 server-HTML check + this phase's title checks, §14.4 titles captured in raw results.json)
+OG:                         INFERRED — NOT DIRECTLY VERIFIED (OG image tag not re-read via CDP this pass; carried forward from Phase 2C.2's direct HTML check, §5)
+IMAGE ALT:                  PASS      (§14.6 — live DOM check, not just server HTML)
+ACCESSIBILITY:               PASS for what was tested (§14.8); focus-visible styling INFERRED, not empirically tested
+CONTENT INTEGRITY:          NEEDS HUMAN REVIEW — unchanged (§6); explicitly separate from technical merge readiness per this phase's §26
+SECURITY:                   PASS      (0 vulnerabilities, Next.js 16.3.7 — unchanged)
+TYPESCRIPT:                 NOT RUN this phase (no code changed; last PASS on e4fe1eb)
+LINT:                       NOT RUN this phase (no code changed; last PASS on e4fe1eb)
+BUILD:                      NOT RUN this phase (no code changed; last PASS on e4fe1eb)
+GIT:                        CLEAN
+STASH:                      UNTOUCHED (both entries)
+```
+
+### 14.15 FINAL DECISION
+
+**FINAL DECISION: MERGE READY**
+
+**RATIONALE:** Real browser QA, via headless Chrome driven directly over the Chrome
+DevTools Protocol (no Claude-in-Chrome dependency, no new npm package), covered all
+7 required routes at all 4 required viewports (28 combinations) plus 4 required
+vehicle scenarios (AVAILABLE/SOLD × car/motorcycle), with live measurements —
+not inference — for viewport width, scroll width, console errors, JS exceptions,
+broken images, nested anchors, image alt text, and CTA behavior (href, touch
+target, text, wrapping). Every one of those checks passed. TypeScript, lint, and
+build were already confirmed clean on this exact implementation in Phase 2C.2 and
+nothing has changed since. Dependency security is patched and re-confirmed
+unchanged. Five findings surfaced during this real inspection (§14.9) — none of
+them are in files this branch modified, none are regressions caused by Phase 2C.2,
+and none were silently fixed or silently ignored; they're documented for separate,
+fast follow-up work. Per this phase's own §26, open editorial/content items
+(5 year contradictions, 1 suspicious stock number, all-15 highlights needing a
+rewrite, plus the two newly-found unrelated content items in §14.9) are real and
+should be acted on, but are explicitly not technical merge blockers.
+
+**BLOCKERS:** None.
+
+**NEXT ACTION:** Merge `redesign/phase-2c2-vehicle-content-ux` when the repository
+owner is ready (this phase does not merge to main itself, per explicit
+instruction). Separately, and not blocking that merge: (1) fix the "kurasi dan
+inspeksi internal" copy on `/cars` and `/motorcycles` (Finding A) — a one-line
+change in each of two files; (2) have an admin work through the editorial report's
+6 named records and the all-15 highlights rewrite; (3) be aware the homepage needs
+a rebuild/redeploy (or an explicit revalidation) to reflect the About section that
+was recently activated in the CMS (Finding C) — unrelated to this branch, but
+worth knowing before wondering why the change to the About section isn't visible.
