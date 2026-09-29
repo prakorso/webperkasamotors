@@ -11,6 +11,18 @@ import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 import { vehicleTitle, formatIDR } from "@/lib/utils/format";
 
+// See app/layout.tsx for why this fallback is the production URL, not localhost.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://webperkasamotors.netlify.app";
+
+/**
+ * Automatic by default, per vehicle — seoTitle/seoDescription (existing
+ * columns, no CMS UI to edit them today — see components/admin/
+ * vehicle-form.tsx) still override when set, so that mechanism isn't
+ * lost, but no admin has to fill anything in for correct metadata to go
+ * out. OG image is the vehicle's own primary photo; there is no
+ * "curated and inspected" copy here anymore — Perkasa Motors doesn't
+ * inspect every unit, so the claim wasn't supported by real data.
+ */
 export async function generateMetadata(
   props: PageProps<"/cars/[slug]">
 ): Promise<Metadata> {
@@ -18,11 +30,24 @@ export async function generateMetadata(
   const vehicle = await getVehicleBySlug(slug);
   if (!vehicle) return {};
 
+  const title = vehicle.seoTitle ?? `${vehicleTitle(vehicle)} (${vehicle.year})`;
+  const description =
+    vehicle.seoDescription ?? `${vehicleTitle(vehicle)} (${vehicle.year}) — ${formatIDR(vehicle.price)} di Perkasa Motors.`;
+  const canonicalUrl = `${siteUrl}/cars/${vehicle.slug}`;
+  const media = await getVehicleMedia(vehicle.id);
+  const ogImage = media.find((m) => m.isPrimary)?.url ?? media[0]?.url;
+
   return {
-    title: vehicle.seoTitle ?? `${vehicleTitle(vehicle)} (${vehicle.year})`,
-    description:
-      vehicle.seoDescription ??
-      `${vehicleTitle(vehicle)} — ${formatIDR(vehicle.price)}. Curated and inspected by Perkasa Motors.`,
+    title,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: canonicalUrl,
+      images: ogImage ? [ogImage] : undefined,
+    },
   };
 }
 

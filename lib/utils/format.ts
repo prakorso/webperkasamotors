@@ -1,4 +1,4 @@
-import type { Vehicle, VehicleStatus, Lead } from "@/lib/types";
+import type { Vehicle, VehicleMedia, VehicleStatus, Lead } from "@/lib/types";
 
 export function formatIDR(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
@@ -14,6 +14,23 @@ export function formatMileage(km: number): string {
 
 export function vehicleTitle(vehicle: Vehicle): string {
   return [vehicle.brand, vehicle.model, vehicle.variant].filter(Boolean).join(" ");
+}
+
+/**
+ * Every vehicle_media row is uploaded with alt_text = "" (see
+ * lib/actions/vehicle-media.ts) — there is no CMS field for it (Phase
+ * 2C.2 decision: a deterministic fallback is simpler and more reliable
+ * than asking staff to type alt text for every photo). Preserves a real,
+ * non-empty alt value if one is ever set some other way; otherwise
+ * derives "{Vehicle Name} {Year} — foto {N}" from data that's already on
+ * the record. `sortOrder` (not array position) is the source for N so
+ * the number stays correct even when the caller only has a single photo
+ * (e.g. a card's primaryMedia) rather than the vehicle's full media list.
+ */
+export function vehicleMediaAlt(vehicle: Vehicle, media: VehicleMedia): string {
+  const existing = media.altText.trim();
+  if (existing) return existing;
+  return `${vehicleTitle(vehicle)} ${vehicle.year} — foto ${media.sortOrder + 1}`;
 }
 
 const STATUS_LABEL: Record<VehicleStatus, string> = {

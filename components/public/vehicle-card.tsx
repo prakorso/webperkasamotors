@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Vehicle, VehicleMedia } from "@/lib/types";
-import { formatIDR, formatMileage, vehicleTitle } from "@/lib/utils/format";
+import { formatIDR, formatMileage, vehicleMediaAlt, vehicleTitle } from "@/lib/utils/format";
 import { VehicleStatusBadge } from "@/components/ui/vehicle-status-badge";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import {
@@ -58,7 +58,7 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
           {primaryMedia && (
             <Image
               src={primaryMedia.url}
-              alt={primaryMedia.altText}
+              alt={vehicleMediaAlt(vehicle, primaryMedia)}
               fill
               sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
               className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035]"

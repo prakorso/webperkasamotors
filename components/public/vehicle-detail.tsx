@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Vehicle, VehicleMedia } from "@/lib/types";
-import { formatIDR, formatMileage, vehicleTitle } from "@/lib/utils/format";
+import { formatIDR, formatMileage, vehicleMediaAlt, vehicleTitle } from "@/lib/utils/format";
 import { VehicleStatusBadge } from "@/components/ui/vehicle-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -12,6 +12,18 @@ import { VehicleGallery } from "./vehicle-gallery";
 import { VehicleCard } from "./vehicle-card";
 import { WhatsAppCta } from "./whatsapp-cta";
 import { SectionHeading } from "./section-heading";
+
+/**
+ * Real inventory highlights currently run 15–27 items (raw seller ad-copy
+ * dumped into the field, one line per sentence — see the Phase 2C.2
+ * editorial report). Until that content is rewritten by a human into the
+ * curated 3–5 bullets the field is meant to hold, showing everything
+ * flat would turn the page back into the long-form listing this phase
+ * exists to avoid. Progressive disclosure keeps every word the seller
+ * entered reachable (nothing hidden permanently, nothing rewritten) while
+ * keeping the CTA in the same viewport as the highlights that lead to it.
+ */
+const HIGHLIGHTS_VISIBLE_COUNT = 5;
 
 const SPEC_ROWS: Array<{ label: string; value: (v: Vehicle) => string }> = [
   { label: "Tahun", value: (v) => String(v.year) },
@@ -49,13 +61,25 @@ export function VehicleDetail({
     ? vehicleWhatsAppUrl(vehicle, whatsapp)
     : genericVehicleWhatsAppUrl(whatsapp);
 
+  // Resolved once here (not inside VehicleGallery) so the same fallback
+  // — and the same objects — reach the main photo, the thumbnail strip,
+  // and VehicleLightbox, which reuses this exact array rather than
+  // re-fetching. See vehicleMediaAlt in lib/utils/format.ts.
+  const mediaWithAlt = media.map((m) => ({ ...m, altText: vehicleMediaAlt(vehicle, m) }));
+
+  const visibleHighlights = vehicle.highlights.slice(0, HIGHLIGHTS_VISIBLE_COUNT);
+  const remainingHighlights = vehicle.highlights.slice(HIGHLIGHTS_VISIBLE_COUNT);
+
   return (
     <div className="mx-auto max-w-container px-6 py-10 md:px-8 lg:px-margin lg:py-16">
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-8 lg:grid-cols-12 lg:gap-12">
         <div className="md:col-span-1 lg:col-span-7">
-          <VehicleGallery media={media} />
+          <VehicleGallery media={mediaWithAlt} />
         </div>
 
+        {/* Content order follows the approved vehicle-page model: identity,
+         *  availability, price, key specs, highlights, CTA — no
+         *  long-form description block (removed, Phase 2C.2). */}
         <div className="rounded-[24px] border border-border/80 bg-surface p-6 shadow-[0_16px_48px_rgba(17,19,21,0.06)] md:col-span-1 md:p-7 lg:col-span-5 lg:p-8">
           <VehicleStatusBadge status={vehicle.status} />
           <h1 className="mt-4 font-display text-headline-lg text-ink lg:text-display-sm">
@@ -65,19 +89,6 @@ export function VehicleDetail({
           <p className="mt-6 font-display text-headline-lg font-semibold tabular-nums text-ink">
             {formatIDR(vehicle.price)}
           </p>
-
-          {vehicle.highlights.length > 0 && (
-            <ul className="mt-6 flex flex-wrap gap-2">
-              {vehicle.highlights.map((h) => (
-                <li
-                  key={h}
-                  className="rounded-[9px] border border-border bg-surface-muted px-3 py-1.5 font-body text-[12px] text-ink"
-                >
-                  {h}
-                </li>
-              ))}
-            </ul>
-          )}
 
           <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 rounded-[16px] border border-border/80 bg-paper p-5 sm:grid-cols-3">
             {SPEC_ROWS.map((row) => (
@@ -92,7 +103,30 @@ export function VehicleDetail({
             ))}
           </dl>
 
-          <p className="mt-8 font-body text-body text-ink">{vehicle.description}</p>
+          {vehicle.highlights.length > 0 && (
+            <div className="mt-8 border-t border-border pt-6">
+              <h2 className="font-body text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
+                Sorotan
+              </h2>
+              <ul className="mt-3 space-y-2 font-body text-[14px] leading-relaxed text-ink">
+                {visibleHighlights.map((h, i) => (
+                  <li key={i}>{h}</li>
+                ))}
+              </ul>
+              {remainingHighlights.length > 0 && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer font-body text-[13px] font-semibold text-primary [&::-webkit-details-marker]:hidden">
+                    Lihat {remainingHighlights.length} sorotan lainnya
+                  </summary>
+                  <ul className="mt-2 space-y-2 font-body text-[14px] leading-relaxed text-ink">
+                    {remainingHighlights.map((h, i) => (
+                      <li key={i}>{h}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
 
           <div className="mt-8">
             {whatsappHref ? (

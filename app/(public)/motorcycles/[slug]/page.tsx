@@ -11,6 +11,13 @@ import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 import { vehicleTitle, formatIDR } from "@/lib/utils/format";
 
+// See app/layout.tsx for why this fallback is the production URL, not localhost.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://webperkasamotors.netlify.app";
+
+/**
+ * Automatic by default, per vehicle — see the matching comment in
+ * app/(public)/cars/[slug]/page.tsx, which this mirrors exactly.
+ */
 export async function generateMetadata(
   props: PageProps<"/motorcycles/[slug]">
 ): Promise<Metadata> {
@@ -18,11 +25,24 @@ export async function generateMetadata(
   const vehicle = await getVehicleBySlug(slug);
   if (!vehicle) return {};
 
+  const title = vehicle.seoTitle ?? `${vehicleTitle(vehicle)} (${vehicle.year})`;
+  const description =
+    vehicle.seoDescription ?? `${vehicleTitle(vehicle)} (${vehicle.year}) — ${formatIDR(vehicle.price)} di Perkasa Motors.`;
+  const canonicalUrl = `${siteUrl}/motorcycles/${vehicle.slug}`;
+  const media = await getVehicleMedia(vehicle.id);
+  const ogImage = media.find((m) => m.isPrimary)?.url ?? media[0]?.url;
+
   return {
-    title: vehicle.seoTitle ?? `${vehicleTitle(vehicle)} (${vehicle.year})`,
-    description:
-      vehicle.seoDescription ??
-      `${vehicleTitle(vehicle)} — ${formatIDR(vehicle.price)}. Curated and inspected by Perkasa Motors.`,
+    title,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: canonicalUrl,
+      images: ogImage ? [ogImage] : undefined,
+    },
   };
 }
 
