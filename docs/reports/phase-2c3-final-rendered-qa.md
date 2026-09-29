@@ -370,17 +370,31 @@ canonical report. Restating precisely:
 ```
 $ git add docs/reports/phase-2c3-final-rendered-qa.md
 $ git commit -m "docs: complete phase 2c3 rendered qa"
-[actual output, hash included, pasted below once run]
+[redesign/phase-2c2-vehicle-content-ux d7c576b] docs: complete phase 2c3 rendered qa
+ 1 file changed, 161 insertions(+)
 
 $ git push origin redesign/phase-2c2-vehicle-content-ux
-[actual output, pasted below once run]
+To https://github.com/prakorso/webperkasamotors.git
+   e7bcce9..d7c576b  redesign/phase-2c2-vehicle-content-ux -> redesign/phase-2c2-vehicle-content-ux
 
 $ git status
-[actual output, pasted below once run]
+On branch redesign/phase-2c2-vehicle-content-ux
+Your branch is up to date with 'origin/redesign/phase-2c2-vehicle-content-ux'.
+nothing to commit, working tree clean
+
+$ git log -3 --oneline
+d7c576b docs: complete phase 2c3 rendered qa
+e7bcce9 docs: add Phase 2C.3 final rendered QA report (blocked)
+e4fe1eb feat: simplify vehicle content and ux
 ```
 
-*(This code block is filled in with the real command output immediately after
-running it — see the end of this section.)*
+**Commit `d7c576b` is the commit containing the QA work and findings above** (§11–§13
+of this report). This file (§12 onward) was subsequently corrected once more, in a
+small, self-declared follow-up commit, to paste in this exact transcript — that
+follow-up commit's own hash is, unavoidably, not written inside itself (see the
+explanation two paragraphs up); `git log -1` on this branch after that follow-up
+gives the true final HEAD, and the terminal response for that follow-up states it
+directly rather than deferring to this file.
 
 **Stash list, reconfirmed at the end of this phase:**
 ```
