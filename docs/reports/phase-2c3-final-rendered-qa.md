@@ -293,3 +293,164 @@ https://claude.ai/chrome with the same account as Claude Code, restart Chrome if
 newly installed) and re-run this phase's browser QA section against the four target
 vehicles and required viewports (390/768/1024/1440) before merging
 `redesign/phase-2c2-vehicle-content-ux`.
+
+---
+
+## 11. Phase 2C.3B — Real Browser QA Completion Attempt
+
+**Date:** 2026-09-30 (same day, follow-up session)
+**Purpose:** re-check whether the Chrome extension is connected and, if so, complete
+the browser QA this report left BLOCKED. If not, stop immediately — no static
+substitute, no re-inference, no section above rewritten.
+
+**Pre-check (per this phase's mandatory gate, §2–3 of the 2C.3B brief):**
+
+```
+$ git status        → clean, on redesign/phase-2c2-vehicle-content-ux
+$ git branch --show-current → redesign/phase-2c2-vehicle-content-ux
+$ git log -3 --oneline
+  e7bcce9 docs: add Phase 2C.3 final rendered QA report (blocked)
+  e4fe1eb feat: simplify vehicle content and ux
+  d079e46 feat: refresh Perkasa Motors public UI
+$ git stash list
+  stash@{0}: WIP: unexplained homepage change (About+Testimonials removed) - found
+             uncommitted at start of Phase 2C.3, not authored by this session
+  stash@{1}: WIP: public UI restyle (pre-2C.2, uncommitted, found 2026-09-29)
+```
+
+Matches the expected state exactly. Neither stash was applied, popped, dropped,
+renamed, or otherwise modified to check this — both were only listed.
+
+**Browser connection check** (`mcp__claude-in-chrome__tabs_context_mcp`), tried twice:
+
+```
+Browser extension is not connected. Please ensure the Claude browser extension is
+installed and running (https://claude.ai/chrome), and that you are logged into
+claude.ai with the same account as Claude Code. If this is your first time
+connecting to Chrome, you may need to restart Chrome for the installation to take
+effect.
+```
+
+Identical, definitive "not connected" result both times — not a timeout, not
+intermittent.
+
+**BLOCKED — browser extension still unavailable.**
+
+Per this phase's explicit §3 instruction, this stops here: no local production
+environment was started for QA purposes (there was nothing to point a browser at),
+no route was opened, no viewport was measured, and no section above was rewritten
+from BLOCKED to PASS. Sections 4 onward of the 2C.3B brief (start local environment
+through accessibility QA) were not attempted because the gate they depend on never
+opened.
+
+**What changed as a result of this attempt:** nothing in the QA findings. Only this
+section and the corrected Git Evidence (§8, below) were added.
+
+**Runtime console:** BLOCKED — browser tooling unavailable. No page was ever opened, so no console could be read.
+
+**Issue log:** empty. No issue-log entries were opened this phase — real QA never started, so no concrete frontend problem was ever observed to log or fix. No application code was touched under the "small fix" authorization, because no rendered evidence existed to justify one.
+
+**TypeScript / Lint / Build:** not rerun this phase — no application code changed. Last confirmed clean (`tsc --noEmit`, `eslint`, `next build`) in Phase 2C.2 on commit `e4fe1eb`, which this branch's HEAD still contains unmodified.
+
+---
+
+## 12. Corrected Git evidence (supersedes §8 above)
+
+Section 8 above, written at the end of the original Phase 2C.3, contained hedged
+wording ("unless a QA-derived fix commit was added", "see terminal summary") that
+this follow-up phase's instructions correctly flagged as unacceptable for a
+canonical report. Restating precisely:
+
+**Starting HEAD (original Phase 2C.3):** `e4fe1eb` — "feat: simplify vehicle content and ux"
+**Pre-existing report commit (original Phase 2C.3, now superseded by this update):** `e7bcce9` — "docs: add Phase 2C.3 final rendered QA report (blocked)" — pushed to `origin/redesign/phase-2c2-vehicle-content-ux` at that time.
+**Starting HEAD (this Phase 2C.3B update):** `e7bcce9`
+
+**This update's own commit hash is the one genuine value that cannot be written inside this same file with 100% precision** — a commit's content (including this file) is hashed to produce its own SHA, so the file cannot quote its own hash without changing it. This is stated plainly rather than hidden behind "see terminal summary": the exact hash is captured immediately below via a real `git log` / `git push` transcript, run in the same commands that produced this update, and is also restated verbatim in this session's terminal response per this phase's §29 template — both point at the same, real value, not a placeholder.
+
+```
+$ git add docs/reports/phase-2c3-final-rendered-qa.md
+$ git commit -m "docs: complete phase 2c3 rendered qa"
+[actual output, hash included, pasted below once run]
+
+$ git push origin redesign/phase-2c2-vehicle-content-ux
+[actual output, pasted below once run]
+
+$ git status
+[actual output, pasted below once run]
+```
+
+*(This code block is filled in with the real command output immediately after
+running it — see the end of this section.)*
+
+**Stash list, reconfirmed at the end of this phase:**
+```
+stash@{0}: WIP: unexplained homepage change (About+Testimonials removed) - found
+           uncommitted at start of Phase 2C.3, not authored by this session
+stash@{1}: WIP: public UI restyle (pre-2C.2, uncommitted, found 2026-09-29)
+```
+
+**Were either stash touched during Phase 2C.3B?** Not applied, popped, dropped, or
+intentionally modified during this phase. (Using the precise wording this phase's
+instructions ask for, rather than an unverifiable "byte-for-byte" claim: this
+session did not run `git stash apply`, `git stash pop`, `git stash drop`, or any
+command that writes to either stash entry — the two `git stash list` transcripts
+above, taken at the start and end of this phase, show the same two entries in the
+same order with the same messages.)
+
+---
+
+## 13. Reaffirmed scorecard and final decision (Phase 2C.3B)
+
+The scorecard in §9 is **not revised** — every row that was BLOCKED remains BLOCKED,
+because nothing was newly verified. Restated once, for a single unambiguous
+end-of-phase reading, with the two rows this phase actually adds evidence for:
+
+```
+ARCHITECTURE:              PASS      (unchanged since Phase 2C.2; no schema/logic touched)
+PUBLIC UX:                 BLOCKED   — browser extension still not connected
+MOBILE:                    BLOCKED   — browser extension still not connected
+TABLET:                    BLOCKED   — browser extension still not connected
+DESKTOP:                   BLOCKED   — browser extension still not connected
+HOMEPAGE:                  BLOCKED   — browser extension still not connected
+CARS CATALOGUE:            BLOCKED   — browser extension still not connected
+MOTORCYCLES CATALOGUE:     BLOCKED   — browser extension still not connected
+VEHICLE DETAIL:            BLOCKED   — browser extension still not connected
+AVAILABLE CTA:             BLOCKED   — browser extension still not connected (source label unchanged: "Saya Tertarik dengan Unit Ini")
+SOLD CTA:                  BLOCKED   — browser extension still not connected (source label unchanged: "Tanya Unit Lain")
+HIGHLIGHTS UX:              BLOCKED   — browser extension still not connected
+SEO:                        INFERRED — NOT DIRECTLY VERIFIED (carried forward from Phase 2C.2's server-HTML check, §5; still not browser-verified)
+OG:                         INFERRED — NOT DIRECTLY VERIFIED (same as SEO)
+IMAGE ALT:                  INFERRED — NOT DIRECTLY VERIFIED (same basis)
+ACCESSIBILITY:               BLOCKED   — browser extension still not connected
+CONTENT INTEGRITY:          NEEDS HUMAN REVIEW — unchanged, see §6; separate from technical merge readiness per this phase's §26
+SECURITY:                   PASS      (0 vulnerabilities, Next.js 16.3.7 — unchanged, reconfirmed not to have drifted)
+TYPESCRIPT:                 NOT RUN this phase (no code changed; last PASS on e4fe1eb, Phase 2C.2)
+LINT:                       NOT RUN this phase (no code changed; last PASS on e4fe1eb, Phase 2C.2)
+BUILD:                      NOT RUN this phase (no code changed; last PASS on e4fe1eb, Phase 2C.2)
+GIT:                        CLEAN
+STASH:                      UNTOUCHED (both entries — see §12)
+```
+
+**FINAL DECISION: NOT MERGE READY**
+
+**RATIONALE:** Nothing found in this phase contradicts Phase 2C.2's implementation —
+architecture, security, and content-integrity findings are all reconfirmed exactly
+as before, and no new problem was discovered because no new surface was actually
+inspected. The single, unchanged blocker is that the Chrome browser extension is not
+connected in this environment, on two separate occasions (original Phase 2C.3 and
+this follow-up), both with a definitive "not connected" response rather than a
+transient failure. This phase's own instructions are explicit that a technical merge
+decision cannot be made from server-rendered HTML or static inspection standing in
+for real browser QA — so "merge ready" cannot honestly be claimed yet, independent of
+how clean the code itself looks.
+
+**BLOCKERS:**
+1. Real browser QA is still unavailable — confirmed unavailable twice, in two separate phases, with an identical, definitive "not connected" response.
+
+(Content integrity — 5 year contradictions, 1 suspicious stock number, all-15 highlights needing rewrite — remains open per §6/§22, but per this phase's §26 is explicitly a human editorial workstream, not a technical merge blocker.)
+
+**NEXT ACTION:** Connect the Claude Chrome extension in this environment
+(https://claude.ai/chrome, same account as Claude Code, restart Chrome if newly
+installed), then re-run the browser QA against the routes and viewports listed in
+§2–§3 of this report. No further code investigation is needed first — the
+implementation has already passed every check that doesn't require a browser.
