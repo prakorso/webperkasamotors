@@ -166,7 +166,7 @@ export function VehicleDetail({
 
       {relatedVehicles.length > 0 && (
         <section className="mt-16 lg:mt-24">
-          <SectionHeading title="Related Vehicles" />
+          <SectionHeading title="Unit Lainnya" />
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {relatedVehicles.map(({ vehicle: related, primaryMedia }) => (
               <VehicleCard

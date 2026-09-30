@@ -24,7 +24,7 @@ export default async function CarsPage(props: PageProps<"/cars">) {
   return (
     <VehicleCatalogue
       title="Koleksi Mobil"
-      description="Setiap unit telah melalui kurasi dan inspeksi internal Perkasa Motors."
+      description="Pilihan mobil yang tersedia di Perkasa Motors."
       vehicles={vehicles}
       mediaByVehicleId={Object.fromEntries(mediaEntries)}
       page={page}
