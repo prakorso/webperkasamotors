@@ -14,6 +14,7 @@ these rules elsewhere.
 | Approved technical baseline | `0d91bf707593161df8bc4cc0ade0d369dd74d1b0` (`redesign/phase-2c4-trust-cms-freshness-v2`) |
 | Remote main | `origin/main` @ `bc8eaa187cd44f4e673117ae20150b8b62fdb245` |
 | Preserved Windows UI/UX work | `preserve/windows-uiux-15e525f` @ `15e525fc43c16c91f2a3f58be0aa8a1801414005` (preserved, not approved, not merged) |
+| Current R3B UI/UX checkpoint | branch `feat/ui-r3b-vehicle-detail` @ `cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500` (checkpoint input for Phase 1R; not approved, not merged; local only) |
 | Product and admin spec | Phase A+B Product & Admin Experience Audit (`docs/reports/txt/product-admin-experience-audit-phase-a-b.txt`) |
 | Merge authority | The Owner. Nothing merges or deploys without explicit owner approval. |
 
@@ -180,7 +181,27 @@ TXT mirror.
 ## 14. Next task
 
 `PHASE-1R` - Baseline Reconciliation Audit (READY, not started, no coding):
-compare `76c206e`, `0d91bf7`, the preserved Windows UI/UX `15e525f` and the Product/Admin audit, and classify every
-difference as UI_ONLY, TECHNICAL_ONLY, WINDOWS_UIUX_ONLY, PRODUCT_SPEC_ONLY, OVERLAP_SAFE,
+compare `76c206e`, `0d91bf7`, the preserved Windows UI/UX `15e525f`, the R3B checkpoint `cc90d4f` and the Product/Admin audit, and classify every
+difference as UI_ONLY, TECHNICAL_ONLY, WINDOWS_UIUX_ONLY, R3B_ONLY, PRODUCT_SPEC_ONLY, OVERLAP_SAFE,
 RECONCILIATION_REQUIRED or HIGH_RISK_CONFLICT. See
 `.ruflo/coordination/tasks/PHASE-1R.json`.
+
+### Reconciliation rule for Phase 1R
+
+No branch wins everything.
+
+- Visual concern -> UI intent wins (UI baseline `76c206e` plus approved R3B UI/UX).
+- Behavior or business-logic concern -> Phase 2C technical baseline (`0d91bf7`) wins.
+- Product existence or flow concern -> Phase A+B product spec wins.
+- Mixed file -> semantic reconciliation required.
+
+Phase 1R inputs: UI `76c206e`, Technical `0d91bf7`, Windows UI/UX `15e525f`
+(branch `preserve/windows-uiux-15e525f`), R3B `cc90d4f` (branch
+`feat/ui-r3b-vehicle-detail`), Phase A+B audit. Classes: UI_ONLY,
+TECHNICAL_ONLY, WINDOWS_UIUX_ONLY, R3B_ONLY, PRODUCT_SPEC_ONLY, OVERLAP_SAFE,
+RECONCILIATION_REQUIRED, HIGH_RISK_CONFLICT.
+
+## 15. Shared checkout status
+
+Shared checkout = CONTROL PLANE. Implementation permission: NO. Active write
+owner: NONE. Implementation tasks must use isolated worktrees.

@@ -8,9 +8,19 @@
   "targetWorktree": ".claude/worktrees/ruflo-orchestration-foundation",
   "writeOwner": null,
   "reviewer": "owner",
-  "status": "BLOCKED",
+  "status": "CLOSED",
   "knownRisks": [
-    "shared checkout has an active writer (uncommitted edits in components/public/vehicle-detail.tsx and vehicle-gallery.tsx, plus .tmp-r3b-visible-qa.mjs); shared checkout was NOT reset"
+    "R3B commit cc90d4f exists only locally; it is stacked on 15e525f, not on main; not pushed",
+    "docs/reports/ is untracked in the shared checkout (reports only)"
   ],
-  "reportPath": "docs/reports/txt/ruflo-phase-0r1-control-plane-stabilization.txt"
+  "reportPath": "docs/reports/txt/ruflo-phase-0r1-finalization.txt",
+  "closed": "2026-10-01",
+  "closureReason": [
+    "Codex shared-checkout work checkpointed (15e525f preserved on GitHub; R3B checkpoint cc90d4f in its own worktree)",
+    "shared checkout returned to origin/main bc8eaa1, tracked tree clean",
+    "control plane clean: no active writer, implementation permission NO",
+    "Ruflo native store ready (memory/embeddings off, native scripts blocked)",
+    "governance enforced in docs/AGENT-GOVERNANCE.md",
+    "no application code changed by infra work"
+  ]
 }

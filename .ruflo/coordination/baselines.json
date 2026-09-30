@@ -37,5 +37,23 @@
       "components/public/vehicle-card.tsx",
       "components/public/vehicle-catalogue.tsx"
     ]
+  },
+  "CURRENT_R3B_UIUX": {
+    "branch": "feat/ui-r3b-vehicle-detail",
+    "sha": "cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500",
+    "parent": "15e525fc43c16c91f2a3f58be0aa8a1801414005",
+    "type": "UI/UX CHECKPOINT (Codex R3B vehicle detail)",
+    "status": "CHECKPOINT INPUT FOR PHASE-1R; NOT APPROVED; NOT MERGED; LOCAL ONLY (not on GitHub)",
+    "worktree": ".claude/worktrees/ui-r3b-vehicle-detail",
+    "files": [
+      "components/public/vehicle-detail.tsx",
+      "components/public/vehicle-gallery.tsx"
+    ]
+  },
+  "reconciliation_rule": {
+    "visual": "UI baseline + approved R3B UI/UX wins",
+    "behavior_business_logic": "Phase 2C technical baseline wins",
+    "product_existence_flow": "Phase A+B product spec wins",
+    "mixed_file": "semantic reconciliation required; no branch wins everything"
   }
 }

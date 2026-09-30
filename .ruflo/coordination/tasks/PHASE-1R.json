@@ -3,10 +3,11 @@
   "taskType": "RECONCILIATION",
   "title": "Baseline Reconciliation Audit (no coding)",
   "compare": [
-    "UI baseline 76c206ea906e2351cce70ff1dbd6642f20ff1f79",
-    "Technical baseline 0d91bf707593161df8bc4cc0ade0d369dd74d1b0",
-    "Phase A+B Product & Admin audit",
-    "Preserved Windows UI/UX 15e525f (branch preserve/windows-uiux-15e525f)"
+    "A. UI baseline redesign/phase-2b-sold-vehicle-experience @ 76c206ea906e2351cce70ff1dbd6642f20ff1f79",
+    "B. Technical baseline redesign/phase-2c4-trust-cms-freshness-v2 @ 0d91bf707593161df8bc4cc0ade0d369dd74d1b0",
+    "C. Windows preserved UI/UX preserve/windows-uiux-15e525f @ 15e525fc43c16c91f2a3f58be0aa8a1801414005",
+    "D. Current R3B UI/UX checkpoint feat/ui-r3b-vehicle-detail @ cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500",
+    "E. Phase A+B Product & Admin Experience Audit"
   ],
   "baseBranch": null,
   "baseSha": null,
@@ -19,11 +20,18 @@
     "UI_ONLY",
     "TECHNICAL_ONLY",
     "WINDOWS_UIUX_ONLY",
+    "R3B_ONLY",
     "PRODUCT_SPEC_ONLY",
     "OVERLAP_SAFE",
     "RECONCILIATION_REQUIRED",
     "HIGH_RISK_CONFLICT"
   ],
   "reportPath": "docs/reports/txt/baseline-reconciliation-audit.txt",
-  "note": "Registered only. The orchestrator sets base SHA, branch and worktree when the Owner approves the start."
+  "note": "Registered only. The orchestrator sets base SHA, branch and worktree when the Owner approves the start. R3B is an input, not approved.",
+  "reconciliationRule": {
+    "visual": "UI baseline + approved R3B UI/UX wins",
+    "behavior_business_logic": "Phase 2C technical baseline wins",
+    "product_existence_flow": "Phase A+B product spec wins",
+    "mixed_file": "semantic reconciliation required; no branch wins everything"
+  }
 }
