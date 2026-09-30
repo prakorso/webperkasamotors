@@ -346,6 +346,7 @@ export async function getRelatedVehicles(
     .from("vehicles")
     .select(VEHICLE_COLUMNS)
     .eq("vehicle_type", vehicle.vehicleType)
+    .eq("status", "AVAILABLE")
     .neq("id", vehicle.id)
     .order("created_at", { ascending: true })
     .limit(limit);
