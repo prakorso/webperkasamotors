@@ -31,6 +31,7 @@ export default async function CarsPage(props: PageProps<"/cars">) {
       totalPages={totalPages}
       basePath="/cars"
       whatsapp={vehicleWhatsAppConfig(settings)}
+      separateSoldInventory
     />
   );
 }

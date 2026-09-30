@@ -15,6 +15,8 @@ interface VehicleCardProps {
   primaryMedia?: VehicleMedia;
   /** When provided, the card shows a direct "Saya Tertarik" WhatsApp CTA built from live vehicle data. Omit to render a link-only card. */
   whatsapp?: VehicleWhatsAppConfig;
+  /** Applies the quieter archive treatment used only by the dedicated sold-inventory section. */
+  soldPresentation?: boolean;
 }
 
 /**
@@ -24,7 +26,12 @@ interface VehicleCardProps {
  * the outer wrapper so the image hover-zoom / border still respond across
  * the whole card.
  */
-export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProps) {
+export function VehicleCard({
+  vehicle,
+  primaryMedia,
+  whatsapp,
+  soldPresentation = false,
+}: VehicleCardProps) {
   const basePath = vehicle.vehicleType === "CAR" ? "/cars" : "/motorcycles";
   const detailHref = `${basePath}/${vehicle.slug}`;
   // AVAILABLE = acquisition state → the normal per-vehicle CTA. Anything
@@ -32,14 +39,20 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
   // must not produce a message implying this exact unit can still be
   // bought, so it falls back to a generic "ask about other units" CTA.
   const isAvailable = vehicle.status === "AVAILABLE";
-  const whatsappHref = whatsapp
+  const whatsappHref = whatsapp && !soldPresentation
     ? isAvailable
       ? vehicleWhatsAppUrl(vehicle, whatsapp)
       : genericVehicleWhatsAppUrl(whatsapp)
     : null;
 
   return (
-    <div className="group flex flex-col rounded-[20px] border border-border/80 bg-surface shadow-[0_14px_40px_rgba(17,19,21,0.06)] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-[0_24px_60px_rgba(17,19,21,0.1)]">
+    <div
+      className={
+        soldPresentation
+          ? "group flex flex-col rounded-[20px] border border-border/70 bg-surface/80 shadow-none transition-[border-color,background-color] duration-300 hover:border-ink/20 hover:bg-surface"
+          : "group flex flex-col rounded-[20px] border border-border/80 bg-surface shadow-[0_14px_40px_rgba(17,19,21,0.06)] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-[0_24px_60px_rgba(17,19,21,0.1)]"
+      }
+    >
       <Link
         href={detailHref}
         className="flex flex-1 flex-col rounded-[20px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
@@ -61,18 +74,41 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
               alt={primaryMedia.altText}
               fill
               sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035]"
+              className={
+                soldPresentation
+                  ? "object-cover saturate-[0.58] brightness-[0.82] transition-[filter,transform] duration-500 ease-out group-hover:scale-[1.02] group-hover:saturate-[0.72]"
+                  : "object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035]"
+              }
             />
           )}
-          <div className="absolute left-3 top-3">
-            <VehicleStatusBadge status={vehicle.status} />
-          </div>
+          {soldPresentation ? (
+            <>
+              <div className="absolute inset-0 bg-ink/10" aria-hidden="true" />
+              <div className="absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-center">
+                <span className="rounded-full border border-paper/70 bg-ink/80 px-5 py-2 font-body text-label font-bold uppercase tracking-[0.16em] text-paper shadow-sm backdrop-blur-sm">
+                  Sold Out
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="absolute left-3 top-3">
+              <VehicleStatusBadge status={vehicle.status} />
+            </div>
+          )}
         </div>
         <div className="flex flex-1 flex-col gap-3 p-5 md:p-6">
           <p className="font-body text-label font-semibold uppercase tracking-[0.06em] text-muted">
             {vehicle.year}
           </p>
-          <h3 className="font-display text-headline-sm leading-tight text-ink">{vehicleTitle(vehicle)}</h3>
+          <h3
+            className={
+              soldPresentation
+                ? "font-display text-headline-sm leading-tight text-ink/80"
+                : "font-display text-headline-sm leading-tight text-ink"
+            }
+          >
+            {vehicleTitle(vehicle)}
+          </h3>
           <dl className="grid grid-cols-2 gap-y-1 border-y border-border/70 py-3 font-body text-[13px] text-muted">
             <div>
               <dt className="sr-only">Transmission</dt>
@@ -83,7 +119,13 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
               <dd>{formatMileage(vehicle.mileageKm)}</dd>
             </div>
           </dl>
-          <p className="mt-auto font-display text-[22px] font-semibold tabular-nums text-ink">
+          <p
+            className={
+              soldPresentation
+                ? "mt-auto font-display text-[20px] font-semibold tabular-nums text-muted"
+                : "mt-auto font-display text-[22px] font-semibold tabular-nums text-ink"
+            }
+          >
             {formatIDR(vehicle.price)}
           </p>
         </div>
