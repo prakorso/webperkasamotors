@@ -1,0 +1,22 @@
+{
+  "UI_BASELINE": {
+    "branch": "redesign/phase-2b-sold-vehicle-experience",
+    "sha": "76c206ea906e2351cce70ff1dbd6642f20ff1f79",
+    "type": "VISUAL / UI",
+    "status": "APPROVED"
+  },
+  "TECHNICAL_BASELINE": {
+    "branch": "redesign/phase-2c4-trust-cms-freshness-v2",
+    "sha": "0d91bf707593161df8bc4cc0ade0d369dd74d1b0",
+    "type": "TECHNICAL / PRODUCT BEHAVIOR",
+    "status": "APPROVED"
+  },
+  "PRODUCT_SPEC": {
+    "source": "Phase A+B Product & Admin Experience Audit",
+    "path": "docs/reports/txt/product-admin-experience-audit-phase-a-b.txt",
+    "type": "PRODUCT / ADMIN",
+    "status": "APPROVED FOR ROADMAP INPUT"
+  },
+  "lineage_note": "76c206e and 0d91bf7 both descend from d079e46; neither contains the other. Reconciliation is PHASE-1R.",
+  "reconciliation_target": "visual intent of 76c206e + technical behavior of 0d91bf7"
+}

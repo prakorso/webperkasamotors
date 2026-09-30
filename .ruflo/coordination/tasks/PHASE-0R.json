@@ -1,0 +1,19 @@
+{
+  "task": "PHASE-0R",
+  "taskType": "INFRA",
+  "baseBranch": "origin/main",
+  "baseSha": "bc8eaa187cd44f4e673117ae20150b8b62fdb245",
+  "targetBranch": "chore/ruflo-orchestration-foundation",
+  "targetWorktree": ".claude/worktrees/ruflo-orchestration-foundation",
+  "writeOwner": null,
+  "reviewer": "owner",
+  "status": "REVIEW",
+  "started": "2026-10-01",
+  "lastHandoff": null,
+  "knownRisks": [
+    "ruflo init was denied by the permission classifier; Ruflo's native store is not initialized",
+    "shared checkout: local main is ahead of origin/main by unpushed commit 15e525f"
+  ],
+  "protectedBehaviors": "see docs/AGENT-GOVERNANCE.md section 9",
+  "reportPath": "docs/reports/txt/ruflo-orchestration-foundation.txt"
+}

@@ -1,0 +1,27 @@
+{
+  "task": "PHASE-1R",
+  "taskType": "RECONCILIATION",
+  "title": "Baseline Reconciliation Audit (no coding)",
+  "compare": [
+    "UI baseline 76c206ea906e2351cce70ff1dbd6642f20ff1f79",
+    "Technical baseline 0d91bf707593161df8bc4cc0ade0d369dd74d1b0",
+    "Phase A+B Product & Admin audit"
+  ],
+  "baseBranch": null,
+  "baseSha": null,
+  "targetBranch": null,
+  "targetWorktree": null,
+  "writeOwner": null,
+  "reviewer": "owner",
+  "status": "READY",
+  "classification": [
+    "UI_ONLY",
+    "TECHNICAL_ONLY",
+    "PRODUCT_SPEC_ONLY",
+    "OVERLAP_SAFE",
+    "OVERLAP_RECONCILIATION_REQUIRED",
+    "OVERLAP_HIGH_RISK"
+  ],
+  "reportPath": "docs/reports/txt/baseline-reconciliation-audit.txt",
+  "note": "Registered only. The orchestrator sets base SHA, branch and worktree when the Owner approves the start."
+}
