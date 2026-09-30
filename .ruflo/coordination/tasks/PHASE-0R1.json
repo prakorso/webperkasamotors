@@ -10,8 +10,8 @@
   "reviewer": "owner",
   "status": "CLOSED",
   "knownRisks": [
-    "R3B commit cc90d4f exists only locally; it is stacked on 15e525f, not on main; not pushed",
-    "docs/reports/ is untracked in the shared checkout (reports only)"
+    "R3B commit cc90d4f is stacked on 15e525f, not on main (R3B was pushed to GitHub after closure; see PHASE-0R2)",
+    "docs/reports/ was untracked in the shared checkout; product audit now tracked on the infra branch (PHASE-0R2)"
   ],
   "reportPath": "docs/reports/txt/ruflo-phase-0r1-finalization.txt",
   "closed": "2026-10-01",

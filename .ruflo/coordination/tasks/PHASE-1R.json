@@ -33,5 +33,31 @@
     "behavior_business_logic": "Phase 2C technical baseline wins",
     "product_existence_flow": "Phase A+B product spec wins",
     "mixed_file": "semantic reconciliation required; no branch wins everything"
-  }
+  },
+  "inputs": {
+    "UI_BASELINE": {
+      "branch": "redesign/phase-2b-sold-vehicle-experience",
+      "sha": "76c206ea906e2351cce70ff1dbd6642f20ff1f79"
+    },
+    "TECHNICAL_BASELINE": {
+      "branch": "redesign/phase-2c4-trust-cms-freshness-v2",
+      "sha": "0d91bf707593161df8bc4cc0ade0d369dd74d1b0"
+    },
+    "WINDOWS_UIUX": {
+      "branch": "preserve/windows-uiux-15e525f",
+      "sha": "15e525fc43c16c91f2a3f58be0aa8a1801414005",
+      "parent": "bc8eaa187cd44f4e673117ae20150b8b62fdb245"
+    },
+    "R3B_UIUX": {
+      "branch": "feat/ui-r3b-vehicle-detail",
+      "sha": "cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500",
+      "parent": "15e525fc43c16c91f2a3f58be0aa8a1801414005"
+    },
+    "PRODUCT_SPEC": {
+      "path": "docs/reports/product-admin-experience-audit-phase-a-b.md",
+      "txt_mirror": "docs/reports/txt/product-admin-experience-audit-phase-a-b.txt"
+    }
+  },
+  "lineageRule": "R3B is NOT a sibling of 15e525f. cc90d4f contains 15e525f. Compare 15e525f against bc8eaa1 and cc90d4f against 15e525f; never count 15e525f changes twice.",
+  "inputSetStatus": "COMPLETE (all inputs on GitHub or tracked)"
 }

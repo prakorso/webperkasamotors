@@ -12,10 +12,13 @@
     "status": "APPROVED"
   },
   "PRODUCT_SPEC": {
+    "path": "docs/reports/product-admin-experience-audit-phase-a-b.md",
+    "txt_mirror": "docs/reports/txt/product-admin-experience-audit-phase-a-b.txt",
     "source": "Phase A+B Product & Admin Experience Audit",
-    "path": "docs/reports/txt/product-admin-experience-audit-phase-a-b.txt",
-    "type": "PRODUCT / ADMIN",
-    "status": "APPROVED FOR ROADMAP INPUT"
+    "date": "2026-09-30",
+    "sha256_text": "5eabc1db9d62a5ec00a4143bf3291b8beb38b18331999ed8caea9611515d6cce",
+    "type": "PRODUCT_ADMIN_SPEC",
+    "status": "APPROVED_FOR_ROADMAP_INPUT"
   },
   "lineage_note": "76c206e and 0d91bf7 both descend from d079e46; neither contains the other. Reconciliation is PHASE-1R.",
   "reconciliation_target": "visual intent of 76c206e + technical behavior of 0d91bf7",
@@ -36,24 +39,34 @@
       "app/(public)/cars/page.tsx",
       "components/public/vehicle-card.tsx",
       "components/public/vehicle-catalogue.tsx"
-    ]
+    ],
+    "remote_verified": true
   },
   "CURRENT_R3B_UIUX": {
     "branch": "feat/ui-r3b-vehicle-detail",
     "sha": "cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500",
     "parent": "15e525fc43c16c91f2a3f58be0aa8a1801414005",
     "type": "UI/UX CHECKPOINT (Codex R3B vehicle detail)",
-    "status": "CHECKPOINT INPUT FOR PHASE-1R; NOT APPROVED; NOT MERGED; LOCAL ONLY (not on GitHub)",
+    "status": "CHECKPOINT INPUT FOR PHASE-1R; NOT APPROVED; NOT MERGED; on GitHub",
     "worktree": ".claude/worktrees/ui-r3b-vehicle-detail",
     "files": [
       "components/public/vehicle-detail.tsx",
       "components/public/vehicle-gallery.tsx"
-    ]
+    ],
+    "remote_verified": true
   },
   "reconciliation_rule": {
     "visual": "UI baseline + approved R3B UI/UX wins",
     "behavior_business_logic": "Phase 2C technical baseline wins",
     "product_existence_flow": "Phase A+B product spec wins",
     "mixed_file": "semantic reconciliation required; no branch wins everything"
+  },
+  "lineage": {
+    "chain": [
+      "bc8eaa187cd44f4e673117ae20150b8b62fdb245 (main)",
+      "15e525fc43c16c91f2a3f58be0aa8a1801414005 (WINDOWS_UIUX)",
+      "cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500 (R3B_UIUX)"
+    ],
+    "rule": "R3B is NOT a sibling of 15e525f. cc90d4f contains 15e525f. Compare 15e525f against bc8eaa1 and cc90d4f against 15e525f; never count 15e525f changes twice."
   }
 }

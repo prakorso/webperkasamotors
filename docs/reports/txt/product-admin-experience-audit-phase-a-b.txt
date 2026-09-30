@@ -1,0 +1,1036 @@
+PERKASA MOTORS — PRODUCT & ADMIN EXPERIENCE AUDIT (PHASE A + B)
+================================================================
+Date: 2026-09-30
+Role: CTO + CPO audit. Audit and product decisions only.
+Code/database/CMS modified: NONE.  Committed/pushed: NONE.
+
+EVIDENCE BASE AND LIMITS
+------------------------
+Read directly from the repository at main @ bc8eaa1. Its application code is
+identical to the approved UI baseline 76c206e (bc8eaa1 only adds .gitignore and
+lint config). The Phase 2C technical lineage (redesign/phase-2c*) was NOT
+audited here. Files that exist in this baseline but are not wired into any
+public page, such as components/public/social-content-strip.tsx and
+homepage-social-section.tsx, are noted as DORMANT.
+
+Also checked: the live production HTML of /, /about and /articles (read-only
+HTTP GET), to see which CMS-driven sections actually render today.
+
+Not verified (marked NOT VERIFIED in the body): actual CMS row contents in
+Supabase (I did not query the database), real admin click counts (nothing was
+run in a browser), admin behavior on phones, and any analytics.
+
+Tags used:  KEEP / CHANGE / REMOVE / DEFER / NEEDS OWNER DECISION
+
+Headline findings (details below):
+ 1. The public site is structurally sound and already WhatsApp-first. Most
+    problems are copy/claims and a few misplaced features, not architecture.
+ 2. Several public claims are unsupported ("setiap unit telah melalui inspeksi
+    internal", "Kualitas Terjamin", "Merancang ulang standar kemewahan",
+    "premium", "kurasi", "layanan purna jual yang eksklusif"). The code's own
+    rule is to avoid inventing things; these are invented and need owner
+    confirmation or removal.
+ 3. The admin is further along than it feels. Slug, URL history, stock number
+    and media type are already automatic, and SEO fields were already removed
+    from the vehicle form. The real friction is: no one-tap status change, no
+    sold date, vehicle-form field overload, a mock-era Dashboard and Leads page,
+    a placeholder Settings page, and an 8-item sidebar with a duplicated
+    content concept.
+ 4. The biggest Operating System risk is that there is no status-change
+    history or sold date in the CMS schema, and the vehicle row mixes
+    marketing fields with operational fields.
+
+
+=====================================================================
+PART 1 — PHASE A: CUSTOMER JOURNEY AUDIT
+=====================================================================
+
+---------------------------------------------------------------------
+A1. HOMEPAGE
+---------------------------------------------------------------------
+AREA: Homepage (app/(public)/page.tsx)
+CURRENT PURPOSE: Hero slideshow (up to 3 CMS slides, hardcoded fallback) →
+  Featured Stock (up to 4) → optional About → Why Perkasa (3 cards) → optional
+  Testimonials → generic WhatsApp CTA.
+  Live today (read from production HTML): Hero, Featured Stock, Why Perkasa
+  (default text), final CTA. The About and Testimonials sections are NOT
+  rendering, so they are off or empty in the CMS.
+CUSTOMER VALUE: Featured stock and the hero link to /cars are genuinely useful.
+  Why Perkasa adds little; it is generic.
+BUSINESS VALUE: Featured Stock drives discovery. Final CTA supports conversion.
+FRICTION:
+  - "Featured Stock" is a manual flag (is_featured). Owner must remember to tick
+    it, and a SOLD unit can still be featured.
+  - Featured Stock shows "Lihat Semua" only at md+ (hidden on phones), so
+    mobile users have no inline path to the full catalogue except the nav.
+  - Why Perkasa cards make unsupported claims (see Trust Audit).
+  - Hero default copy: "A curated showroom of inspected, premium vehicles —
+    every unit verified before it reaches you." Unsupported (English and
+    unsupported).
+RISK: Testimonials CMS exists; if someone fills it with unverifiable quotes,
+  it becomes a trust liability. Today it is empty and correctly hidden.
+DECISION: CHANGE (simplify).
+RATIONALE: Keep the structure that works (Hero, Stock, CTA). Drop or rewrite
+  what makes claims. Do not add sections to look bigger.
+RECOMMENDED FUTURE STATE (ideal hierarchy, top to bottom):
+  1. Hero: one or two real photos of real current units. One primary action:
+     "Lihat Unit Tersedia". One secondary: WhatsApp.
+  2. Unit Tersedia: auto-filled with the latest AVAILABLE units (no manual
+     "featured" flag needed; see A2). Show "Lihat semua" on all breakpoints.
+  3. Cara Pembelian: 4-step compact strip (see A9). This replaces "Why
+     Perkasa". It explains the business through process rather than adjectives.
+  4. Sudah Terjual (recent, max 3): social proof from real SOLD units. The
+     data and card variant already exist (soldPresentation).
+  5. Final WhatsApp CTA.
+  Optional and only if the owner supplies real content: short About blurb
+  (3 lines + link to /about), Testimonials (only real, attributable ones).
+  Articles: not on the homepage until there are at least 3 published.
+  Section-by-section verdicts:
+    Hero ........................ KEEP (simplify to 1–2 slides in practice)
+    Available / Featured Units .. KEEP (make automatic)
+    About ....................... DEFER (homepage block off; /about is enough)
+    Why Perkasa ................. REMOVE from homepage (replace with How to Buy)
+    Testimonials ................ DEFER until real, attributable quotes exist
+    How to Buy .................. ADD (new, compact)
+    Financing guidance .......... DEFER on homepage (link from vehicle detail)
+    SOLD / Recent ............... ADD (3 most recent SOLD units)
+    Articles .................... DEFER
+    Final WhatsApp CTA .......... KEEP
+
+---------------------------------------------------------------------
+A2. CARS CATALOGUE / MOTORCYCLE CATALOGUE / INVENTORY PRESENTATION
+---------------------------------------------------------------------
+AREA: Cars and Motorcycles catalogues (vehicle-catalogue.tsx, cars/page.tsx,
+  motorcycles/page.tsx, lib/data/vehicles.ts)
+CURRENT PURPOSE: A grid of vehicles per type. Cars page splits "Unit Tersedia"
+  from "Sudah Terjual" (separateSoldInventory). Motorcycles page does NOT use
+  that split; it shows one mixed grid.
+  Sort order: AVAILABLE, then RESERVED, then SOLD, by tier. Page size 10.
+  No filters. No search (the old decorative search icon was already removed).
+CUSTOMER VALUE: Good. A small inventory reads as deliberate. The sold archive on
+  Cars is a real trust signal.
+BUSINESS VALUE: Discovery and social proof.
+FRICTION:
+  - Cars vs Motorcycles behave differently (sold split exists on one only).
+    That is an inconsistency, not a choice.
+  - Cars/Motorcycles catalogue subtitle: "Setiap unit telah melalui kurasi dan
+    inspeksi internal" is an unsupported claim on the page that matters most.
+  - Card shows only year, transmission, mileage, price. Fuel and brand are not
+    shown (brand is in the title). This is fine for a small inventory.
+  - Pagination is at 10 per page and applies across tiers; with the sold split,
+    a page can show "available" units plus part of the sold archive. Fine today,
+    worth watching only when inventory passes ~10.
+  - Empty state is plain English ("No vehicles available in this category right
+    now.") on an otherwise Indonesian site.
+  - Reserved units: the "available" section heading says "Unit Tersedia" but
+    RESERVED units sit inside it (filter is status !== SOLD). Acceptable, but
+    RESERVED should be visually obvious (badge exists).
+RISK: LOW. Main risk is scope creep into marketplace filtering.
+DECISION: KEEP with small CHANGE.
+RATIONALE: The structure is correct. Unify the two catalogues.
+RECOMMENDED FUTURE STATE:
+  - Apply the Available / Reserved-in-available / Sold split to Motorcycles too.
+  - Keep Cars and Motorcycles as separate pages (customers think "mobil" or
+    "motor", and the nav already reflects it). Do not merge.
+  - Translate the empty states to Indonesian and make them useful: "Belum ada
+    unit. Tanyakan unit yang akan datang lewat WhatsApp."
+  - Filters NOW: none. Optional "Semua / Mobil / Motor" is not needed either
+    since they are separate pages.
+  - Filters DEFERRED until the available count regularly exceeds ~12 per type:
+    (1) brand, (2) price range, (3) transmission, (4) year. Do NOT add: body
+    type, fuel, color, location, condition (single showroom, used cars).
+  - Sorting NOW: keep the tiered default. Sort control DEFERRED.
+  - Pagination: KEEP as is.
+
+---------------------------------------------------------------------
+A3. VEHICLE DETAIL
+---------------------------------------------------------------------
+AREA: Vehicle detail (vehicle-detail.tsx, cars/[slug], motorcycles/[slug])
+CURRENT PURPOSE: Gallery (lightbox) + title, stock number, price, highlights
+  chips, spec grid (year, km, transmission, fuel, exterior color, condition,
+  CC, plate), long description, WhatsApp CTA, related vehicles.
+CUSTOMER VALUE: HIGH. It already answers most of the five buyer questions.
+BUSINESS VALUE: HIGH. It is the main conversion page.
+FRICTION / REDUNDANCY:
+  - Stock number shown as a large sub-heading under the title; it is an
+    internal reference. Buyers do not need it (but the owner can use it in
+    WhatsApp chats). Demote it to small text.
+  - "Kondisi: Used/New" on a used-car dealer is noise for nearly every unit.
+    "Warna Eksterior", "Kapasitas CC" and "Plat Nomor" show "—" when empty,
+    which looks unfinished. Hide empty rows rather than print a dash.
+  - CC is meaningful for motorcycles, less for cars. Plate is useful (buyers do
+    check the plate area/expiry) but free-text unverified.
+  - Mileage/plate/year duplicate what is also in the highlights chips if the
+    owner re-types them there. Highlights are free text and are the main place
+    where inconsistent or exaggerated claims will appear.
+  - Description (vehicle.description): the vehicle form no longer has an input
+    for it, so any existing text can only come from old data. NEW vehicles have
+    an empty description. NOT VERIFIED which live vehicles have description
+    text. Decide: either a short optional "Catatan" field or drop the paragraph.
+  - Related vehicles heading is English ("Related Vehicles"). It also shows SOLD
+    units as "related" purchase options; check this is intended.
+  - Missing trust information that buyers ask: tax (pajak) validity, number of
+    previous owners, documents (BPKB/STNK) status, service history, and
+    honest accident/repair disclosure. NONE of these exist in the schema. These
+    are what a used-vehicle buyer wants, but the owner must be able to state
+    them truthfully for each unit. See Needs Owner Decision.
+  - Financing: no link from a vehicle to an estimate. The buyer has to leave
+    and retype the price in /financing.
+RISK: MEDIUM. Empty/"—" rows and missing facts look like hidden information.
+DECISION: CHANGE (small).
+RECOMMENDED FUTURE STATE (answers the five questions):
+  WHAT IS IT?     Title, year, cover photo, gallery.
+  CONDITION/SPEC  Mileage, transmission, fuel, color, plate (+ CC for motor).
+                  Only rows with values. Highlights as max 3–5 short facts.
+  HOW MUCH?       Price, prominent. Optional single line "Estimasi cicilan
+                  mulai dari Rp X/bulan" only if financing is kept (see A4).
+  AVAILABLE?      Status badge (Tersedia / Dipesan / Terjual), already there.
+  CONTACT?        One WhatsApp button with pre-filled unit context (already
+                  there). Sticky on mobile (DEFER; visual polish).
+  Related: show only AVAILABLE units.
+  Add (if owner can state them truthfully): pajak berlaku s/d, jumlah pemilik,
+  kelengkapan dokumen. These are the highest-value trust additions in this
+  whole audit; they are OWNER DECISIONS, not code decisions.
+
+---------------------------------------------------------------------
+A4. FINANCING
+---------------------------------------------------------------------
+AREA: Financing (financing/page.tsx, financing-calculator.tsx)
+CURRENT PURPOSE: Client-side annuity calculator (price input default Rp 500 juta,
+  DP slider 10–70%, tenor 12–60 months, interest rate default 6.5% p.a.),
+  plus "Tanya Simulasi via WhatsApp" that appends the estimate to the message.
+CUSTOMER VALUE: Moderate. People like a rough number.
+BUSINESS VALUE: Moderate, but with real risk.
+FRICTION / RISK:
+  - Nav label and page title say "Simulasi Kredit" and heading "Hitung estimasi
+    cicilan Anda" — "simulation" implies something more definite than it is.
+  - Default price Rp 500 juta does not relate to inventory (units are Rp 13–95
+    juta on the live site). The first thing a visitor sees is an irrelevant
+    number.
+  - The 6.5% default rate is a made-up flat figure. In Indonesia multi-finance
+    rates, admin fees, insurance, and effective-vs-flat interest differ widely
+    and are often much higher for used vehicles. A 6.5% default UNDERSTATES
+    typical used-vehicle financing cost and can create a false expectation.
+  - The disclaimer is tiny (12px, muted) and says "estimasi ini bersifat
+    indikatif … belum terhubung ke pengajuan kredit sungguhan." It does not say
+    that actual terms depend on the leasing company and applicant profile.
+  - WhatsApp message embeds "estimasi cicilan sekitar Rp X" in the customer's
+    first message, so the owner may be held to that number.
+DECISION: CHANGE (rename, reframe, reduce) — do not build a richer calculator.
+RATIONALE: Perkasa cannot guarantee leasing terms, so the feature must read as
+  a rough estimate and a conversation starter, never a quote.
+RECOMMENDED FUTURE STATE (simplest useful):
+  - Keep ONE page, rename to "Estimasi Pembiayaan" (nav: "Estimasi Kredit").
+  - Keep the calculator but: default price = 0/empty or a selectable unit;
+    default rate left blank or a clearly labeled placeholder the visitor must
+    set; show a prominent 4-bullet notice above the result: (1) angka hanya
+    estimasi, (2) bunga/DP/tenor/biaya ditentukan perusahaan pembiayaan,
+    (3) persetujuan tergantung profil pemohon, (4) simulasi resmi lewat
+    WhatsApp.
+  - Accept ?price= so a vehicle's detail page can link "Estimasi cicilan unit
+    ini" into it pre-filled. This is a link, not a new module.
+  - Remove the estimated number from the pre-filled WhatsApp text (say "Saya
+    ingin simulasi kredit untuk unit X", not a figure).
+  - Do NOT add a separate financing module to the vehicle page (too heavy).
+  - If the owner prefers zero risk: the fallback is REMOVE the calculator and
+    keep only a "Tanya Simulasi Kredit" WhatsApp CTA on the vehicle page.
+    That is acceptable and simpler. NEEDS OWNER DECISION.
+
+---------------------------------------------------------------------
+A5. ABOUT
+---------------------------------------------------------------------
+AREA: About page (about/page.tsx + about_page_sections table)
+CURRENT PURPOSE: Multi-section CMS page. Live today (read from production):
+  intro "Merancang ulang standar kemewahan…", "Prinsip Kami: Presisi, Performa,
+  Perkasa", closing paragraph about transparency.
+CUSTOMER VALUE: LOW–MEDIUM. It does not say what people actually want to know:
+  who you are, what you sell, where, how a transaction works.
+BUSINESS VALUE: LOW, and a trust RISK (see Trust Audit).
+FRICTION: Generic luxury language ("kemewahan", "kurasi", "presisi") for what is
+  a used-car dealer in Cibubur, Jakarta Timur. "Etalase otomotif digital"
+  suggests an online-only business, while the footer lists an address.
+DECISION: CHANGE (rewrite short, factual).
+RECOMMENDED FUTURE STATE (one page, four short blocks, owner-supplied facts):
+  1. Siapa Perkasa Motors (1–2 sentences, real).
+  2. Apa yang kami jual (mobil & motor bekas, milik/dikelola sendiri).
+  3. Cara transaksi (link to Cara Pembelian).
+  4. Kontak & lokasi (WhatsApp, Instagram, LinkedIn if real, alamat).
+  No history, no team story, no certifications, no network claims. The CMS
+  sections table already supports this; no schema change needed.
+
+---------------------------------------------------------------------
+A6. CONTACT
+---------------------------------------------------------------------
+AREA: Contact (contact/page.tsx)
+CURRENT PURPOSE: Headline, one WhatsApp button, optional address/phone/email.
+CUSTOMER VALUE: OK. There is no form, which is correct.
+FRICTION: Copy says "jadwalkan kunjungan" (schedule a visit) but there is no
+  scheduling mechanism and no opening hours. Setting expectations the business
+  cannot meet is a small trust risk. Phone and WhatsApp may be duplicated.
+  Fallback when WhatsApp is not configured sends people to the homepage.
+DECISION: KEEP with small CHANGE.
+RECOMMENDED FUTURE STATE: WhatsApp (primary), address + map link, opening hours
+  if real, Instagram, LinkedIn only if it is a real business page. No email
+  unless monitored. No public form. No appointment flow; WhatsApp is the
+  appointment flow. Change "jadwalkan kunjungan" to "tanyakan jam kunjungan".
+
+---------------------------------------------------------------------
+A7. ARTICLES
+---------------------------------------------------------------------
+AREA: Articles (articles pages, admin article editor, sitemap)
+CURRENT PURPOSE: Full CMS blog with categories, tags, SEO fields, slug,
+  status, pagination.
+  Live today: "No articles published yet — check back soon."
+CUSTOMER VALUE: Potentially LOW–MEDIUM (SEO, buying tips), currently ZERO.
+BUSINESS VALUE: Only if the owner has capacity to write regularly.
+FRICTION: The navigation/sitemap advertise an empty section, and the public
+  empty state is in English ("Articles", "check back soon"). An empty section
+  reads as abandoned.
+DECISION: DEFER (hide from public navigation and sitemap until 3+ articles are
+  published). Do not delete the backend or admin capability.
+RECOMMENDED FUTURE STATE: Keep the admin editor. Show Articles in nav/sitemap
+  only when published count >= 3 (automatic rule, no toggle needed).
+
+---------------------------------------------------------------------
+A8. WHATSAPP CONVERSION
+---------------------------------------------------------------------
+AREA: WhatsApp (lib/utils/whatsapp.ts, WhatsAppCta, site header/footer,
+  website_settings templates)
+CURRENT PURPOSE: Single conversion channel. Per-vehicle pre-filled message for
+  AVAILABLE units; generic message otherwise.
+CUSTOMER VALUE: HIGH. Already the right model.
+BUSINESS VALUE: HIGH.
+FRICTION:
+  - Buttons say "Saya Tertarik" on cards and "Saya Tertarik dengan Unit Ini"
+    on detail. Fine. On RESERVED/SOLD units the button becomes "Tanya Unit
+    Lain": this is correct behavior and worth keeping.
+  - Two templates in the CMS (product inquiry and generic). Good enough.
+  - A dormant lead-number field (whatsappLeadNumber) remains in settings
+    types/actions (see Leads).
+  - The header CTA "Hubungi Kami" is WhatsApp; nav item "Hubungi Kami" also
+    links to the contact page. Two different "Hubungi Kami" destinations can
+    confuse. NOT VERIFIED which navigation rows exist in the DB.
+DECISION: KEEP.
+RECOMMENDED FUTURE STATE: No change to mechanism. Add light tracking of clicks
+  only if the owner actually wants to know (DEFER; do not add analytics now).
+
+---------------------------------------------------------------------
+A9. HOW TO BUY (NEW, COMPACT)
+---------------------------------------------------------------------
+AREA: Cara Pembelian (does not exist today)
+CURRENT PURPOSE: n/a.
+CUSTOMER VALUE: HIGH for first-time buyers: removes uncertainty without adding
+  steps.
+BUSINESS VALUE: HIGH: it replaces unsupported "why us" adjectives with
+  something factual.
+DECISION: ADD (as a homepage strip + repeated on /about), content owner-supplied.
+RECOMMENDED FUTURE STATE: four steps only:
+  1. Pilih unit
+  2. Hubungi lewat WhatsApp
+  3. Lihat & cek unit (kunjungan / video call)
+  4. Sepakati transaksi & serah terima
+  Cash vs financing: do NOT split into two flows. One sentence: "Pembayaran
+  tunai atau kredit melalui perusahaan pembiayaan; detail dibahas lewat
+  WhatsApp." Keep it a static, CMS-editable text block, not a dedicated
+  module. Owner must confirm that the steps match reality (for example,
+  whether units can be inspected before payment).
+
+---------------------------------------------------------------------
+A10. SOLD VEHICLE JOURNEY
+---------------------------------------------------------------------
+AREA: SOLD presentation (vehicle-card.tsx soldPresentation, catalogue split)
+CURRENT PURPOSE: Keep SOLD units visible as social proof, muted with a "Sold
+  Out" overlay, never offering a purchase CTA.
+CUSTOMER VALUE: GOOD: shows that stock really sells.
+FRICTION:
+  - The overlay says "Sold Out" (English, and "sold out" suggests a retail
+    item that could restock). Use "Terjual".
+  - No sold date exists anywhere in the schema. Order within SOLD is by
+    created_at (when the ad was created), not by when it sold, so "recently
+    sold" cannot be answered correctly. The code comment in lib/data/vehicles.ts
+    openly says a sold_at/status_changed_at column does not exist.
+  - SOLD units stay in sitemap and can be "Related Vehicles".
+RISK: MEDIUM (data gap, see Operating System section).
+DECISION: KEEP, CHANGE small.
+RECOMMENDED FUTURE STATE: Show "Terjual" plus month/year once a sold date
+  exists. Cap the public sold archive (for example, latest 6–9) so it never
+  dominates. Do not show the sale price differently from the listing price
+  (leave it). Do not turn SOLD into a marketing brag wall.
+
+---------------------------------------------------------------------
+A11. NAVIGATION
+---------------------------------------------------------------------
+AREA: Header navigation (CMS-driven navigation_items) and mobile nav.
+CURRENT PURPOSE: Live labels: Beli Mobil, Beli Motor, Tentang Kami, Simulasi
+  Kredit, plus a WhatsApp CTA "Hubungi Kami".
+CUSTOMER VALUE: Clear. Five items is fine.
+FRICTION: No Articles link (good, since empty). "Simulasi Kredit" label (see
+  Financing). Nav is database-driven but the set of pages is fixed, so the
+  owner-facing "Header & Navigation" manager (323 lines) is powerful but rarely
+  needed. Broken-link risk: the owner can type any href.
+DECISION: KEEP (public) / SIMPLIFY (admin, see Phase B).
+RECOMMENDED FUTURE STATE: Beli Mobil · Beli Motor · Estimasi Kredit ·
+  Tentang Kami · [Hubungi via WhatsApp]. Articles is added automatically when
+  3+ articles are published.
+
+---------------------------------------------------------------------
+A12. FOOTER
+---------------------------------------------------------------------
+AREA: Footer (site-footer.tsx, footer settings)
+CURRENT PURPOSE: Company name, description, address/phone/WhatsApp/email,
+  five social links (Instagram, Facebook, TikTok, YouTube, LinkedIn),
+  nav groups, legal links, copyright.
+CUSTOMER VALUE: LOW–MEDIUM (contact + socials).
+FRICTION: Five social slots for a business that likely uses one or two. Empty
+  ones do not render, which is correct. The footer duplicates fields that also
+  exist in the general settings form (phone, email, address, WhatsApp,
+  Instagram, etc. appear in BOTH the Website > General form and the Footer
+  form: two places to edit the same fact). NOT VERIFIED whether the two forms
+  write the same table columns or separate ones; footer.ts and site-settings.ts
+  both exist and the footer form labels repeat the general form labels.
+DECISION: KEEP public, CHANGE admin (single source for contact/socials).
+RECOMMENDED FUTURE STATE: Footer reads one contact/social source. The owner
+  edits contact and social links once.
+
+
+=====================================================================
+PART 2 — TRUST AUDIT (CLAIM BY CLAIM)
+=====================================================================
+Classification: SUPPORTED / UNSUPPORTED / TOO STRONG / REDUNDANT.
+"Unsupported" means nothing in the repo or the live data demonstrates it; it
+may still be true, in which case the owner should confirm and ideally add
+evidence.
+
+ 1. "Setiap unit telah melalui kurasi dan inspeksi internal Perkasa Motors."
+    (Cars/Motorcycles catalogue headers) ........ UNSUPPORTED, TOO STRONG
+ 2. "Setiap unit melewati inspeksi menyeluruh untuk memastikan performa dan
+    kondisi sempurna." (Why Perkasa card) ........ UNSUPPORTED, TOO STRONG
+    ("kondisi sempurna" is a perfection claim on used vehicles.)
+ 3. "Kualitas Terjamin" (card title) ............. TOO STRONG (implies warranty)
+ 4. "Terpercaya … Reputasi dalam menghadirkan kendaraan premium berkualitas
+    tinggi" ..................................... UNSUPPORTED, REDUNDANT
+ 5. "Layanan Premium … purna jual yang eksklusif" . UNSUPPORTED (no after-sales
+    service is described anywhere)
+ 6. "A curated showroom of inspected, premium vehicles — every unit verified
+    before it reaches you." (hero fallback text) ... UNSUPPORTED, TOO STRONG
+ 7. "Merancang ulang standar kemewahan" / "standar inspeksi internal" (live
+    About) ....................................... UNSUPPORTED, TOO STRONG
+ 8. "Etalase otomotif digital" (live About) ..... CONFUSING: a physical address
+    exists in the footer.
+ 9. Product descriptions in SEO default: "Curated and inspected by Perkasa
+    Motors." (vehicle metadata fallback) ........ UNSUPPORTED
+10. Hero slides (live CMS) "Find Your Next Drive." and body "Pilihan kendaraan
+    berkualitas dengan informasi yang jelas dan proses pembelian yang mudah."
+    ........................................... SUPPORTED (modest, aspirational)
+11. Prices, year, mileage, transmission, plate on cards ... SUPPORTED (it is
+    the data; accuracy depends on owner entry)
+12. SOLD archive ............................. SUPPORTED (factual status)
+13. WhatsApp number, address (Cibubur, Jakarta Timur) ... SUPPORTED, assuming
+    correct
+14. "Premium" used as a general brand word (catalogue meta descriptions,
+    Why Perkasa) .............................. TOO STRONG for mainstream used
+    vehicles such as the Hyundai Grand Avega listings seen live.
+15. Testimonials: none live ................... SUPPORTED (correctly absent)
+16. Financing default rate 6.5% ............... MISLEADING DEFAULT (not a claim
+    but implied terms; see Financing)
+
+Recommended evidence-based replacements (owner to confirm facts):
+  - Real photos with consistent angles; clear status; plate and pajak info.
+  - Sold units with month/year.
+  - Short factual process (Cara Pembelian).
+  - Social links that lead to real content (Instagram, LinkedIn only if real).
+  - A plain statement of what is actually checked on each unit, only if a
+    checklist really exists (NEEDS OWNER DECISION). Otherwise say nothing
+    about inspection.
+
+
+=====================================================================
+PART 3 — PHASE B: OWNER / ADMIN CMS FRICTION AUDIT
+=====================================================================
+Method: code reading of app/(admin) and components/admin, lib/actions, lib/data
+and supabase/migrations. Interaction counts below are ESTIMATES from the
+component structure, labeled "approx." They are not measured. Anything I cannot
+determine from code is NOT VERIFIED.
+
+Current sidebar (components/admin/nav-items.tsx), 7 items:
+  Dashboard · Inventory · Leads · Content · Articles · Website · Settings
+  (Media was already removed from navigation; /admin/media redirects to
+  Inventory.)
+Website has 5 sub-tabs: General · Header & Navigation · Footer · Homepage ·
+  About. Homepage contains 4 separate forms (Hero 3 slides, About, Why Perkasa
+  benefits, Testimonials).
+
+---------------------------------------------------------------------
+B1. TASK-BASED ADMIN AUDIT
+---------------------------------------------------------------------
+
+TASK: A. Add vehicle
+CURRENT ENTRY POINT: Inventory → "Add Vehicle"
+CURRENT SCREENS: /admin/inventory/new (form), then auto-redirect to
+  /admin/inventory/[id] (edit page with photos) — photos can only be added AFTER
+  the first save.
+CURRENT APPROXIMATE INTERACTIONS: Minimum ~12 field interactions + 1 save + upload
+  photos (multi-select) + switch status + tick Published + save again: approx. 20+
+  actions, 2 saves. NOT VERIFIED by running it.
+CURRENT FIELDS (create form): Brand, Model, Variant, Vehicle Type, Year,
+  Condition, Stock Number (display), Location, Price, Status, Published,
+  Feature on homepage, Mileage, Transmission, Fuel, Exterior Color, CC, Plate,
+  Highlights.
+REDUNDANT FIELDS: Status + Published are two switches that must both be right
+  (Draft by default and unpublished by default, so a new vehicle needs both
+  changed before it appears). Condition (almost always USED). Location
+  (single showroom). Feature on homepage.
+TECHNICAL FIELDS SHOWN TO OWNER: Stock Number (read-only, explained in a
+  long paragraph), Public URL/slug (read-only with a long explanation), the
+  warning "Public visibility requires both Published and a status of…".
+WHAT CAN BE AUTOMATED: Published = derived from status (AVAILABLE/RESERVED/SOLD
+  = visible; DRAFT/ARCHIVED = hidden). Condition default USED. Location default
+  from settings. Featured = automatic (latest AVAILABLE). Vehicle type chosen
+  once by an upfront "Mobil / Motor" choice.
+FRICTION LEVEL: MEDIUM–HIGH
+RECOMMENDED FUTURE FLOW: "Tambah Unit" asks only what is needed to list:
+  Jenis (mobil/motor) → Merek/Model/Varian/Tahun → Harga → Kilometer,
+  Transmisi → Foto (upload on the same screen) → Simpan sebagai Draft /
+  Tayangkan. One screen, one save.
+
+TASK: B. Edit vehicle
+CURRENT ENTRY POINT: Inventory → Edit (per row)
+CURRENT SCREENS: /admin/inventory/[id]: one long page: form + Photos + Social
+  Content.
+CURRENT APPROXIMATE INTERACTIONS: open (2) + edit + save.
+REDUNDANT FIELDS: as above.
+TECHNICAL FIELDS SHOWN: Stock number, URL explanations.
+WHAT CAN BE AUTOMATED: nothing further beyond above.
+FRICTION LEVEL: LOW–MEDIUM. The page is long, and Photos is below the fold.
+RECOMMENDED FUTURE FLOW: Same page, sectioned (see B2 target), Photos near the
+  top.
+
+TASK: C. Change price
+CURRENT ENTRY POINT: Inventory → Edit
+CURRENT SCREENS: Edit page only (table shows price but is not editable).
+CURRENT APPROXIMATE INTERACTIONS: ~4 (open, click price, type, save).
+CURRENT FIELDS: Price (IDR) with number formatting.
+REDUNDANT FIELDS: none.
+TECHNICAL FIELDS SHOWN: none.
+WHAT CAN BE AUTOMATED: nothing. Price history is not stored (DEFER).
+FRICTION LEVEL: LOW–MEDIUM
+RECOMMENDED FUTURE FLOW: Inline price edit in the inventory list (owner's most
+  frequent edit besides status).
+
+TASK: D. AVAILABLE → RESERVED
+CURRENT ENTRY POINT: Inventory → Edit → Status dropdown → Save.
+CURRENT SCREENS: Edit page.
+CURRENT APPROXIMATE INTERACTIONS: ~4.
+CURRENT FIELDS: Status (5-option select).
+REDUNDANT FIELDS: Published checkbox must remain ticked.
+TECHNICAL FIELDS SHOWN: Draft/Archived exposed as "status" even though they
+  are publication states, not sales states.
+WHAT CAN BE AUTOMATED: Nothing technical; it is a business event.
+FRICTION LEVEL: MEDIUM. It is the most common owner task and needs a full
+  form edit.
+RECOMMENDED FUTURE FLOW: On the list: one action menu "Tandai Dipesan /
+  Tandai Terjual / Tersedia lagi". Also record the date automatically.
+
+TASK: E. AVAILABLE/RESERVED → SOLD
+CURRENT ENTRY POINT / SCREENS: same as D.
+CURRENT APPROXIMATE INTERACTIONS: ~4.
+REDUNDANT / TECHNICAL: same. Additionally, once SOLD or RESERVED the vehicle can
+  no longer be deleted (stock number permanently reserved), which is
+  explained in long tooltips.
+WHAT CAN BE AUTOMATED: sold_at timestamp (missing today), status history row
+  (missing), removal from Featured, exclusion from "Related".
+FRICTION LEVEL: MEDIUM
+RECOMMENDED FUTURE FLOW: As D, with automatic sold date. Later driven by the
+  Operating System.
+
+TASK: F. Add photos
+CURRENT ENTRY POINT: Inventory → Edit → Photos section.
+CURRENT SCREENS: Edit page. Multi-select upload, direct to storage, each file
+  validated (HEIC rejected).
+CURRENT APPROXIMATE INTERACTIONS: click upload, pick files (multi-select works).
+  No drag-and-drop zone (NOT VERIFIED visually; the component uses a click-to-
+  choose button and a hidden input).
+CURRENT FIELDS: none per photo (media type fixed to EXTERIOR automatically).
+REDUNDANT FIELDS: none visible. alt_text is stored as an empty string on every
+  upload (lib/actions/vehicle-media.ts inserts alt_text: ""), so public images
+  render with empty alt text unless a fallback exists.
+TECHNICAL FIELDS SHOWN: none.
+WHAT CAN BE AUTOMATED: Alt text fallback (e.g. "{Brand} {Model} {Year} — foto
+  N"), generated at render time. Rejected HEIC is a real pain point (iPhone
+  default): server/client conversion or a clearer message is a DEFER item.
+FRICTION LEVEL: LOW–MEDIUM
+RECOMMENDED FUTURE FLOW: Drag-and-drop or multi-select on the vehicle screen,
+  first photo becomes cover automatically, auto alt text.
+
+TASK: G. Reorder photos
+CURRENT ENTRY POINT: Edit → Photos.
+CURRENT SCREENS / INTERACTIONS: Up/down chevron buttons per photo; one click
+  moves one position (saved immediately).
+FRICTION LEVEL: MEDIUM for 10+ photos (many clicks).
+RECOMMENDED FUTURE FLOW: Drag to reorder (DEFER; polish) — the order matters
+  less than the cover photo.
+
+TASK: H. Change cover photo
+CURRENT ENTRY POINT: Edit → Photos → star button.
+CURRENT APPROXIMATE INTERACTIONS: 1 click per change, saved immediately.
+FRICTION LEVEL: LOW. KEEP.
+
+TASK: I. Update homepage
+CURRENT ENTRY POINT: Website → Homepage tab.
+CURRENT SCREENS: 1 page with 4 forms (Hero 3 slides, About, Why Perkasa + its
+  benefit cards, Testimonials), each saved separately.
+CURRENT APPROXIMATE INTERACTIONS: per hero slide: image upload + 5 text fields
+  + active toggle + save. NOT VERIFIED exactly.
+CURRENT FIELDS: Hero per slide: eyebrow, headline, description, image, CTA
+  label, CTA URL, active. About: eyebrow, headline, description, image, CTA
+  label/URL, active. Why Perkasa: header + up to N cards with icon choice.
+  Testimonials: name, role, text, photo, order, active.
+REDUNDANT FIELDS: CTA URL (free-typed URL on a site with a fixed page set),
+  eyebrow on every block, icon picker.
+TECHNICAL FIELDS SHOWN: CTA URL, icon key.
+WHAT CAN BE AUTOMATED: Featured Stock is already its own section (the
+  is_featured flag). Hero image could default to the cover photo of the newest
+  AVAILABLE unit.
+FRICTION LEVEL: MEDIUM. Four forms for content that changes rarely.
+RECOMMENDED FUTURE FLOW: Homepage tab shows only Hero (1–2 slides) and the
+  optional text blocks. Remove Why Perkasa and, for now, Testimonials from the
+  owner's attention (keep tables).
+
+TASK: J. Update About
+CURRENT ENTRY POINT: Website → About.
+CURRENT SCREENS: A list of sections, each with eyebrow, headline, body,
+  publish, order.
+FRICTION LEVEL: LOW–MEDIUM. The model is flexible but more than needed.
+RECOMMENDED FUTURE FLOW: Keep. Pre-populate four sections (see A5).
+
+TASK: K. Update WhatsApp
+CURRENT ENTRY POINT: Website → General.
+CURRENT FIELDS: WhatsApp Business Number, Product Inquiry Message, Generic
+  WhatsApp Message. A separate WhatsApp number also appears in Footer.
+  whatsapp_lead_number is DORMANT and not shown.
+REDUNDANT FIELDS: WhatsApp in both General and Footer forms (NOT VERIFIED
+  whether they are one column).
+FRICTION LEVEL: LOW–MEDIUM
+RECOMMENDED FUTURE FLOW: One "Kontak & WhatsApp" block, one number, with the
+  two message templates and live preview.
+
+TASK: L. Publish article
+CURRENT ENTRY POINT: Articles → New.
+CURRENT FIELDS: Title, Slug, Excerpt, Content, Cover image, Category, Tags,
+  Status, SEO title, SEO description (plus OG image per DB comment).
+REDUNDANT / TECHNICAL: Slug, SEO title, SEO description (marked optional),
+  Tags.
+WHAT CAN BE AUTOMATED: slug from title, SEO title = title, SEO description =
+  excerpt, OG image = cover.
+FRICTION LEVEL: MEDIUM
+RECOMMENDED FUTURE FLOW: Title, cover, content, Publish. Move Category/Tags and
+  SEO into a collapsed "Lanjutan" section.
+
+TASK: M. Edit article
+CURRENT ENTRY POINT: Articles → row → edit.
+FRICTION LEVEL: LOW–MEDIUM. Same form as L.
+
+TASK: N. Change navigation
+CURRENT ENTRY POINT: Website → Header & Navigation.
+CURRENT FIELDS: label, href, visibility, external, CTA flag, ordering.
+TECHNICAL FIELDS SHOWN: href, is_external, is_cta.
+WHAT CAN BE AUTOMATED: The public pages are a fixed set. Hide the manager from
+  daily view. Articles link is conditional.
+FRICTION LEVEL: MEDIUM (rarely needed, but technical when needed).
+RECOMMENDED FUTURE FLOW: Keep the capability, move into Website → Lanjutan.
+
+TASK: O. Change footer / social links
+CURRENT ENTRY POINT: Website → Footer, and Website → General (duplicate fields).
+CURRENT FIELDS: description, phone, WhatsApp, email, address, five social URLs,
+  copyright text, nav groups, legal links.
+REDUNDANT FIELDS: contact and social fields duplicated between General and
+  Footer (two forms). Copyright text. Legal links (none needed yet).
+FRICTION LEVEL: MEDIUM (two places to update the same fact).
+RECOMMENDED FUTURE FLOW: One place. See B8.
+
+---------------------------------------------------------------------
+B2. INVENTORY AS THE PRIMARY OPERATIONAL CENTER
+---------------------------------------------------------------------
+Should Inventory become the main operating screen? YES. It already is the
+busiest screen, and the owner's daily tasks (add, price, status, photos) all
+belong there. Target:
+
+  INVENTORY
+  ├── Tambah Unit
+  ├── Tersedia     (AVAILABLE)
+  ├── Dipesan      (RESERVED)
+  ├── Terjual      (SOLD)
+  └── Draft / Arsip (DRAFT, ARCHIVED; secondary filter, not a peer menu)
+
+Vehicle editor grouping vs the actual schema:
+  A. INFORMASI UNIT  — vehicle_type, brand, model, variant, year        FITS
+  B. HARGA & PENJUALAN — price, status                                   FITS
+                        (sold date/buyer/cost are NOT in the CMS; by design)
+  C. SPESIFIKASI — mileage_km, transmission, fuel_type, exterior_color,
+                   capacity_cc, plate_number                              FITS
+  D. HIGHLIGHTS — highlights[]                                            FITS
+  E. FOTO — vehicle_media                                                 FITS
+  F. PUBLISH — is_published, is_featured, status DRAFT/ARCHIVED           FITS,
+                but Published can be derived from status, leaving F nearly
+                empty (good).
+The grouping matches the schema without any change. It is mostly a
+re-presentation of the existing form (currently 3 fieldsets: Basic
+Information, Pricing & Status, Specifications, then Highlights inside
+Specifications).
+
+---------------------------------------------------------------------
+B3. VEHICLE FORM — FIELD CLASSIFICATION
+---------------------------------------------------------------------
+Legend: MUST = owner must enter; OPT = owner optional; SYS = system generated;
+HIDE = hide from normal owner view; REMOVE = remove from workflow.
+
+ Field                 Class   Notes
+ vehicle name          SYS     Derived from brand+model+variant (no name field).
+ category/type         MUST    Mobil/Motor, chosen once.
+ make/brand            MUST
+ model                 MUST
+ variant               OPT
+ year                  MUST    Defaults to current year (risky: wrong default).
+ mileage               MUST    Defaults to 0 today; should be required, no
+                               default, because 0 km on a used unit is wrong.
+ transmission          MUST    Default AUTOMATIC today. Risk of unnoticed default.
+ fuel                  MUST    Default PETROL. Same risk.
+ capacity (CC)         OPT     Motor: MUST. Car: hide.
+ plate                 OPT
+ exterior color        OPT
+ condition             HIDE    Default USED.
+ location              HIDE    Single showroom; default from settings.
+ price                 MUST    Defaults to 0 today; should be required >0.
+ status                MUST    Simplify to Tersedia/Dipesan/Terjual; Draft and
+                               Archive as save options.
+ is_published          SYS     Derive from status.
+ is_featured           SYS     Automatic (latest available), optional pin.
+ description           OPT/    Removed from form already, so new units have no
+                       REMOVE  description. Decide: short "Catatan" or drop the
+                               paragraph on the public page.
+ highlights            OPT     Max 3–5, short.
+ photos                MUST    At least one cover before publishing.
+ slug                  SYS     Already automatic with URL history. KEEP hidden.
+ seo_title             SYS     Not in form already. Auto-generate at render.
+ seo_description       SYS     Same. Replace the "Curated and inspected…"
+                               default with a neutral factual one.
+ canonical URL         SYS     Not stored (NOT VERIFIED whether app/layout
+                               sets one). No owner involvement.
+ Open Graph image      SYS     Use cover photo automatically. NOT VERIFIED
+                               whether implemented for vehicle pages.
+ image alt text        SYS     Stored empty today; generate a fallback.
+ created/updated at    SYS     Exist.
+ stock_number          SYS     Already automatic.
+ internal IDs          SYS/HIDE
+
+Current state already removed description and SEO inputs from the vehicle form
+(see the comment in vehicle-form.tsx). The remaining problem is owner-visible
+status plumbing and defaults that can silently produce wrong data (0 km, 0
+price, automatic/petrol).
+
+---------------------------------------------------------------------
+B4. MEDIA
+---------------------------------------------------------------------
+Standalone Media top-level menu: REMOVE (already done in navigation; the route
+redirects to Inventory). Keep it gone. Vehicle photos belong on the vehicle.
+Needed improvements, in priority:
+  1. Multi-upload: EXISTS.
+  2. Set cover: EXISTS (star).
+  3. Auto alt fallback: MISSING → add (render-time, no DB change needed).
+  4. Reorder: EXISTS (chevrons); drag reorder is polish (DEFER).
+  5. Upload before first save: MISSING (photos require a saved vehicle).
+  6. HEIC iPhone photos rejected: real friction; DEFER conversion, but make
+     the message actionable.
+  7. Preview: EXISTS (lightbox).
+Verdict: MEDIA TOP-LEVEL MENU = REMOVE (already). Vehicle-level media = KEEP/CHANGE.
+
+---------------------------------------------------------------------
+B5. WEBSITE CMS STRUCTURE
+---------------------------------------------------------------------
+Current: five tabs under Website (General, Header & Navigation, Footer,
+Homepage, About), with four separate forms inside Homepage.
+Recommended grouping under ONE sidebar item "Website":
+
+  WEBSITE
+  ├── Beranda (Hero + optional homepage blocks)
+  ├── Tentang (About sections + Cara Pembelian text)
+  ├── Kontak & WhatsApp (company name, phone, WhatsApp, templates, address,
+  │                      Instagram, LinkedIn, other socials) ← single source
+  └── Lanjutan (navigation, footer text, default SEO, copyright)
+
+Footer and header read from Kontak & WhatsApp; nobody types the same number
+twice.
+
+---------------------------------------------------------------------
+B6. LEADS
+---------------------------------------------------------------------
+Current state: the public site uses direct WhatsApp, so nothing creates
+leads. Admin Leads page still says "inquiries from the public vehicle inquiry
+form" and renders rows from a table the public site no longer writes to.
+createLead() is dormant. Dashboard also counts "New Leads" (emphasised card).
+Verdict: REMOVE FROM NAVIGATION, KEEP DORMANT in backend. The page shows a
+number that is always zero/stale and misleads the owner. NOT VERIFIED whether
+any rows exist in the live leads table.
+The Operating System, not the CMS, should own real lead/CRM tracking.
+
+---------------------------------------------------------------------
+B7. DASHBOARD
+---------------------------------------------------------------------
+Current state: Stat cards (Active Stock, Reserved, New Leads, Total Vehicles),
+"Recent Activity" (explicitly a PLACEHOLDER that lists leads), "Recently
+Added Vehicles". The header text still says "computed from the current mock
+inventory and leads" while the data comes from Supabase, a stale statement.
+Vehicle counts are real. Leads are not useful. "Recent Activity" cannot work:
+the referenced vehicle_status_history table does not exist in migrations.
+Verdict: SIMPLIFY. Replace with what the owner needs:
+  - Counts: Tersedia / Dipesan / Terjual.
+  - "Perlu dilengkapi": incomplete listings (no photo, price 0, mileage 0,
+    DRAFT older than N days).
+  - Last 5 edited units.
+  - Buttons: Tambah Unit, Lihat situs.
+Drop: New Leads card, Recent Activity placeholder, "Total Vehicles".
+
+---------------------------------------------------------------------
+B8. CONTENT MENU (Instagram/social links per vehicle)
+---------------------------------------------------------------------
+"Content" is a separate sidebar item (Content Library), while content is
+ADDED from a vehicle (Social Content section on the vehicle edit page). The
+public site in this baseline does not show social content (components exist
+but are not wired to any page): DORMANT on the public side. The owner
+maintains a feature with no visible public result.
+Verdict: REMOVE from sidebar, keep the per-vehicle section only if the public
+site will use it (NEEDS OWNER DECISION, and depends on the Phase 2C lineage).
+
+---------------------------------------------------------------------
+B9. SETTINGS
+---------------------------------------------------------------------
+/admin/settings is a disabled placeholder ("visual shell only", "Not
+implemented"). Site Name and Contact Email shown here are hardcoded and
+disabled, and duplicate the real settings in Website.
+Verdict: REMOVE from navigation until there is something real (password,
+users). The sidebar loses an item.
+
+---------------------------------------------------------------------
+B10. TARGET ADMIN NAVIGATION
+---------------------------------------------------------------------
+Current (7): Dashboard · Inventory · Leads · Content · Articles · Website ·
+  Settings
+Target (4):
+  Ringkasan (Dashboard)
+  Inventory   — Tambah Unit, Tersedia, Dipesan, Terjual; vehicle photos and
+                (if kept) vehicle social links live inside the vehicle.
+  Website     — Beranda · Tentang · Kontak & WhatsApp · Lanjutan
+  Artikel     — appears only when the owner wants to write (DEFER-able)
+Moves:
+  Leads → hidden (dormant backend). Content → inside Inventory (or hidden).
+  Settings → removed until real. Media → already removed.
+Could reach 3 (Inventory, Website, Artikel) if Dashboard is folded into the
+Inventory landing page; I recommend keeping Dashboard only if it shows
+"perlu dilengkapi".
+
+
+=====================================================================
+PART 4 — OPERATING SYSTEM READINESS
+=====================================================================
+Principle: the Website CMS must be a publishing layer. It should never hold
+cost, funding, repair, margin or profit data.
+
+ Domain                        Owner (future)     Notes
+ Vehicle identity (brand,
+   model, year, VIN/plate)     SHARED             OS creates the vehicle
+                                                  record; CMS stores the public
+                                                  projection. Needs a stable
+                                                  external key (missing today).
+ Acquisition cost              OS                 Must never enter the CMS.
+ Repairs / reconditioning      OS                 Same.
+ Funding / investor data       OS                 Same.
+ Profitability                 OS                 Same.
+ Selling price                 SHARED             OS decides; CMS displays. Today
+                                                  the CMS edits price directly:
+                                                  a duplication risk.
+ Status (AVAILABLE/RESERVED/
+   SOLD)                       OS (source of      CMS mirrors. Today the CMS is
+                                truth)            the source of truth.
+ Sold date                     OS                 MISSING in CMS schema.
+ Photos                        CMS                OS may hold originals, but the
+                                                  website-ready set lives in the
+                                                  CMS/storage.
+ Marketing highlights          CMS
+ Public description            CMS
+ SEO (titles/descriptions/
+   slugs/OG)                   CMS (generated)    Do not sync from OS.
+ Articles                      CMS
+ Homepage, About, hero         CMS
+ WhatsApp number/templates     CMS
+ Navigation/footer             CMS
+ Leads/CRM                     OS                 Already dormant in CMS.
+
+Duplication risks found in the current CMS:
+  1. Price and status are editable by hand in the CMS. When the OS arrives,
+     two systems can disagree. Mitigation: a single "source" marker per
+     field (MANUAL vs OS) later; for now, keep the fields few and named
+     consistently.
+  2. No external ID column on vehicles to link an OS record. Without it,
+     sync must guess using stock_number. Mitigation (later): add a nullable
+     external_id.
+  3. No status-change history or sold_at. The OS will want to push a status
+     and the timestamp; the CMS cannot store the timestamp.
+  4. vehicles.is_published + vehicles.status are two sources of visibility.
+     Collapse to one rule.
+  5. `leads` table exists in the CMS schema; OS will own CRM.
+  6. Duplicate contact/social fields (General vs Footer) create two public
+     sources of truth inside the CMS itself.
+  7. stock_number generation and its permanent-lock/reuse rules are
+     CMS-side business logic (triggers) that the OS may also want to own.
+  8. `condition`, `location` fields on vehicles are dealer-internal facts
+     that belong to the OS long term.
+Overall readiness: MEDIUM. The vehicle table is clean, slugs/URL history and
+stock numbers are robust, and the actions layer is separated from data
+access. The schema needs three small additive things before any sync: sold
+date / status timestamp, external id, and a single publish rule. These are
+recommendations only; nothing is changed now.
+
+
+=====================================================================
+PART 5 — PRODUCT SIMPLIFICATION SCORECARD
+=====================================================================
+AREA                    CURRENT     TARGET      BUSINESS    RECOMMENDATION
+                        COMPLEXITY  COMPLEXITY  PRIORITY
+Homepage                MEDIUM      LOW         HIGH        CHANGE
+Catalogue               LOW         LOW         HIGH        KEEP + unify
+Vehicle Detail          MEDIUM      LOW         HIGH        CHANGE (small)
+Financing               MEDIUM      LOW         MEDIUM      CHANGE (reframe)
+About                   MEDIUM      LOW         MEDIUM      CHANGE (rewrite)
+Contact                 LOW         LOW         MEDIUM      KEEP + tweak
+Articles                HIGH        LOW         LOW         DEFER
+Inventory CMS           MEDIUM      LOW         HIGH        CHANGE
+Vehicle Editor          HIGH        LOW         HIGH        CHANGE
+Media                   MEDIUM      LOW         MEDIUM      KEEP at vehicle level
+Website CMS             HIGH        MEDIUM      MEDIUM      CHANGE (regroup)
+Leads                   MEDIUM      LOW         LOW         REMOVE from nav
+Dashboard               MEDIUM      LOW         MEDIUM      SIMPLIFY
+Settings                LOW         LOW         LOW         REMOVE from nav
+Operating System
+  readiness             MEDIUM      LOW         MEDIUM      Additive prep only
+
+
+=====================================================================
+PART 6 — PRIORITY ROADMAP (NO IMPLEMENTATION PROMPTS)
+=====================================================================
+PHASE A — CUSTOMER JOURNEY
+ OBJECTIVE: Remove unsupported claims; make the public story factual and the
+   path to WhatsApp shorter.
+ WHAT CHANGES: Copy only at first (catalogue subtitles, hero fallback, About
+   content, Why Perkasa → Cara Pembelian, financing wording and defaults,
+   empty states in Indonesian, "Terjual" wording, Motorcycles sold split,
+   hide empty spec rows, related = AVAILABLE only, Articles hidden until 3+).
+ WHAT DOES NOT CHANGE: Visual design, WhatsApp mechanism, data model, nav
+   structure beyond labels.
+ DEPENDENCIES: Owner supplies the truth about inspection, documents, process,
+   hours, LinkedIn/Instagram.
+ RISKS: Copy rewritten without facts replaces one invention with another.
+ SUCCESS CRITERIA: Every public claim can be backed by the owner in one
+   sentence; no empty sections live; nothing in English left by accident.
+
+PHASE B — ADMIN FRICTION
+ OBJECTIVE: Make the three frequent tasks (status, price, photos) fast and
+   safe.
+ WHAT CHANGES: Quick status/price actions in the inventory list; required
+   fields without misleading defaults (price, km); auto alt text; correct
+   stale dashboard text.
+ WHAT DOES NOT CHANGE: Schema, public site, storage.
+ DEPENDENCIES: None heavy.
+ RISKS: Changing status UI must not bypass the delete-lock triggers.
+ SUCCESS CRITERIA: Mark reserved/sold in ≤2 interactions from the list; a new
+   unit goes live in one screen.
+
+PHASE C — ADMIN SIMPLIFICATION
+ OBJECTIVE: Fewer menus and one source per fact.
+ WHAT CHANGES: Sidebar 7 → 4; Website regrouped; contact/social merged into
+   one source; Leads/Settings/Content out of navigation; publish derived from
+   status; article form slimmed.
+ WHAT DOES NOT CHANGE: Tables, routes stay reachable for safety, public pages.
+ DEPENDENCIES: Decision on social content (public use or not); confirmation
+   that General/Footer fields map to the same columns (NOT VERIFIED).
+ RISKS: Merging two forms could break existing footer data.
+ SUCCESS CRITERIA: Owner can change phone/WhatsApp in exactly one place.
+
+PHASE D — OPERATING SYSTEM READINESS
+ OBJECTIVE: Prepare (not build) for sync.
+ WHAT CHANGES: Additive, nullable: sold_at / status_changed_at, external_id,
+   status history. Single visibility rule.
+ WHAT DOES NOT CHANGE: No integration, no finance data in the CMS.
+ DEPENDENCIES: OS design decisions; migration review under the existing
+   policy in docs/SOURCE-OF-TRUTH-AND-DEPLOYMENT.md (additive only).
+ RISKS: Schema added for an OS that is not designed yet.
+ SUCCESS CRITERIA: Status change is timestamped; sold units sort by actual
+   sale date; a vehicle can carry an external key.
+
+PHASE E — PROFESSIONAL POLISH
+ OBJECTIVE: Finish quality after the above.
+ WHAT CHANGES: Sticky mobile WhatsApp on detail, drag-reorder photos, HEIC
+   handling, OG image generation, performance and accessibility pass.
+ WHAT DOES NOT CHANGE: Product scope.
+ DEPENDENCIES: A–D complete.
+ RISKS: Polishing before simplifying preserves the wrong features.
+ SUCCESS CRITERIA: No visible rough edges on core journeys.
+
+
+=====================================================================
+PART 7 — DECISION REGISTER
+=====================================================================
+ Financing calculator ............... CHANGE: rename "Estimasi Pembiayaan";
+                                      blank default rate; strong disclaimer;
+                                      accept ?price=; no estimate in WhatsApp
+                                      text. Fallback: REMOVE (NEEDS OWNER
+                                      DECISION).
+ Separate financing page ............ KEEP (single page, linked from detail).
+ Financing module in vehicle detail . REMOVE (link only).
+ About page ......................... CHANGE: four factual blocks.
+ Homepage About block ............... DEFER.
+ Why Perkasa ........................ REMOVE from homepage.
+ How to Buy ......................... ADD (4 steps, one sentence on payment).
+ Testimonials ....................... DEFER until real quotes exist.
+ Articles ........................... DEFER; hide until 3+ published.
+ Homepage featured units ............ KEEP; make automatic.
+ Sold / recent transactions ......... ADD (3 latest, "Terjual").
+ Cars / Motorcycles ................. KEEP separate; same sold split on both.
+ Catalogue filters .................. DEFER until >12 available per type.
+ Vehicle detail facts: pajak, owners,
+   documents ........................ NEEDS OWNER DECISION (high value).
+ Inspection/curation claims ......... REMOVE unless a real checklist exists
+                                      (NEEDS OWNER DECISION).
+ Contact form ....................... REMOVE/not needed (keep none).
+ LinkedIn ........................... NEEDS OWNER DECISION (keep only if real).
+ Media menu ......................... REMOVE (done); vehicle-level media KEEP.
+ Leads .............................. REMOVE FROM NAV, KEEP DORMANT backend.
+ Dashboard .......................... SIMPLIFY (counts + incomplete listings).
+ Settings page ...................... REMOVE from nav until real.
+ Content (social) menu .............. REMOVE from sidebar; per-vehicle link
+                                      NEEDS OWNER DECISION.
+ Vehicle SEO fields ................. SYSTEM GENERATED; hide (already off form).
+ Published flag ..................... Derive from status.
+ Featured flag ...................... Automatic.
+ Vehicle description ................ NEEDS OWNER DECISION (short "Catatan" or
+                                      drop).
+ Alt text ........................... Automatic fallback.
+ Sold date / status history ......... ADD to schema in Phase D (additive).
+ External ID for OS ................. ADD in Phase D (nullable).
+ Footer vs General contact fields ... CHANGE to single source.
+ Navigation manager ................. KEEP under Lanjutan.
+
+
+=====================================================================
+OWNER QUESTIONS (THE FEW THAT UNBLOCK THE ROADMAP)
+=====================================================================
+ 1. Is there an actual inspection process? If yes, what exactly is checked?
+    If no, all "inspeksi/kurasi/terjamin" wording is removed.
+ 2. Can you state, truthfully for every unit, pajak validity, number of
+    owners and document status? Do you want these shown?
+ 3. Keep the financing calculator (reframed) or only a WhatsApp CTA?
+ 4. Are the four How-to-Buy steps accurate to how you really sell?
+ 5. Is there a physical showroom visitors can come to, and opening hours?
+ 6. Is Instagram/LinkedIn a real, active channel you want promoted?
+ 7. Should Instagram posts attached to vehicles be shown publicly at all?
+
+END OF REPORT

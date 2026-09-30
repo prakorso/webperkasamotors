@@ -14,8 +14,8 @@ these rules elsewhere.
 | Approved technical baseline | `0d91bf707593161df8bc4cc0ade0d369dd74d1b0` (`redesign/phase-2c4-trust-cms-freshness-v2`) |
 | Remote main | `origin/main` @ `bc8eaa187cd44f4e673117ae20150b8b62fdb245` |
 | Preserved Windows UI/UX work | `preserve/windows-uiux-15e525f` @ `15e525fc43c16c91f2a3f58be0aa8a1801414005` (preserved, not approved, not merged) |
-| Current R3B UI/UX checkpoint | branch `feat/ui-r3b-vehicle-detail` @ `cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500` (checkpoint input for Phase 1R; not approved, not merged; local only) |
-| Product and admin spec | Phase A+B Product & Admin Experience Audit (`docs/reports/txt/product-admin-experience-audit-phase-a-b.txt`) |
+| Current R3B UI/UX checkpoint | branch `feat/ui-r3b-vehicle-detail` @ `cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500` (checkpoint input for Phase 1R; not approved, not merged; on GitHub) |
+| Product and admin spec | Phase A+B Product & Admin Experience Audit: `docs/reports/product-admin-experience-audit-phase-a-b.md` (TXT mirror `docs/reports/txt/product-admin-experience-audit-phase-a-b.txt`) |
 | Merge authority | The Owner. Nothing merges or deploys without explicit owner approval. |
 
 The two baselines are **not competing truths**. `76c206e` is the visual intent.
@@ -200,6 +200,11 @@ Phase 1R inputs: UI `76c206e`, Technical `0d91bf7`, Windows UI/UX `15e525f`
 `feat/ui-r3b-vehicle-detail`), Phase A+B audit. Classes: UI_ONLY,
 TECHNICAL_ONLY, WINDOWS_UIUX_ONLY, R3B_ONLY, PRODUCT_SPEC_ONLY, OVERLAP_SAFE,
 RECONCILIATION_REQUIRED, HIGH_RISK_CONFLICT.
+
+Lineage rule: R3B (`cc90d4f`) is NOT a sibling of the Windows UI/UX commit
+(`15e525f`). The chain is `bc8eaa1` -> `15e525f` -> `cc90d4f`. Phase 1R compares
+`15e525f` against `bc8eaa1`, and `cc90d4f` against `15e525f`, and must not
+count `15e525f` changes twice.
 
 ## 15. Shared checkout status
 

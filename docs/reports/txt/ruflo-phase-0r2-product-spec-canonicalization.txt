@@ -1,0 +1,105 @@
+PERKASA MOTORS - PHASE 0R.2: CANONICALIZE PRODUCT SPEC + FINALIZE PHASE 1R INPUTS
+=================================================================================
+Date: 2026-10-01
+Infra branch: chore/ruflo-orchestration-foundation
+Worktree: .claude/worktrees/ruflo-orchestration-foundation (shared checkout was
+only read, never written)
+
+RESULT: PASS. The audit is now Git-tracked, verified identical to the source,
+and the Phase 1R input set is complete and durable. Phase 1R not started.
+
+A. AUDIT SOURCE LOCATED
+ Shared checkout (untracked): docs/reports/txt/product-admin-experience-audit-phase-a-b.txt
+ (1036 lines, 58,632 bytes, UTF-8, LF, created 2026-09-30 23:46).
+ Only candidate: docs/reports/ also contains codex-windows-setup-report.txt
+ (a Codex setup report, not the audit; not copied). The Ruflo reports live in
+ the infra worktree, not here. Title line confirms it:
+ "PERKASA MOTORS - PRODUCT & ADMIN EXPERIENCE AUDIT (PHASE A + B)", dated
+ 2026-09-30.
+ Source SHA-256: 5eabc1db9d62a5ec00a4143bf3291b8beb38b18331999ed8caea9611515d6cce
+
+B. CANONICAL FILE PATH
+ docs/reports/product-admin-experience-audit-phase-a-b.md
+ The source was TXT only, so the Markdown is a pure formatting wrapper: a short
+ header (title, status, mirror pointer) and then the complete audit text
+ verbatim inside a ```text fence. No content was rewritten, shortened, added
+ or reinterpreted.
+
+C. TXT MIRROR PATH
+ docs/reports/txt/product-admin-experience-audit-phase-a-b.txt
+ Copied byte-for-byte from the source (SHA-256 identical, see D).
+
+D. CONTENT INTEGRITY VERIFICATION
+ - TXT in the worktree SHA-256 == source SHA-256 (5eabc1db...d6cce): identical.
+ - The text extracted from inside the fence of the .md has the same SHA-256:
+   the Markdown body is identical to the TXT.
+ - Section checks on the source (all present): homepage, catalogue, vehicle
+   detail, financing, about, contact, articles, WhatsApp, How to Buy, SOLD
+   journey, navigation, footer; trust audit (unsupported/too strong claims,
+   6.5% financing default); admin (add/edit vehicle, status change, photos,
+   website CMS grouping, leads, dashboard, content menu, settings, target
+   admin navigation); OS readiness (publishing layer, external id, sold_at /
+   status history, single publish/visibility rule, duplication risks); roadmap
+   Phases A-E; decision register; owner questions.
+ CONTENT INTEGRITY: PASS.
+
+E. REGISTRY UPDATE (.ruflo/coordination/baselines.json)
+ PRODUCT_SPEC now stores paths, not just a title:
+   path ........ docs/reports/product-admin-experience-audit-phase-a-b.md
+   txt_mirror .. docs/reports/txt/product-admin-experience-audit-phase-a-b.txt
+   type ........ PRODUCT_ADMIN_SPEC
+   status ...... APPROVED_FOR_ROADMAP_INPUT
+   sha256_text . 5eabc1db9d62a5ec00a4143bf3291b8beb38b18331999ed8caea9611515d6cce
+ Also recorded: remote_verified for the Windows and R3B entries, and the
+ lineage block (section G). docs/AGENT-GOVERNANCE.md section 1 points to the
+ new paths.
+
+F. PHASE 1R INPUT REGISTRY (.ruflo/coordination/tasks/PHASE-1R.json "inputs")
+ UI_BASELINE .... redesign/phase-2b-sold-vehicle-experience @ 76c206ea906e2351cce70ff1dbd6642f20ff1f79
+ TECHNICAL ...... redesign/phase-2c4-trust-cms-freshness-v2 @ 0d91bf707593161df8bc4cc0ade0d369dd74d1b0
+ WINDOWS_UIUX ... preserve/windows-uiux-15e525f @ 15e525fc43c16c91f2a3f58be0aa8a1801414005 (parent bc8eaa1)
+ R3B_UIUX ....... feat/ui-r3b-vehicle-detail @ cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500 (parent 15e525f)
+ PRODUCT_SPEC ... path and txt_mirror as in E
+ Remote check (git fetch + rev-parse on origin/*) on 2026-10-01:
+   origin/main ............................ bc8eaa1  matches
+   origin/redesign/phase-2b-... ........... 76c206e  matches
+   origin/redesign/phase-2c4-...-v2 ....... 0d91bf7  matches
+   origin/preserve/windows-uiux-15e525f ... 15e525f  matches
+   origin/feat/ui-r3b-vehicle-detail ...... cc90d4f  matches (R3B is now on GitHub)
+
+G. R3B LINEAGE RULE
+ bc8eaa1 -> 15e525f -> cc90d4f. R3B is NOT a sibling of 15e525f; cc90d4f
+ contains 15e525f. Phase 1R must compare 15e525f against bc8eaa1, compare
+ cc90d4f against 15e525f, and not count 15e525f changes twice.
+ Recorded in: docs/AGENT-GOVERNANCE.md (section 14 "Lineage rule"),
+ .ruflo/coordination/tasks/PHASE-1R.json ("lineageRule"), and
+ .ruflo/coordination/baselines.json ("lineage").
+
+H. GIT DIFF VERIFICATION
+ Files changed vs the previous infra head (8a52feb): the two audit files, this
+ report, baselines.json, tasks/PHASE-1R.json, PHASE-0R1.json (risk note),
+ PHASE-0R2.json (new), docs/AGENT-GOVERNANCE.md. Nothing under app/,
+ components/, lib/, supabase/, public/. package.json and package-lock.json
+ unchanged. AGENTS.md not changed (its pointer is still correct). Shared
+ checkout: read-only access only (branch main @ bc8eaa1, 4 stashes, unchanged).
+ Stashes: 4 before and after, untouched. No worktree collision.
+
+I. COMMIT SHA
+ See terminal summary (infra head after this phase).
+
+J. PUSH STATUS
+ Infra branch only, to origin. No merge.
+
+K. PHASE 1R INPUT READINESS
+ UI baseline on remote ............ YES
+ Technical baseline on remote ..... YES
+ 15e525f on remote ................ YES
+ R3B on remote .................... YES
+ Product/Admin audit tracked ...... YES (after this commit)
+ Ruflo governance tracked ......... YES
+ PHASE 1R INPUT SET: COMPLETE. PHASE 1R: READY, NOT STARTED.
+ Note for Phase 1R: the audit is tracked on the infra branch, not on main. The
+ Phase 1R worktree should either be based on the infra branch or read the audit
+ from it. The audit file is unchanged on disk in the shared checkout
+ (still untracked there); it is now safe to leave or delete it there, but I did
+ not touch it.

@@ -1,0 +1,14 @@
+{
+  "task": "PHASE-0R2",
+  "taskType": "INFRA",
+  "title": "Canonicalize product spec + finalize Phase 1R inputs",
+  "baseBranch": "chore/ruflo-orchestration-foundation",
+  "baseSha": "8a52feb6447ca7897efbbb6ed77b3761c16e7aa1",
+  "targetBranch": "chore/ruflo-orchestration-foundation",
+  "targetWorktree": ".claude/worktrees/ruflo-orchestration-foundation",
+  "writeOwner": null,
+  "reviewer": "owner",
+  "status": "REVIEW",
+  "started": "2026-10-01",
+  "reportPath": "docs/reports/txt/ruflo-phase-0r2-product-spec-canonicalization.txt"
+}
