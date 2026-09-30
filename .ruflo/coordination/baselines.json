@@ -18,5 +18,24 @@
     "status": "APPROVED FOR ROADMAP INPUT"
   },
   "lineage_note": "76c206e and 0d91bf7 both descend from d079e46; neither contains the other. Reconciliation is PHASE-1R.",
-  "reconciliation_target": "visual intent of 76c206e + technical behavior of 0d91bf7"
+  "reconciliation_target": "visual intent of 76c206e + technical behavior of 0d91bf7",
+  "REMOTE_MAIN": {
+    "branch": "origin/main",
+    "sha": "bc8eaa187cd44f4e673117ae20150b8b62fdb245",
+    "type": "GITHUB MAIN (production line)",
+    "status": "CURRENT",
+    "note": "parent 76c206e"
+  },
+  "PRESERVED_WINDOWS_UIUX": {
+    "branch": "preserve/windows-uiux-15e525f",
+    "sha": "15e525fc43c16c91f2a3f58be0aa8a1801414005",
+    "parent": "bc8eaa187cd44f4e673117ae20150b8b62fdb245",
+    "type": "WINDOWS UI/UX WORK (local-only commit, preserved on GitHub)",
+    "status": "PRESERVED, NOT APPROVED, NOT MERGED",
+    "files": [
+      "app/(public)/cars/page.tsx",
+      "components/public/vehicle-card.tsx",
+      "components/public/vehicle-catalogue.tsx"
+    ]
+  }
 }

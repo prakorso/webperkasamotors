@@ -1,0 +1,211 @@
+PERKASA MOTORS - PHASE 0R.1: STABILIZE CONTROL PLANE + INITIALIZE RUFLO NATIVE STORE
+====================================================================================
+Date: 2026-10-01
+Infra branch: chore/ruflo-orchestration-foundation
+Infra worktree: .claude/worktrees/ruflo-orchestration-foundation
+
+RESULT: BLOCKED (partly complete). Preservation, Ruflo init and the coordination
+audit are done. The shared checkout was NOT returned to origin/main because a
+live writer is editing it. Phase 1R is NOT READY.
+
+A. SHARED CHECKOUT INITIAL STATE (read-only inventory, 2026-10-01 ~00:11 local)
+ pwd ............ C:/Users/USER/webperkasamotors
+ remote ......... origin https://github.com/prakorso/webperkasamotors.git
+ branch / HEAD .. main / 15e525fc43c16c91f2a3f58be0aa8a1801414005
+ origin/main .... bc8eaa187cd44f4e673117ae20150b8b62fdb245 (as expected)
+ log -5 ......... 15e525f, bc8eaa1, 76c206e, d079e46, f019e3d
+ status ......... NOT CLEAN:
+                    M components/public/vehicle-detail.tsx   (168+/82-)
+                    M components/public/vehicle-gallery.tsx
+                   ?? .tmp-r3b-visible-qa.mjs
+                   ?? docs/reports/
+ stashes ........ 4 (unchanged)
+ worktrees ...... shared checkout; phase-2c4-trust-cms-freshness (410974a);
+                  phase-2c4-v2 (0d91bf7); ruflo-orchestration-foundation
+ Live writer evidence: .tmp-r3b-visible-qa.mjs was written at 00:11:37 and again
+ at 00:14:44 local; vehicle-detail.tsx at 00:10:23; vehicle-gallery.tsx at
+ 00:02:53. Running at the time: 2 claude.exe, 3 codex.exe (PIDs 14928, 21956,
+ 17928), codex-code-mode-host, several codex-command-runner processes. The
+ ".tmp-r3b-visible-qa" name suggests a Codex visible-browser QA script, but I did
+ not confirm which process owns those edits.
+ These uncommitted edits are NEW since Phase 0R (there were none then).
+ They sit on top of 15e525f in the shared checkout.
+
+B. LOCAL-ONLY COMMIT INSPECTION
+ 15e525fc43c16c91f2a3f58be0aa8a1801414005 "feat: refine inventory hierarchy and
+ sold experience". Author Panji Prakorso, 2026-09-30 23:55:49 +0700.
+ Parent: bc8eaa187cd44f4e673117ae20150b8b62fdb245 (= origin/main), so it is a
+ direct child of the remote main.
+ Not contained in any remote branch before this phase (git branch -r
+ --contains returned nothing).
+ Files (3, +133 / -9), all application code:
+   app/(public)/cars/page.tsx              +1
+   components/public/vehicle-card.tsx      ~60
+   components/public/vehicle-catalogue.tsx +81
+ It looks like Windows-side UI/UX work (catalogue hierarchy and sold section).
+ Not rewritten, squashed or cherry-picked.
+
+C. PRESERVATION BRANCH
+ Created: preserve/windows-uiux-15e525f -> 15e525fc43c16c91f2a3f58be0aa8a1801414005
+ (git branch only; no checkout, no commit created, content unchanged).
+
+D. REMOTE PRESERVATION VERIFICATION
+ git push origin preserve/windows-uiux-15e525f -> new branch on GitHub.
+ git ls-remote shows refs/heads/preserve/windows-uiux-15e525f at exactly
+ 15e525fc43c16c91f2a3f58be0aa8a1801414005. PRESERVED REMOTELY: YES.
+ Only this branch was pushed. main was not pushed.
+
+E. SHARED CHECKOUT FINAL STATE
+ NOT RESET. Still on main @ 15e525f with the live writer's uncommitted edits.
+ The brief says: if an active Codex/Claude writer is mutating the shared
+ checkout, STOP and do not reset/switch. Resetting would either fail or destroy
+ (or force-stash) the writer's uncommitted work, so I did neither.
+ Required end state remains: main @ bc8eaa1, clean tracked tree.
+ How to finish it once the writer is done (Owner or a later step):
+   1. Confirm the writer has stopped, and decide what happens to the two
+      uncommitted files and .tmp-r3b-visible-qa.mjs (commit them to a task
+      branch in a worktree, or discard on purpose).
+   2. Then, with no writer present:
+      git reset --hard origin/main is safe for tracked files only once
+      15e525f is preserved (it is) and the uncommitted files are saved.
+      Do NOT use git clean -fdx. Do not touch .env.local or stashes.
+ I did not run any of these.
+ SHARED CHECKOUT CLEAN: NO.  ACTIVE WRITE OWNER: a Codex (probable) session.
+ IMPLEMENTATION PERMISSION (per policy): NO. The shared checkout is being used
+ as an implementation workspace right now, which is what the governance
+ forbids.
+
+F. .env.local SAFETY
+ .env.local exists in the shared checkout and is ignored (git check-ignore
+ confirms). Not read, moved or deleted. PRESERVED.
+
+G. STASH SAFETY
+ 4 stashes before and after. None popped, applied, dropped or inspected in
+ this phase.
+
+H. .RUFLO COORDINATION AUDIT
+ Files under .ruflo/ (committed in bdf03c5) and their class:
+   README.md ................ PERSISTENT (schema and rules)
+   baselines.json ........... PERSISTENT (baseline registry)
+   tasks/PHASE-0R.json ...... PERSISTENT (task definition, state recorded at
+                              handoff; no PID/last-seen/owner)
+   tasks/PHASE-1R.json ...... PERSISTENT (registered, READY)
+   locks/.gitignore ......... PERSISTENT (ignore rule)
+   locks/*.lock ............. EPHEMERAL (none committed; git-ignored)
+ Result: no ephemeral coordination file was committed in bdf03c5. No removal
+ from tracking needed. Added in this phase: tasks/PHASE-0R1.json (BLOCKED).
+ ~/.claude coordination dir: none exists.
+ Ruflo runtime files created by init/commands, classified:
+   PERSISTENT (committed): .claude-flow/config.yaml, .claude-flow/.gitignore
+   EPHEMERAL (git-ignored): .claude-flow/{data,logs,sessions,tasks,policy}/,
+     daemon-state.json, harness-active-policy.json, CAPABILITIES.md (generated),
+     .claude/.proven-config-version, .claude/proven-config.json
+ Root .gitignore gained those ignore rules. Empty .claude/{agents,commands,
+ helpers,skills} directories were created by init (empty, not tracked).
+
+I. RUFLO INIT RESULT
+ Run once, from the infra worktree only:
+   ruflo init --minimal --skip-claude --no-global --no-signup --no-skills-sh
+        --no-codex-detect        (with RUFLO_NO_SKILLS_SH=1)
+ Flags were re-checked against `ruflo init --help` on 3.48.0; all supported.
+ Output: "RuFlo V3 initialized successfully" (12 directories, 4 files; runtime
+ in .claude-flow/). The Phase 0R denial did not recur: this time the Owner's
+ brief explicitly asked for the command.
+ Side-effect checks: ~/.claude/settings.json unchanged (mtime before the run);
+ ~/.claude/CLAUDE.md does not exist (global pointer not written); no .mcp.json;
+ no package.json / lock change. The init output mentions "4 hook types enabled
+ in settings.json" but no project settings.json was created; the hooks flag is
+ set in .claude-flow/config.yaml (hooks.enabled true, autoExecute true).
+ NOTE: Ruflo auto-starts a per-directory background daemon on many commands
+ (doctor, task list). I stopped it each time (`ruflo daemon stop`) and it is
+ stopped now.
+
+J. NATIVE DEPENDENCY / SCRIPT STATUS
+ npm install scripts for agentdb, better-sqlite3, argon2, onnxruntime-node,
+ protobufjs and @claude-flow/cli remain BLOCKED. Init and the task store work
+ without them. Memory backend is set to "memory" (in-process), embeddings and
+ neural are disabled in config. Consequence: no persistent memory DB and no
+ embeddings until the Owner approves those scripts. Not a blocker for
+ orchestration use.
+
+K. RUFLO TASK STORE / CONFIG STATUS
+ - Config loads: doctor "Config File: Found .claude-flow/config.yaml".
+ - doctor: 16 passed, 14 warnings, 0 failed on the final run (one run showed
+   1 failed while the daemon was mid-start; it did not reproduce).
+ - Remaining warnings are optional items: memory DB not initialized, no MCP
+   config (intentional: ~353 advertised tools would add ~66k schema tokens),
+   AIDefence/agentic-flow/agent-browser missing, encryption at rest off,
+   MetaHarness import error on Windows paths.
+ - Task store works: created non-product task PHASE-0R1-HEALTHCHECK (type
+   research), listed it (pending), cancelled it (status cancelled). Stored in
+   .claude-flow/tasks/store.json (git-ignored, ephemeral).
+ - Native store is for ephemeral run state; the committed JSON records in
+   .ruflo/coordination remain the durable baseline/task registry.
+ - MCP server not registered, daemon stopped.
+ Native store: READY (with memory/embedding features intentionally off).
+
+L. BASELINE REGISTRY (.ruflo/coordination/baselines.json, mirrored in
+   docs/AGENT-GOVERNANCE.md section 1)
+ UI_BASELINE            redesign/phase-2b-sold-vehicle-experience 76c206ea906e2351cce70ff1dbd6642f20ff1f79
+ TECHNICAL_BASELINE     redesign/phase-2c4-trust-cms-freshness-v2 0d91bf707593161df8bc4cc0ade0d369dd74d1b0
+ REMOTE_MAIN            origin/main bc8eaa187cd44f4e673117ae20150b8b62fdb245
+ PRESERVED_WINDOWS_UIUX preserve/windows-uiux-15e525f 15e525fc43c16c91f2a3f58be0aa8a1801414005
+                        (preserved, not approved, not merged)
+ PRODUCT_SPEC           Phase A+B Product & Admin Experience Audit
+ None merged or reconciled. Ruflo's native store has no metadata slot for these;
+ the committed registry is the source.
+
+M. GOVERNANCE VERIFICATION
+ docs/AGENT-GOVERNANCE.md defines Head Orchestrator, Codex UI/UX, Claude
+ Product/Technical and QA/Reconciliation; one task = one branch = one worktree
+ = one active writer; shared checkout = control plane; Owner = merge authority;
+ auto-merge disabled. PASS on paper.
+ ENFORCEMENT GAP (observed): the rules are written, but at this moment a
+ Codex session is editing the shared checkout. Until agents are told to read
+ docs/AGENT-GOVERNANCE.md (AGENTS.md now points to it, but a running session
+ will not re-read it), the rule is not being followed. Recommend telling the
+ Codex session explicitly.
+
+N. APPLICATION DIFF VERIFICATION
+ Infra branch diff vs bc8eaa1 contains only: AGENTS.md pointer,
+ docs/AGENT-GOVERNANCE.md, .ruflo/coordination/*, .claude-flow/config.yaml,
+ .claude-flow/.gitignore, .gitignore, and the two TXT reports. Nothing under
+ app/, components/, lib/, supabase/ or public/. package.json and
+ package-lock.json unchanged. PASS.
+ (The uncommitted edits to vehicle-detail.tsx / vehicle-gallery.tsx are in the
+ shared checkout, not in this branch, and are not mine.)
+
+O. INFRA BRANCH STATE
+ chore/ruflo-orchestration-foundation: bdf03c5 plus the Phase 0R.1 commit.
+ See the terminal summary for the final SHA. Pushed to origin as a branch only.
+ Not merged.
+
+P. PHASE 1R READINESS (10 conditions)
+  1 shared checkout clean ............................... FAIL (live writer, 2 modified files + 1 untracked)
+  2 shared checkout on origin/main ...................... FAIL (on 15e525f)
+  3 15e525f preserved remotely .......................... PASS
+  4 stashes untouched ................................... PASS
+  5 Ruflo CLI healthy ................................... PASS
+  6 native init/store initialized or limitation noted ... PASS (memory/embeddings off, documented)
+  7 governance rules present ............................ PASS
+  8 runtime locks not committed ......................... PASS
+  9 no application code changed (by this phase) ......... PASS
+ 10 no active agent worktree interfered with ............ PASS
+ DECISION: NOT READY FOR PHASE 1R (conditions 1 and 2).
+
+Q. NEXT TASK
+ PHASE 1R - BASELINE RECONCILIATION AUDIT. Registered only
+ (.ruflo/coordination/tasks/PHASE-1R.json, READY). Compare UI baseline 76c206e,
+ technical baseline 0d91bf7, Phase A+B audit and the preserved Windows UI/UX
+ 15e525f. Classes: UI_ONLY, TECHNICAL_ONLY, WINDOWS_UIUX_ONLY,
+ PRODUCT_SPEC_ONLY, OVERLAP_SAFE, RECONCILIATION_REQUIRED, HIGH_RISK_CONFLICT.
+ No coding. Not started.
+
+OWNER ACTIONS TO UNBLOCK
+ 1. Ask the Codex session working in C:\Users\USER\webperkasamotors to stop
+    editing the shared checkout and move its work to a worktree/branch. Its
+    uncommitted files: components/public/vehicle-detail.tsx,
+    components/public/vehicle-gallery.tsx, .tmp-r3b-visible-qa.mjs.
+ 2. Once it has committed or intentionally discarded them, tell me and I will
+    return the shared checkout to origin/main (bc8eaa1) without touching
+    .env.local or stashes, then re-verify conditions 1 and 2.

@@ -1,0 +1,16 @@
+{
+  "task": "PHASE-0R1",
+  "taskType": "INFRA",
+  "title": "Stabilize control plane + initialize Ruflo native store",
+  "baseBranch": "chore/ruflo-orchestration-foundation",
+  "baseSha": "bdf03c5",
+  "targetBranch": "chore/ruflo-orchestration-foundation",
+  "targetWorktree": ".claude/worktrees/ruflo-orchestration-foundation",
+  "writeOwner": null,
+  "reviewer": "owner",
+  "status": "BLOCKED",
+  "knownRisks": [
+    "shared checkout has an active writer (uncommitted edits in components/public/vehicle-detail.tsx and vehicle-gallery.tsx, plus .tmp-r3b-visible-qa.mjs); shared checkout was NOT reset"
+  ],
+  "reportPath": "docs/reports/txt/ruflo-phase-0r1-control-plane-stabilization.txt"
+}

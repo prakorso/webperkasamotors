@@ -12,6 +12,8 @@ these rules elsewhere.
 | Live data and schema | Supabase (schema changes follow `docs/SOURCE-OF-TRUTH-AND-DEPLOYMENT.md`) |
 | Approved UI baseline | `76c206ea906e2351cce70ff1dbd6642f20ff1f79` (`redesign/phase-2b-sold-vehicle-experience`) |
 | Approved technical baseline | `0d91bf707593161df8bc4cc0ade0d369dd74d1b0` (`redesign/phase-2c4-trust-cms-freshness-v2`) |
+| Remote main | `origin/main` @ `bc8eaa187cd44f4e673117ae20150b8b62fdb245` |
+| Preserved Windows UI/UX work | `preserve/windows-uiux-15e525f` @ `15e525fc43c16c91f2a3f58be0aa8a1801414005` (preserved, not approved, not merged) |
 | Product and admin spec | Phase A+B Product & Admin Experience Audit (`docs/reports/txt/product-admin-experience-audit-phase-a-b.txt`) |
 | Merge authority | The Owner. Nothing merges or deploys without explicit owner approval. |
 
@@ -178,7 +180,7 @@ TXT mirror.
 ## 14. Next task
 
 `PHASE-1R` - Baseline Reconciliation Audit (READY, not started, no coding):
-compare `76c206e`, `0d91bf7` and the Product/Admin audit and classify every
-difference as UI_ONLY, TECHNICAL_ONLY, PRODUCT_SPEC_ONLY, OVERLAP_SAFE,
-OVERLAP_RECONCILIATION_REQUIRED or OVERLAP_HIGH_RISK. See
+compare `76c206e`, `0d91bf7`, the preserved Windows UI/UX `15e525f` and the Product/Admin audit, and classify every
+difference as UI_ONLY, TECHNICAL_ONLY, WINDOWS_UIUX_ONLY, PRODUCT_SPEC_ONLY, OVERLAP_SAFE,
+RECONCILIATION_REQUIRED or HIGH_RISK_CONFLICT. See
 `.ruflo/coordination/tasks/PHASE-1R.json`.
