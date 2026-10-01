@@ -1,75 +1,50 @@
-# Perkasa Motors - Phase 2R.6A: Live Migration Preflight
+# Perkasa Motors - Phase 2R.6A: Live Migration (Preflight + Authorized Apply)
 
-Result: **STOPPED BEFORE APPLY. LIVE MIGRATION: NOT APPLIED.** Two gates are open and both are legitimate boundaries, not errors: (1) OWNER FACT REQUIRED about one vehicle's history, (2) OWNER AUTHORIZATION REQUIRED for a privileged database session, because the live catalog (functions, policies, triggers, grants) can neither be read nor changed with the credentials available here. Everything that could be done without those two things is done: security hardening of the migration, re-testing (42/42), live probes, snapshot, rollback plan.
+Result: **PASS. LIVE MIGRATION APPLIED AND VERIFIED.** Migration `20261001010000_vehicle_lifecycle_os_readiness.sql` was applied once to the live Supabase project by AI, through the Owner-authorized dashboard session, after every preflight gate passed. No real vehicle was mutated; no CMS data changed. Task state REVIEW.
 
 ## A. Authorization
-Owner approved the Phase 2R.6 design (conceptually). No privileged database credential or authenticated database session exists in this environment: only the public anon key. Authorization needed from the Owner (and nothing else): sign in once to the Supabase dashboard in the Edge window opened for this purpose (it points at the project's SQL editor) and confirm AI may automate that one window, exactly as in Phase 2R.5A. No password, token, service-role key or SQL is requested in chat. A visible Edge window (debug port 9341, dedicated profile) was opened and is waiting on the Supabase sign-in page.
+- Owner approved the Phase 2R.6 design, answered the one historical fact, and authorized AI to automate ONE Edge window (debug port 9341) signed in to the Supabase dashboard SQL editor: **CAR-0001 (Hyundai Grand Avega Hatchback 2012): "Belum pernah"** (never reserved or sold).
+- Owner role: authorization and one business fact only. The Owner typed their own credentials into the Supabase sign-in page; no password, token, service-role key or database password passed through chat or was seen or stored by AI. The window targeted project "Perkasa Motors Website" (labeled PRODUCTION, Free plan).
+- After use, the Edge instance was closed and its profile directory (which held the dashboard session) was deleted.
 
-## B. Live schema introspection
-Read-only with the anon key. What is observable and what is not:
-| Probe | Result |
-|---|---|
-| `vehicle_status_history` table | does not exist (PGRST205) |
-| `vehicles.external_id` / `sold_at` / `status_changed_at` | do not exist (42703) |
-| Existing `vehicles` data | readable: 15 rows (public RLS) |
-| `stock_number_pool` via anon | returns an empty list (RLS-filtered, consistent with the repo design) |
-| PostgREST OpenAPI schema | 401 (not available to anon) |
-| Function definitions, triggers, policies, grants, constraints, indexes | NOT observable with anon/PostgREST at all |
-Conclusion: no Phase 2R.6 object exists live (no collision); everything else in the requested checklist needs catalog access (pg_catalog / dashboard SQL), which is gate 2.
+## B. Live schema introspection (read-only, catalog queries in the dashboard)
+PostgreSQL 17.6. Captured (to the git-ignored `evidence/` folder): vehicles columns, enum values, indexes, constraints, triggers, RLS policies, grants, RLS flags, function definitions/owners/ACLs/config, `stock_number_pool` rows, status counts, and the 15 vehicle rows.
 
-## C. Repo / live drift matrix
+## C. Repository / live drift matrix
 | Object | Repo expectation | Live state | Match | Impact |
 |---|---|---|---|---|
-| vehicle_status_history | absent | absent | MATCH | safe to create |
-| vehicles.external_id, sold_at, status_changed_at | absent | absent | MATCH | safe to add |
-| vehicles table, id/stock_number/slug/status/is_published/is_featured/created_at/updated_at | present | present (selected without error; 15 rows) | MATCH (columns), types UNVERIFIED | |
-| vehicle_status enum values | DRAFT, AVAILABLE, RESERVED, SOLD, ARCHIVED | AVAILABLE and SOLD observed | PARTIAL | enum list needs catalog |
-| stock_number unique, slug unique | present | not observable | UNVERIFIED | |
-| profiles, is_active_staff(), current_user_role() | present | staff login and admin worked in 2R.5A, so they exist and function | MATCH (behavioral) | |
-| vehicles RLS policies + grants | per 20260814030400 | public read behaves as designed (anon sees only published AVAILABLE/RESERVED/SOLD) | MATCH (behavioral), definitions UNVERIFIED | |
-| vehicles_before_delete function + trigger | per 20260816010000 | not observable | UNVERIFIED | the migration replaces its body; the live body must be captured first |
-| generate_stock_number, stock_number_pool | per 20260815050000 / 20260816010000 | pool table exists (anon select returns 200 []); function not observable | PARTIAL | |
-| vehicles_status_lifecycle (function/trigger) | absent | not observable (table/columns absent, so the trigger cannot meaningfully exist) | UNVERIFIED | |
-Migration may proceed only if the UNVERIFIED rows are confirmed from the live catalog (first step of the privileged session, together with saving the live definitions as the rollback source).
+| vehicles columns (id uuid PK default gen_random_uuid, stock_number, slug, status default DRAFT, is_published, is_featured, created_at, updated_at, created_by, capacity_cc, plate_number, ...) | per migrations | identical | MATCH | none |
+| vehicle_status enum | DRAFT, AVAILABLE, RESERVED, SOLD, ARCHIVED | identical | MATCH | none |
+| PK / stock_number unique / slug unique | present | `vehicles_pkey`, `vehicles_stock_number_key`, `vehicles_slug_key` | MATCH | none |
+| other constraints | currency, capacity_cc checks, created_by FK | present | MATCH | none |
+| profiles + is_active_staff() + current_user_role() | present | present (profiles: id, full_name, email, role, is_active, created_at); both functions SECURITY DEFINER `search_path=public` | MATCH | dependency satisfied |
+| vehicles RLS | 1 public read + 4 staff policies | exactly those 5 policies, same predicates | MATCH | none |
+| vehicles grants | Supabase default grants | anon/authenticated hold all DML-type privileges (default); RLS is the barrier | MATCH (pre-existing default) | noted in T |
+| vehicles triggers | `vehicles_set_updated_at`, `vehicles_before_delete` | exactly those two | MATCH | none |
+| vehicles_before_delete | per 20260816010000 | identical body (current-status lock + pool release), SECURITY DEFINER, `search_path=public` | MATCH | will be replaced by the hardened body |
+| generate_stock_number / stock_number_pool | per 20260816010000 | identical function; pool exists with 14 released numbers, RLS enabled | MATCH | unchanged |
+| Phase 2R.6 objects (`vehicle_status_history`, `vehicles_status_lifecycle`, `external_id`, `sold_at`, `status_changed_at`, `vehicles_external_id*`) | absent | absent (0 found) | MATCH | safe to apply |
+No drift. **LIVE SCHEMA MATCH: PASS.**
 
-## D. SECURITY DEFINER audit (done; migration corrected before any apply)
-Findings on the Phase 2R.6 draft:
-1. `vehicles_status_lifecycle()` used `set search_path = public`. References were schema-qualified, but a non-empty search_path still lets unqualified operator/function resolution reach `public`.
-2. `vehicles_before_delete()` (replaced by this migration) was `set search_path = public`.
-3. Neither function had its default PUBLIC EXECUTE privilege revoked (trigger functions cannot be called through the API, but the grant was needless).
-Corrections made in `supabase/migrations/20261001010000_vehicle_lifecycle_os_readiness.sql` (semantics unchanged):
-- both functions now use `set search_path = ''` with every reference already schema-qualified (`public.profiles`, `public.vehicle_status_history`, `public.stock_number_pool`, `auth.uid()`); built-ins resolve from `pg_catalog`.
-- `revoke all on function ... from public, anon, authenticated` for both (a trigger needs no EXECUTE at fire time; verified).
-- `auth.uid()` is used only to look up an existing `profiles` row; NULL outside a signed-in session; no caller-controlled object resolution remains.
-Tests added: both functions are SECURITY DEFINER with `search_path=""`; no EXECUTE for anon/authenticated/PUBLIC on either; a staff user cannot call the trigger function directly; triggers still fire for staff after the revoke; object-shadowing attack (look-alike `profiles`, `vehicle_status_history`, `stock_number_pool` in an attacker schema placed first in the caller's search_path): history still lands in `public`, delete guard still blocks a once-reserved vehicle.
-**SECURITY AUDIT: PASS (after fix).**
+## D. SECURITY DEFINER audit
+Done in the earlier preflight session and corrected before apply (no change since): both trigger functions use `set search_path = ''` with every reference schema-qualified; EXECUTE revoked from PUBLIC, anon and authenticated; `auth.uid()` used only to look up an existing `profiles` row. Tests added for search_path, privileges and object-shadowing. Live confirmation: both functions are SECURITY DEFINER, owned by postgres, `proconfig = search_path=""`, ACL `{postgres, service_role}` only. **SECURITY AUDIT: PASS.**
 
-## E. Live vehicle snapshot (read-only; saved to the git-ignored `evidence/` folder)
-15 vehicles visible: **2 AVAILABLE, 0 RESERVED, 13 SOLD** (DRAFT/ARCHIVED are invisible to anon; the 2R.5A admin session showed Draft/Arsip = 0 and total 15, consistent). Matches the Phase 2R.6 expectation.
-- AVAILABLE: CAR-0001 (Hyundai Grand Avega Hatchback 2012, id 99441cae-a348-4ce8-8049-20be08c207d6, created 2026-08-18, last updated 2026-09-03T13:46Z); MOT-0010 (Suzuki GSX-R Sport 2017, id 355e8612-adb6-40d4-9000-7dbdbe9b60f1, created 2026-09-03T14:14:59Z, last updated 14:16:48Z).
-- SOLD (13): CAR-0002, CAR-0003, CAR-0004, CAR-0006, CAR-0007, CAR-0008, MOT-0001, MOT-0005, MOT-0006, MOT-0007, MOT-0008, MOT-0009, QA-PAGN-01 (a QA-style record already marked SOLD; these will receive baseline history and can never be hard-deleted).
-Full id/stock/slug/status/is_published/is_featured/created_at/updated_at rows are in `evidence/vehicles-before-2r6a.json` (not committed).
+## E. Live vehicle snapshot
+15 vehicles: **2 AVAILABLE, 0 RESERVED, 13 SOLD**, all published. AVAILABLE: CAR-0001, MOT-0010. SOLD: CAR-0002, CAR-0003, CAR-0004, CAR-0006, CAR-0007, CAR-0008, MOT-0001, MOT-0005, MOT-0006, MOT-0007, MOT-0008, MOT-0009, QA-PAGN-01. Fingerprint before apply: `601c09ca8dd43ceb808b3421cb87fe1d` (md5 over id, stock number, slug, price, status, publish and feature flags, created_at, updated_at); stock-number pool: 14 rows, fingerprint `00a285b8ae30ce423f79360d4132a27f`; 100 media rows.
 
 ## F. Historical AVAILABLE-unit investigation
-Evidence sources checked: vehicle timestamps, photo upload times, public content rows, repository seed/Git history, existing log tables. There is no audit or status log anywhere in the system (that gap is exactly what this migration fills), and the old admin form allowed free status edits without recording them.
-- **MOT-0010 (Suzuki GSX-R Sport 2017): CONFIRMED NEVER RESERVED, on circumstantial but tight evidence.** The vehicle's whole life before it was last modified is 109 seconds (created 14:14:59, 8 photos uploaded 14:15:17-14:16:09, last update 14:16:48) and it has not been edited since. A reservation that started and ended inside that window, between photo uploads, is not plausible. Remaining uncertainty is low but nonzero; if the Owner prefers certainty it can be included in the question below.
-- **CAR-0001 (Hyundai Grand Avega Hatchback 2012): HISTORY UNKNOWN.** Created 2026-08-18, photos uploaded the same day, edited as late as 2026-09-03; a 16-day span in which a reservation could have happened and ended unrecorded. No source in the system can confirm or refute it. Current status AVAILABLE is not evidence.
-Per the gate rule, the migration is not applied while a unit's history is unknown.
-
-**OWNER FACT REQUIRED**
-Unit: CAR-0001, Hyundai Grand Avega Hatchback 2012.
-Question: "Apakah unit ini pernah berstatus Dipesan/Reserved atau Terjual sebelumnya?"
-How it will be used: if NO, the standard migration applies. If YES, the migration's baseline gets one extra row for this vehicle (`to_status = RESERVED`, `is_baseline = true`, no invented time) so the vehicle becomes permanently non-deletable. Either way no date is fabricated.
+- MOT-0010: CONFIRMED NEVER RESERVED (109-second lifetime before its last edit; high-confidence circumstantial evidence).
+- CAR-0001: was HISTORY UNKNOWN; **resolved by Owner statement: never reserved or sold.** No extra baseline row was needed; baseline = the 13 SOLD vehicles only (no RESERVED rows existed).
+**HISTORICAL AVAILABLE CHECK: PASS.**
 
 ## G. Backup / recovery readiness
-- Before-state evidence: vehicle snapshot saved locally (above); the previous `vehicles_before_delete` definition exists in `supabase/migrations/20260816010000_*.sql` (repo version).
-- Required first step of the privileged session: dump the LIVE definitions of `vehicles_before_delete`, its trigger, `generate_stock_number`, the vehicles policies and grants, and `stock_number_pool` row count, save to `evidence/`, and diff them against the repo (drift check). The migration will not run if they differ materially.
-- Supabase project backups/PITR availability could not be verified from here (plan-dependent, dashboard-only). The migration is additive and the rollback below loses only data created after the apply, so a restore is not the primary recovery path.
-- **Rollback SQL (concrete, run in this order):**
+- Free plan: no PITR and no downloadable backup is available through the dashboard. Before-state evidence saved locally (`evidence/live-before-introspection.json`, `live-before-fingerprint.json`, vehicle snapshot).
+- Previous `vehicles_before_delete` definition preserved (live capture plus the repo file `20260816010000_*.sql`).
+- The migration is additive; the rollback below removes only what the migration created.
+- **Rollback SQL (not needed, kept ready):**
 ```sql
 drop trigger if exists vehicles_status_lifecycle on public.vehicles;
 drop function if exists public.vehicles_status_lifecycle();
--- restore the previous delete guard exactly as in 20260816010000 (live copy from the evidence dump):
 create or replace function public.vehicles_before_delete() returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if OLD.status in ('SOLD','RESERVED') then
@@ -78,45 +53,71 @@ begin
   insert into public.stock_number_pool (vehicle_type, stock_number) values (OLD.vehicle_type, OLD.stock_number);
   return OLD;
 end; $$;
--- export vehicle_status_history first if any real transitions were recorded, then:
+-- export vehicle_status_history first if real transitions were recorded, then:
 drop table public.vehicle_status_history;
 drop index if exists public.vehicles_external_id_key;
 alter table public.vehicles drop constraint if exists vehicles_external_id_not_blank,
   drop column if exists external_id, drop column if exists sold_at, drop column if exists status_changed_at;
 ```
-**BACKUP/ROLLBACK: READY (conditional on capturing the live definitions as step 1).**
+Note: after rollback, restore the original default EXECUTE grant on `vehicles_before_delete` only if desired (the original had PUBLIC execute).
+**BACKUP/ROLLBACK: READY.**
 
 ## H. Migration final SQL review
-`20261001010000_vehicle_lifecycle_os_readiness.sql`: additive only. Contains: 3 nullable columns, 1 CHECK, 1 partial unique index, 1 new table, 2 indexes, RLS enable + 1 staff SELECT policy + REVOKEs, 1 trigger function + 1 trigger, EXECUTE REVOKEs, 1 baseline INSERT (history only, RESERVED/SOLD vehicles, `is_baseline = true`), 1 `CREATE OR REPLACE FUNCTION` for the delete guard. No DROP, RENAME, TRUNCATE, DELETE, ALTER TYPE, id/stock rewrite or fabricated timestamp. Semantics unchanged from the reviewed Phase 2R.6 design; only the hardening in D was added.
+Additive only: 3 nullable columns, 1 CHECK, 1 partial unique index, 1 table, 2 indexes, RLS + 1 staff SELECT policy + REVOKEs, 1 trigger function + trigger, EXECUTE revokes, 1 truthful baseline INSERT (history only), 1 `CREATE OR REPLACE FUNCTION` (delete guard). No DROP, RENAME, TRUNCATE, DELETE, ALTER TYPE, id/stock rewrite or fabricated timestamp. The file applied is byte-identical to the repo file (md5 `bde4fbd7581366725f15739974b0f05d`).
 
 ## I. Test rerun
-Migration test harness re-run after the SQL change: **42 of 42 PASS** (the original 35 lifecycle/security scenarios plus 7 new hardening scenarios; none removed). Same caveat as Phase 2R.6: PGlite is real PostgreSQL but not Supabase.
+Migration harness: **42 of 42 PASS** (35 lifecycle/RLS scenarios plus 7 security-hardening scenarios) after the hardening edit. **MIGRATION TESTS: PASS.**
 
-## J-L. Migration execution and post-verification
-**NOT EXECUTED.** Post-schema and post-data verification (sections K and L of the brief) are therefore pending; their exact checks are defined: new columns exist; CHECK and partial unique index; history table, indexes, RLS, staff SELECT, anon denied, staff API writes denied; lifecycle trigger installed; delete function replaced; existing vehicles unchanged (id, stock_number, slug, price, status, is_published); all `sold_at` / `status_changed_at` NULL; baseline row count = 13 (+1 only if the Owner answers YES for CAR-0001); no stock number altered, no vehicle deleted.
+## J. Migration execution
+- Method: pasted in full into the Supabase SQL editor and run as one query (a multi-statement query executes as a single implicit transaction, so it is all-or-nothing).
+- First attempt (tab 1): the dashboard's request stayed on "Running..." and never reached the database. Verified afterwards: no active sessions, no locks, no idle-in-transaction connections, none of the new objects present, vehicle fingerprint unchanged. So no partial state existed.
+- Second attempt (fresh tab, same authorized window): **"Success. No rows returned."** Applied exactly once. The stale first-tab request, if it ever fires, would fail loudly (columns already exist) and change nothing.
 
-## M-O. RLS, lifecycle, stock-number verification
-Verified in the 42-scenario run (not live): history unreadable by anon, staff-readable, not API-writable; delete blocked for current and historical RESERVED/SOLD (including SOLD -> Archived and RESERVED -> Available); stock-number generator and pool unchanged and still reusing released numbers. Live definition verification pending the privileged session.
+## K. Post-schema verification (live)
+- `vehicles.external_id text NULL`, `sold_at timestamptz NULL`, `status_changed_at timestamptz NULL`: PRESENT.
+- `vehicles_external_id_not_blank` CHECK: present. `vehicles_external_id_key` partial unique index (`WHERE external_id IS NOT NULL`): present.
+- `vehicle_status_history`: present with columns id, vehicle_id, from_status, to_status, changed_at, changed_by, is_baseline; FK to vehicles ON DELETE CASCADE; FK to profiles ON DELETE SET NULL; CHECK from <> to; PK; indexes `vehicle_status_history_vehicle_idx` and partial `vehicle_status_history_commercial_idx`.
+- RLS enabled; policy "staff can read vehicle status history" (SELECT, authenticated, `is_active_staff()`): present; no other policy.
+- Trigger `vehicles_status_lifecycle` (BEFORE UPDATE OF status, WHEN status changes): installed. `vehicles_before_delete` trigger and `vehicles_set_updated_at`: still present.
+- `vehicles_before_delete()` body replaced: references `vehicle_status_history` (confirmed in the live definition).
+- No unrelated schema change (stock-number function and all vehicles policies unchanged).
+
+## L. Post-data verification (live)
+Vehicle count 15 and fingerprint `601c09ca8dd43ceb808b3421cb87fe1d`: **identical to before** (no id, stock number, slug, price, status, publish flag, feature flag, created_at or updated_at changed). Pool: 14 rows, fingerprint identical. Status counts 13 SOLD, 2 AVAILABLE. New columns non-NULL on existing rows: **0** (`sold_at` and `status_changed_at` NULL for all, `external_id` NULL for all). `vehicle_status_history`: **13 rows**, all `to_status = SOLD`, `from_status` NULL, `is_baseline = true`, `changed_by` NULL; none for the two AVAILABLE units, none RESERVED. No vehicle deleted, no stock number altered.
+
+## M. RLS / security verification
+- Privilege check (catalog): anon has no privileges on `vehicle_status_history`; authenticated has SELECT (plus the inert REFERENCES and TRIGGER) and no INSERT, UPDATE, DELETE or TRUNCATE; no EXECUTE on `vehicles_status_lifecycle` or `vehicles_before_delete` for anon or authenticated; `generate_stock_number` EXECUTE unchanged (authenticated yes, anon no).
+- Through the live public API (anon key): `GET vehicle_status_history` -> 401 `42501 permission denied`; `POST vehicle_status_history` -> 401 `42501`; vehicles still readable (15 rows: 13 SOLD, 2 AVAILABLE) with the new columns visible as NULL. No public status-history endpoint.
+- vehicles public-read policy and all staff policies unchanged; no RLS weakening.
+- No service-role key or database credential appears in tracked code (scan clean).
+
+## N. Lifecycle protection verification
+Verified by (a) live function-definition inspection: `vehicles_before_delete` blocks when `old.status in ('SOLD','RESERVED')` OR the vehicle has any history row with `to_status in ('RESERVED','SOLD')`, errcode 23514; `vehicles_status_lifecycle` sets `status_changed_at`, sets `sold_at` only when null on entering SOLD, and appends a history row, all in the same transaction; and (b) the 42-scenario Postgres suite covering current RESERVED/SOLD, RESERVED -> AVAILABLE then delete, SOLD -> ARCHIVED then delete, never-commercial drafts remaining deletable, sold_at never overwritten. No real commercial vehicle was deleted or mutated.
+**LIVE STATUS TRANSITION: NOT EXECUTED - SAFETY POLICY** (no unmistakable test record exists; a real transition would permanently lock a real vehicle's stock number).
+
+## O. Stock-number verification
+`generate_stock_number` definition is unchanged (identical after whitespace normalization, same ACL); `stock_number_pool` untouched (14 rows, same fingerprint); the history-aware delete guard is now the permanent-lifecycle guard (closing RESERVED -> AVAILABLE -> delete and SOLD -> Archived -> delete).
 
 ## P. Application compatibility
-`lib/actions/vehicles.ts` (Phase 2R.6) works before and after the migration: it does not read or write the new columns, `deleteVehicle` degrades safely if the history table is missing, `setVehicleStatus` is unchanged and the trigger owns history, `status_changed_at` and `sold_at`. No owner-facing technical field added.
+`lib/actions/vehicles.ts` (this branch) works with the migrated database: `deleteVehicle` now finds the history table and returns the friendly Indonesian lifecycle message; the DB trigger's 23514 maps to the same message; `setVehicleStatus` is unchanged and the trigger owns history, `status_changed_at` and `sold_at`; the public app reads no new column. No technical field was added to the owner UI. Live exercise of those admin actions was not performed (no staff session; no data mutation).
 
 ## Q. Public regression
-Run on this branch in Phase 2R.6 (homepage 4 widths + /cars, /motorcycles, available and sold detail, /about, /financing, /contact, /articles): PASS, no change since. Not re-run this session because no application code or live data changed (the only edits are the migration file, the harness and documentation).
+AI-run against the live migrated database (production build of this branch, headless Edge): homepage at 1440, 1280, 768, 390; /about, /financing, /contact, /articles, /cars, /motorcycles, an AVAILABLE and a SOLD detail at 1440. No overflow, 0 console errors, 0 broken images; hierarchy and all Phase 2R.2-2R.5A outcomes unchanged (Pembiayaan nav, factual footer, one copyright, no "berkualitas", no Why Perkasa/About/Testimoni, Articles hidden). **PASS.**
 
 ## R. Admin regression
-NOT VERIFIED this session (no authenticated staff session; none requested, no manual walkthrough requested). No admin code changed since Phase 2R.5A.
+**NOT VERIFIED.** No authenticated staff (app) session is available; the Supabase dashboard session is not an app session. No manual walkthrough was requested. No admin code changed.
 
 ## S. Technical validation
-Run in this session after the migration edit (no application code changed): see the final results in the terminal summary (lint, typecheck, build, audit). The previous run on this branch: lint PASS, typecheck PASS, build PASS (29/29), `npm audit --omit=dev` 0 vulnerabilities, full audit 1 high transitive dev-tooling `brace-expansion`.
+Lint PASS. `npx next typegen` + `npx tsc --noEmit` PASS. `npm run build` PASS (29/29). `npm audit --omit=dev`: 0 vulnerabilities. Full `npm audit`: 1 high (transitive dev-tooling `brace-expansion`), unchanged; not fixed.
 
 ## T. Remaining limitations
-- CAR-0001 history is unknown (F). MOT-0010 is a high-confidence "never reserved".
-- Live catalog definitions unverified until a privileged session (C).
-- Backup/PITR availability unverified.
-- Vehicles that were reserved or sold before the migration, and are not RESERVED/SOLD now, cannot be detected except through the Owner's knowledge (only CAR-0001 is in that class).
-- Staff with API access can still edit `sold_at` / `status_changed_at` / `external_id` directly on `vehicles` (history itself is protected); the owner UI never does.
-- No live lifecycle test: a transition test would change a real vehicle's status and, once RESERVED or SOLD, make it permanently non-deletable; no unmistakable test record exists and none will be created. LIVE STATUS TRANSITION: NOT EXECUTED - SAFETY POLICY.
+- Live status transition and the admin delete/status actions are verified by definition inspection and the Postgres suite, not by a live transition.
+- The history is empty of real transitions (13 baseline rows only); `sold_at` is NULL for all 13 historical SOLD units by design.
+- Pre-existing Supabase default grants give `anon`/`authenticated` broad table privileges on `vehicles` (including TRUNCATE, which RLS does not govern); the API exposes only the normal verbs and RLS protects them, but a future hardening pass could revoke the unused ones. Not changed here (out of scope).
+- `authenticated` retains the inert REFERENCES and TRIGGER privileges on the history table (no data-write capability); optional tidy-up.
+- Staff with API access can still edit `sold_at`, `status_changed_at` and `external_id` directly on `vehicles`; the history table itself cannot be edited.
+- Free plan: no PITR/backups available; recovery relies on the additive design and the rollback SQL.
+- A stale "Running..." query tab may remain in the (now closed) dashboard window; it had no effect.
 
 ## U. Phase 2R.7 readiness
-Not ready until the migration is applied. Next steps once the two gates are cleared (AI-executed in the same task): capture and diff live definitions, apply the migration once, run sections K-O live, deploy-compatibility check, public and admin regression, then PHASE 2R.7.
+READY. Schema and code are aligned and verified. Suggested 2R.7 scope: final integrated QA with an authenticated admin session (inventory, status quick actions, delete behavior), ideally including one real owner-intentional status change as end-to-end proof, then merge planning.
