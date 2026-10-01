@@ -1,0 +1,31 @@
+{
+  "task": "PHASE-2R1",
+  "taskType": "RECONCILIATION / TECHNICAL INTEGRATION",
+  "title": "Integrated baseline build",
+  "baseSha": "0d91bf707593161df8bc4cc0ade0d369dd74d1b0",
+  "mergedIn": "bc8eaa187cd44f4e673117ae20150b8b62fdb245 (tooling only)",
+  "targetBranch": "integration/phase-2r1-integrated-baseline",
+  "targetWorktree": "C:\Users\USER\webperkasamotors\.claude\worktrees\phase-2r1-integrated-baseline",
+  "writeOwner": "Claude Product/Technical",
+  "status": "REVIEW",
+  "statusHistory": ["ACTIVE", "REVIEW"],
+  "reportPath": "docs/reports/phase-2r1-integrated-baseline-build.md",
+  "reportTxtPath": "docs/reports/txt/phase-2r1-integrated-baseline-build.txt",
+  "r3bRecord": {
+    "branch": "feat/ui-r3b-vehicle-detail",
+    "sha": "c0b1bae81f24842f5982706b86d3d695f1f6417c",
+    "previousCheckpoint": "cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500",
+    "chain": "15e525f -> cc90d4f -> c0b1bae",
+    "note": "do not double-count earlier commits"
+  },
+  "soldCtaDecision": {
+    "decision": "KEEP",
+    "label": "Tanya Unit Lain",
+    "behavior": "generic WhatsApp inquiry",
+    "visualPriority": "secondary / subtle",
+    "implementInPhase": "PHASE-2R2"
+  },
+  "verification": {"npmCi": "PASS", "lint": "PASS", "typecheck": "PASS (after next typegen)", "build": "PASS (needs .env.local)", "npmAudit": "1 high, transitive dev-only brace-expansion; --omit=dev clean; not fixed"},
+  "applicationChanged": false,
+  "next": "PHASE-2R2 catalogue reconciliation"
+}
