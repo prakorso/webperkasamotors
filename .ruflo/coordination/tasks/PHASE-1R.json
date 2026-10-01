@@ -9,13 +9,13 @@
     "D. Current R3B UI/UX checkpoint feat/ui-r3b-vehicle-detail @ cc90d4fb7dd822bea421c1fbb8b2ee4a0b6c6500",
     "E. Phase A+B Product & Admin Experience Audit"
   ],
-  "baseBranch": null,
-  "baseSha": null,
-  "targetBranch": null,
-  "targetWorktree": null,
-  "writeOwner": null,
+  "baseBranch": "chore/ruflo-orchestration-foundation",
+  "baseSha": "11864c96f3a5664bdba2c5582187ab855ca6ae98",
+  "targetBranch": "audit/phase-1r-baseline-reconciliation",
+  "targetWorktree": ".claude/worktrees/phase-1r-baseline-reconciliation",
+  "writeOwner": "QA/Reconciliation (released at REVIEW)",
   "reviewer": "owner",
-  "status": "READY",
+  "status": "REVIEW",
   "classification": [
     "UI_ONLY",
     "TECHNICAL_ONLY",
@@ -26,7 +26,7 @@
     "RECONCILIATION_REQUIRED",
     "HIGH_RISK_CONFLICT"
   ],
-  "reportPath": "docs/reports/txt/baseline-reconciliation-audit.txt",
+  "reportPath": "docs/reports/phase-1r-baseline-reconciliation-audit.md",
   "note": "Registered only. The orchestrator sets base SHA, branch and worktree when the Owner approves the start. R3B is an input, not approved.",
   "reconciliationRule": {
     "visual": "UI baseline + approved R3B UI/UX wins",
@@ -59,5 +59,29 @@
     }
   },
   "lineageRule": "R3B is NOT a sibling of 15e525f. cc90d4f contains 15e525f. Compare 15e525f against bc8eaa1 and cc90d4f against 15e525f; never count 15e525f changes twice.",
-  "inputSetStatus": "COMPLETE (all inputs on GitHub or tracked)"
+  "inputSetStatus": "COMPLETE (all inputs on GitHub or tracked)",
+  "reportTxtPath": "docs/reports/txt/phase-1r-baseline-reconciliation-audit.txt",
+  "auditBranch": "audit/phase-1r-baseline-reconciliation",
+  "auditHead": "see git log (commit recorded after this file)",
+  "findingsSummary": [
+    "76c206e differs from d079e46 only in package files; 0d91bf7 already contains all approved UI code.",
+    "Package state identical on all refs (next 16.3.7, eslint-config-next 16.3.7, sharp 0.35.5, js-yaml 4.3.2).",
+    "R3B branch HEAD is c0b1bae (cc90d4f + AVAILABLE-only related vehicles in lib/data/vehicles.ts); Owner to confirm SHA of record.",
+    "R3B vehicle-detail.tsx reverts 2C: description re-added, alt fallback lost, highlights disclosure lost, 'Unit Lainnya' reverted: HIGH_RISK_CONFLICT; single textual conflict.",
+    "Windows 15e525f merges cleanly with 0d91bf7; needs sold-card CTA ruling, 'Terjual' wording, motorcycles parity, sold cap.",
+    "0d91bf7 lacks bc8eaa1 tooling cleanup (.gitignore/eslint); include in base.",
+    "Unsupported claims remain on TECH (hero fallback, why-perkasa default, route meta, site-settings default).",
+    "No branch touched homepage, financing, about, admin or CMS: those are product-spec deltas only."
+  ],
+  "recommendedIntegrationBase": {
+    "branch": "redesign/phase-2c4-trust-cms-freshness-v2",
+    "sha": "0d91bf707593161df8bc4cc0ade0d369dd74d1b0",
+    "plus": "merge bc8eaa1 tooling cleanup"
+  },
+  "ownerRulingsRequired": [
+    "sold-card generic CTA in sold archive",
+    "R3B SHA of record (cc90d4f vs c0b1bae)"
+  ],
+  "nextTask": "PHASE-2R.1 - integrated baseline build (branch from 0d91bf7 + bc8eaa1); not started",
+  "finalDecision": "READY FOR INTEGRATION PLANNING"
 }
