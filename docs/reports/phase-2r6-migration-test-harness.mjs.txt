@@ -1,0 +1,164 @@
+import { PGlite } from "@electric-sql/pglite";
+import { readFileSync } from "node:fs";
+
+const MIG = "C:/Users/USER/webperkasamotors/.claude/worktrees/phase-2r6-os-readiness/supabase/migrations/";
+const pre = [
+  "20260814030000_enums.sql", "20260814030100_tables.sql", "20260814030200_indexes.sql",
+  "20260814030300_functions_and_triggers.sql", "20260814030400_rls_policies.sql",
+  "20260815050000_vehicle_stock_number_generation.sql", "20260815050100_vehicle_url_history.sql",
+  "20260816010000_vehicle_stock_number_reuse_and_safe_delete.sql", "20260816020000_normalize_legacy_stock_number_prefixes.sql",
+  "20260820010000_vehicle_capacity_and_plate.sql",
+];
+const target = "20261001010000_vehicle_lifecycle_os_readiness.sql";
+
+const db = new PGlite();
+const results = [];
+const check = (name, ok, detail = "") => { results.push({ name, ok }); console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "  -> " + detail : ""}`); };
+const q = async (sql, params) => (await db.query(sql, params)).rows;
+const tryq = async (sql, params) => { try { await db.query(sql, params); return null; } catch (e) { return e; } };
+
+// --- Supabase stubs (the real project provides these) ---
+await db.exec(`
+  create role anon nologin; create role authenticated nologin;
+  create schema auth;
+  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
+  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  grant usage on schema auth to anon, authenticated;
+  grant usage on schema public to anon, authenticated;
+  alter default privileges in schema public grant all on tables to anon, authenticated;
+  alter default privileges in schema public grant all on sequences to anon, authenticated;
+  alter default privileges in schema public grant execute on functions to anon, authenticated;
+`);
+for (const f of pre) {
+  let sql = readFileSync(MIG + f, "utf8").replace(/create extension if not exists pgcrypto;/i, "");
+  try { await db.exec(sql); } catch (e) { console.log("PRE-MIGRATION FAILED", f, e.message); process.exit(2); }
+}
+await db.exec(`grant select, insert, update, delete on all tables in schema public to anon, authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+grant execute on all functions in schema public to anon, authenticated;`);
+
+// users / staff
+const STAFF = "11111111-1111-1111-1111-111111111111";
+await db.exec(`insert into auth.users (id, email) values ('${STAFF}', 'staff@example.test');`);
+console.log("profiles after auth.users insert:", JSON.stringify(await q("select id, is_active from public.profiles")));
+
+// pre-existing vehicles (the "live" state before migration)
+const mk = (id, stock, status, pub = true, slug = stock.toLowerCase()) => `
+ insert into public.vehicles (id, stock_number, slug, vehicle_type, brand, model, year, price, mileage_km, transmission, fuel_type, condition, status, is_published)
+ values ('${id}', '${stock}', '${slug}', 'CAR', 'B', 'M', 2015, 100000000, 1000, 'MANUAL', 'PETROL', 'USED', '${status}', ${pub});`;
+const V = { draft: "a0000000-0000-0000-0000-000000000001", avail: "a0000000-0000-0000-0000-000000000002", resPre: "a0000000-0000-0000-0000-000000000003", soldPre: "a0000000-0000-0000-0000-000000000004", arch: "a0000000-0000-0000-0000-000000000005", fresh: "a0000000-0000-0000-0000-000000000006", fresh2: "a0000000-0000-0000-0000-000000000007" };
+await db.exec(mk(V.draft, "CAR-0001", "DRAFT", false) + mk(V.avail, "CAR-0002", "AVAILABLE") + mk(V.resPre, "CAR-0003", "RESERVED") + mk(V.soldPre, "CAR-0004", "SOLD") + mk(V.arch, "CAR-0005", "ARCHIVED", false) + mk(V.fresh, "CAR-0006", "DRAFT", false) + mk(V.fresh2, "CAR-0007", "AVAILABLE"));
+const before = await q("select id, stock_number, slug, price, status, is_published, created_at from public.vehicles order by stock_number");
+
+// --- apply the migration ---
+const mig = readFileSync(MIG + target, "utf8");
+const applyErr = await db.exec(mig).then(() => null, (e) => e);
+check("migration applies cleanly on top of the real prior migrations", !applyErr, applyErr?.message);
+if (applyErr) process.exit(1);
+// idempotence is NOT claimed: re-applying must fail (columns exist) rather than silently double-seed
+check("re-applying fails loudly (not silently idempotent)", (await db.exec(mig).then(() => null, (e) => e)) !== null);
+
+// 1. non-destructive
+const after = await q("select id, stock_number, slug, price, status, is_published, created_at from public.vehicles order by stock_number");
+check("existing vehicle rows unchanged (id, stock_number, slug, price, status, is_published, created_at)", JSON.stringify(before) === JSON.stringify(after));
+const cols = await q("select external_id, sold_at, status_changed_at from public.vehicles");
+check("new columns NULL for every existing vehicle (no fabricated dates)", cols.every((r) => r.external_id === null && r.sold_at === null && r.status_changed_at === null));
+const base = await q("select vehicle_id, from_status, to_status, is_baseline from public.vehicle_status_history order by to_status");
+check("baseline history seeded only for already RESERVED/SOLD vehicles", base.length === 2 && base.every((r) => r.is_baseline && r.from_status === null) && base.some((r) => r.vehicle_id === V.resPre && r.to_status === "RESERVED") && base.some((r) => r.vehicle_id === V.soldPre && r.to_status === "SOLD"), JSON.stringify(base.map((b) => b.to_status)));
+
+// 2. transitions (as the staff user, like the real server action)
+const asStaff = async (sql) => { await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub','${STAFF}', false);`); try { return await db.query(sql); } finally { await db.exec("reset role;"); } };
+const hist = (id) => q("select from_status, to_status, changed_by, is_baseline from public.vehicle_status_history where vehicle_id=$1 order by changed_at, to_status", [id]);
+
+await asStaff(`update public.vehicles set status='AVAILABLE', is_published=true where id='${V.draft}'`);
+let r = (await q("select status_changed_at, sold_at from public.vehicles where id=$1", [V.draft]))[0];
+let h = await hist(V.draft);
+check("DRAFT -> AVAILABLE: 1 history row, status_changed_at set, sold_at NULL, changed_by = staff", h.length === 1 && h[0].from_status === "DRAFT" && h[0].to_status === "AVAILABLE" && h[0].changed_by === STAFF && r.status_changed_at && r.sold_at === null);
+
+await asStaff(`update public.vehicles set status='RESERVED' where id='${V.avail}'`);
+await asStaff(`update public.vehicles set status='AVAILABLE' where id='${V.avail}'`);
+h = await hist(V.avail);
+check("AVAILABLE -> RESERVED -> AVAILABLE: one row per transition (2)", h.length === 2 && h[0].to_status === "RESERVED" && h[1].to_status === "AVAILABLE");
+let e = await tryq(`delete from public.vehicles where id='${V.avail}'`);
+check("RESERVED -> AVAILABLE then DELETE is BLOCKED (history-based)", e && e.code === "23514", e?.message?.slice(0, 80));
+check("blocked delete left the vehicle in place and its stock number NOT released", (await q("select count(*)::int c from public.vehicles where id=$1", [V.avail]))[0].c === 1 && (await q("select count(*)::int c from public.stock_number_pool where stock_number='CAR-0002'"))[0].c === 0);
+
+await asStaff(`update public.vehicles set status='SOLD' where id='${V.fresh2}'`);
+r = (await q("select sold_at, status_changed_at from public.vehicles where id=$1", [V.fresh2]))[0];
+const firstSold = r.sold_at;
+check("AVAILABLE -> SOLD sets sold_at and status_changed_at", !!firstSold && !!r.status_changed_at);
+await asStaff(`update public.vehicles set status='ARCHIVED', is_published=false where id='${V.fresh2}'`);
+r = (await q("select sold_at from public.vehicles where id=$1", [V.fresh2]))[0];
+check("SOLD -> ARCHIVED keeps sold_at (never overwritten/cleared)", String(r.sold_at) === String(firstSold));
+e = await tryq(`delete from public.vehicles where id='${V.fresh2}'`);
+check("SOLD -> ARCHIVED then DELETE is BLOCKED (closes the old archive loophole)", e && e.code === "23514");
+// second transition into SOLD must not move sold_at
+await db.exec(`update public.vehicles set status='AVAILABLE' where id='${V.fresh2}'`); // DB-level only (owner UI forbids it)
+await db.exec(`update public.vehicles set status='SOLD' where id='${V.fresh2}'`);
+r = (await q("select sold_at from public.vehicles where id=$1", [V.fresh2]))[0];
+check("re-entering SOLD (DB-level) does not overwrite sold_at", String(r.sold_at) === String(firstSold));
+
+// pre-existing RESERVED vehicle goes back to AVAILABLE, then delete
+await asStaff(`update public.vehicles set status='AVAILABLE' where id='${V.resPre}'`);
+e = await tryq(`delete from public.vehicles where id='${V.resPre}'`);
+check("pre-existing RESERVED -> AVAILABLE then DELETE is BLOCKED (baseline row)", e && e.code === "23514");
+e = await tryq(`delete from public.vehicles where id='${V.soldPre}'`);
+check("pre-existing SOLD is BLOCKED (current status)", e && e.code === "23514");
+
+// never reserved / sold: deletable, stock number released, history cascades
+await asStaff(`update public.vehicles set status='DRAFT', is_published=false where id='${V.draft}'`);
+check("AVAILABLE -> DRAFT recorded (history now 2)", (await hist(V.draft)).length === 2);
+e = await tryq(`delete from public.vehicles where id='${V.draft}'`);
+check("DRAFT -> AVAILABLE -> DRAFT (never reserved/sold) is still DELETABLE", e === null, e?.message);
+check("its stock number was released to the pool", (await q("select count(*)::int c from public.stock_number_pool where stock_number='CAR-0001'"))[0].c === 1);
+check("its history rows cascaded away with it", (await q("select count(*)::int c from public.vehicle_status_history where vehicle_id=$1", [V.draft]))[0].c === 0);
+e = await tryq(`delete from public.vehicles where id='${V.arch}'`);
+check("never-commercial ARCHIVED vehicle remains deletable (existing rule unchanged)", e === null, e?.message);
+const reused = (await q("select public.generate_stock_number('CAR') s"))[0].s;
+check("stock-number reuse still works for released numbers", reused === "CAR-0001" || reused === "CAR-0005", reused);
+
+// no-ops and failures
+const cnt = async () => (await q("select count(*)::int c from public.vehicle_status_history"))[0].c;
+let c0 = await cnt();
+await asStaff(`update public.vehicles set price = 123456789 where id='${V.fresh}'`);
+const scBefore = (await q("select status_changed_at from public.vehicles where id=$1", [V.fresh]))[0].status_changed_at;
+check("editing price writes NO history and leaves status_changed_at alone", (await cnt()) === c0 && scBefore === null);
+await asStaff(`update public.vehicles set status='DRAFT' where id='${V.fresh}'`);
+check("setting the same status writes no history", (await cnt()) === c0);
+e = await tryq(`update public.vehicles set status='NOPE' where id='${V.fresh}'`);
+check("invalid status fails and writes no history", e !== null && (await cnt()) === c0);
+const bad = await tryq(`update public.vehicles set status='AVAILABLE', slug = (select slug from public.vehicles where id='${V.resPre}') where id='${V.fresh}'`);
+check("a status change that fails another constraint rolls back the history row too", bad !== null && (await cnt()) === c0 && (await q("select status from public.vehicles where id=$1", [V.fresh]))[0].status === "DRAFT");
+
+// external_id
+await db.exec(`update public.vehicles set external_id='OS-1' where id='${V.fresh}'`);
+e = await tryq(`update public.vehicles set external_id='OS-1' where id='${V.resPre}'`);
+check("external_id is unique when present", e !== null && e.code === "23505");
+e = await tryq(`update public.vehicles set external_id='  ' where id='${V.resPre}'`);
+check("blank external_id rejected", e !== null && e.code === "23514");
+check("many vehicles may keep external_id NULL", (await q("select count(*)::int c from public.vehicles where external_id is null"))[0].c >= 2);
+
+// RLS
+await db.exec("set role anon;");
+let anonErr = await tryq("select count(*) from public.vehicle_status_history");
+const anonRows = anonErr ? "denied" : (await q("select count(*)::int c from public.vehicle_status_history"))[0].c;
+await db.exec("reset role;");
+check("anon cannot read status history", anonErr !== null || anonRows === 0, String(anonErr ? anonErr.message : anonRows));
+const staffRead = (await asStaff("select count(*)::int c from public.vehicle_status_history")).rows[0].c;
+check("active staff CAN read status history", staffRead > 0, String(staffRead));
+for (const [label, sql] of [["insert", `insert into public.vehicle_status_history (vehicle_id, to_status) values ('${V.fresh}', 'SOLD')`], ["update", `update public.vehicle_status_history set to_status='DRAFT'`], ["delete", `delete from public.vehicle_status_history`]]) {
+  let err = null; try { await asStaff(sql); } catch (x) { err = x; }
+  check(`staff cannot ${label} history through the API`, err !== null, err?.message?.slice(0, 60));
+}
+await db.exec("set role anon;");
+const pubRows = (await q("select status from public.vehicles")).map((r) => r.status);
+await db.exec("reset role;");
+check("public vehicle read policy unchanged (anon sees only published AVAILABLE/RESERVED/SOLD)", pubRows.every((s) => ["AVAILABLE", "RESERVED", "SOLD"].includes(s)) && !pubRows.includes("DRAFT") && !pubRows.includes("ARCHIVED"), pubRows.join(","));
+// changed_by null with no user (SQL console)
+await db.exec(`select set_config('request.jwt.claim.sub','', false); update public.vehicles set status='AVAILABLE' where id='${V.fresh}'`);
+const lastNull = (await q("select changed_by from public.vehicle_status_history where vehicle_id=$1 order by changed_at desc limit 1", [V.fresh]))[0];
+check("changed_by is NULL when there is no signed-in user", lastNull.changed_by === null);
+
+const failed = results.filter((x) => !x.ok);
+console.log(`\n${results.length - failed.length}/${results.length} passed`);
+process.exit(failed.length ? 1 : 0);

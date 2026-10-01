@@ -1,0 +1,36 @@
+{
+  "task": "PHASE-2R6",
+  "taskType": "OS READINESS / DATA ARCHITECTURE",
+  "title": "Vehicle lifecycle readiness for Operating System integration",
+  "baseSha": "9a12768f16d3d850430d3bebdecee21ce28eb271",
+  "baseBranch": "integration/phase-2r5-admin-cms-simplification",
+  "targetBranch": "integration/phase-2r6-os-readiness",
+  "targetWorktree": "C:\\Users\\USER\\webperkasamotors\\.claude\\worktrees\\phase-2r6-os-readiness",
+  "writeOwner": "Claude Product/Technical",
+  "status": "REVIEW",
+  "statusHistory": ["ACTIVE", "REVIEW"],
+  "databaseMode": "MIGRATION DESIGN ONLY / NO LIVE APPLY",
+  "migration": {
+    "file": "supabase/migrations/20261001010000_vehicle_lifecycle_os_readiness.sql",
+    "type": "ADDITIVE",
+    "appliedLive": false,
+    "state": "READY_FOR_OWNER_AUTHORIZATION",
+    "testing": "35/35 scenarios on PGlite (real prior migrations + new one; Supabase auth/roles stubbed)"
+  },
+  "decisions": {
+    "everReserved": "NOT NEEDED (derivable from vehicle_status_history)",
+    "soldAtBackfill": "NONE (existing SOLD keep NULL)",
+    "statusChangedAtBackfill": "NONE",
+    "baselineHistory": "seeded for vehicles currently RESERVED/SOLD, is_baseline = true",
+    "atomicity": "BEFORE UPDATE OF status trigger writes timestamps + history in the same transaction",
+    "visibility": "status-derived; is_published kept for RLS/queries",
+    "reasonSourceColumns": "NOT ADDED"
+  },
+  "knownLimitation": "vehicles reserved/sold before the migration but not RESERVED/SOLD now have no history and stay deletable",
+  "publicRegression": "PASS",
+  "adminRegression": "PARTIAL (auth gate only; no signed-in session)",
+  "ownerDecisionsPending": ["authorize live migration (PHASE-2R6A)", "confirm the Tersedia units were never reserved before"],
+  "reportPath": "docs/reports/phase-2r6-os-readiness.md",
+  "reportTxtPath": "docs/reports/txt/phase-2r6-os-readiness.txt",
+  "next": "PHASE-2R6A migration authorization, then PHASE-2R7 QA"
+}

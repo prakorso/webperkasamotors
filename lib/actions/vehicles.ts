@@ -395,26 +395,46 @@ export async function archiveVehicle(id: string): Promise<{ error: string | null
   return { error: null };
 }
 
+const LIFECYCLE_DELETE_MESSAGE = "Unit yang pernah dipesan atau terjual tidak dapat dihapus. Arsipkan unit ini sebagai gantinya.";
+
 /**
- * Hard delete — genuinely removes the row, unlike archiveVehicle above.
- * Deliberately thin: all the real safety logic lives in the
- * vehicles_before_delete trigger (supabase/migrations/20260816010000_
- * vehicle_stock_number_reuse_and_safe_delete.sql), not here, so it can
- * never be bypassed by a path other than this Server Action:
- *
- *   - SOLD/RESERVED vehicles are rejected with a Postgres exception —
- *     the trigger raises it, this function just surfaces the message.
- *   - Otherwise, the vehicle's stock number is released into
- *     stock_number_pool for reuse before the row is actually removed.
- *
- * vehicle_media and vehicle_url_history cascade-delete with the vehicle
- * (their FKs are ON DELETE CASCADE — losing a deleted vehicle's photos
- * and old-URL redirects is correct, nothing should keep pointing at a
- * vehicle that no longer exists). leads.interested_vehicle_id and
- * content.vehicle_id are ON DELETE SET NULL — those rows survive, they
- * just stop referencing this vehicle. Storage objects for the vehicle's
- * photos are NOT removed by this (a pre-existing gap, not introduced
- * here) — only the vehicle_media rows pointing at them are.
+ * True when the vehicle is, or ever was, RESERVED or SOLD, according to
+ * vehicle_status_history (Phase 2R.6). Returns false when the history table
+ * does not exist yet (migration not applied) so the application keeps
+ * working before and after the migration; in that case the database
+ * trigger still enforces the current-status lock.
+ */
+async function hasCommercialHistory(
+  supabase: Awaited<ReturnType<typeof getSupabaseSessionClient>>,
+  id: string
+): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("vehicle_status_history")
+    .select("id", { count: "exact", head: true })
+    .eq("vehicle_id", id)
+    .in("to_status", ["RESERVED", "SOLD"]);
+  if (error) {
+    // 42P01 = undefined_table (Postgres); PGRST205 = table not in PostgREST schema cache.
+    if (error.code === "42P01" || error.code === "PGRST205") return false;
+    throw new Error(error.message);
+  }
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Hard delete - genuinely removes the row, unlike archiveVehicle above.
+ * Layered protection (Phase 2R.6):
+ *   1. Application: refuse if the vehicle is RESERVED/SOLD now, or its
+ *      status history shows it ever was (RESERVED -> AVAILABLE -> delete,
+ *      and SOLD -> Archived -> delete, are both refused).
+ *   2. Database: the vehicles_before_delete trigger enforces the same rule
+ *      (current status, plus history once the Phase 2R.6 migration is
+ *      applied), so it holds on any path, not only this action. A refusal
+ *      from the trigger (errcode 23514) is mapped to the same friendly
+ *      message instead of the raw database text.
+ * Otherwise the stock number is released into stock_number_pool for reuse
+ * and vehicle_media / vehicle_url_history / status history cascade-delete
+ * with the vehicle. Storage objects for photos are not removed (pre-existing gap).
  */
 export async function deleteVehicle(id: string): Promise<{ error: string | null }> {
   const supabase = await getSupabaseSessionClient();
@@ -423,8 +443,24 @@ export async function deleteVehicle(id: string): Promise<{ error: string | null 
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
+  const { data: current, error: currentError } = await supabase
+    .from("vehicles")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+  if (currentError) return { error: currentError.message };
+  if (!current) return { error: "Vehicle not found." };
+  const status = (current as unknown as { status: VehicleStatus }).status;
+
+  if (status === "RESERVED" || status === "SOLD") return { error: LIFECYCLE_DELETE_MESSAGE };
+  try {
+    if (await hasCommercialHistory(supabase, id)) return { error: LIFECYCLE_DELETE_MESSAGE };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Could not check the vehicle's history." };
+  }
+
   const { error } = await supabase.from("vehicles").delete().eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: error.code === "23514" ? LIFECYCLE_DELETE_MESSAGE : error.message };
 
   revalidatePath("/", "layout");
   return { error: null };
@@ -461,6 +497,14 @@ const ALLOWED_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
  *
  * Going from a non-public state (DRAFT/ARCHIVED) to a public one requires
  * at least one photo, so a vehicle never goes live with an empty gallery.
+ *
+ * This is the canonical owner-facing status mutation. Since Phase 2R.6 the
+ * database trigger vehicles_status_lifecycle (see supabase/migrations/
+ * 20261001010000_vehicle_lifecycle_os_readiness.sql) records the history
+ * row, status_changed_at and (first time into SOLD) sold_at inside the same
+ * UPDATE transaction, so status and history can never be partially applied
+ * and no extra writes are needed here. Before that migration is applied
+ * this function behaves exactly as in Phase 2R.5.
  */
 export async function setVehicleStatus(
   id: string,
