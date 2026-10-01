@@ -1,0 +1,29 @@
+{
+  "task": "PHASE-2R5A",
+  "taskType": "OWNER ACCEPTANCE / CMS CONTENT REMEDIATION",
+  "baseSha": "3fa73db68d61671e21f9720bf71ad3508c69540f",
+  "baseBranch": "integration/phase-2r5-admin-cms-simplification",
+  "status": "BLOCKED",
+  "blockedReason": "No write-capable credential or authenticated admin session available; anon key cannot write (RLS). Writes not attempted.",
+  "databaseMode": "EXACT OWNER-APPROVED CONTENT WRITES ONLY",
+  "approvedPatchItems": [1, 2, 3, 4, 5, 6, 7],
+  "item8": "NOT_APPROVED",
+  "driftCheck": "PASS (all expected values match, snapshot 2026-10-01T15:51:34Z)",
+  "patchExecuted": false,
+  "inventoryWrites": "FORBIDDEN",
+  "authWrites": "FORBIDDEN",
+  "schemaWrites": "FORBIDDEN",
+  "authenticatedAdminQa": "OWNER WALKTHROUGH REQUIRED",
+  "quickActions": "CODE VERIFIED",
+  "ownerActions": [
+    "run the guarded SQL from the 2R.5A report section C in the Supabase SQL editor",
+    "then press Save on Website > Lanjutan to trigger site revalidation",
+    "walk through the admin checklist (report sections F and G)"
+  ],
+  "phase2r6CarryForward": [
+    "RESERVED -> AVAILABLE -> DELETE stock-number lifecycle risk: evaluate status history, ever_reserved deletion protection, sold_at/status_changed_at, stock-number lifecycle"
+  ],
+  "reportPath": "docs/reports/phase-2r5a-owner-acceptance-cms-remediation.md",
+  "reportTxtPath": "docs/reports/txt/phase-2r5a-owner-acceptance-cms-remediation.txt",
+  "next": "PHASE-2R6 after the patch is applied and the owner walkthrough is done"
+}
