@@ -57,13 +57,13 @@ export async function SiteFooter() {
 
   return (
     <footer className="border-t-2 border-primary bg-ink text-paper">
-      <div className="mx-auto max-w-container px-6 py-12 md:px-8 lg:px-margin lg:py-14">
+      <div className="mx-auto max-w-[var(--container-max)] px-6 py-12 md:px-8 lg:px-margin lg:py-14">
         <div className="grid gap-10 border-b border-white/10 pb-10 lg:grid-cols-12 lg:gap-x-12 lg:pb-12">
           <div className="lg:col-span-5">
             <Link
               href="/"
               aria-label={`${footer.companyName} home`}
-              className="inline-flex rounded-sm transition-opacity hover:opacity-85"
+              className="inline-flex min-h-11 items-center rounded-sm transition-opacity hover:opacity-85"
             >
               <Logo
                 companyName={footer.companyName}
