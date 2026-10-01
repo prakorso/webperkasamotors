@@ -62,7 +62,7 @@
   "inputSetStatus": "COMPLETE (all inputs on GitHub or tracked)",
   "reportTxtPath": "docs/reports/txt/phase-1r-baseline-reconciliation-audit.txt",
   "auditBranch": "audit/phase-1r-baseline-reconciliation",
-  "auditHead": "see git log (commit recorded after this file)",
+  "auditHead": "9c7a1b8898c050af02f9a328b75e4d9e2153052b (report commit; a final record commit follows)",
   "findingsSummary": [
     "76c206e differs from d079e46 only in package files; 0d91bf7 already contains all approved UI code.",
     "Package state identical on all refs (next 16.3.7, eslint-config-next 16.3.7, sharp 0.35.5, js-yaml 4.3.2).",
