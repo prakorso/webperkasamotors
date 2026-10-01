@@ -1,0 +1,20 @@
+{
+  "task": "PHASE-2R3",
+  "taskType": "RECONCILIATION / UI_UX + TECHNICAL",
+  "title": "Vehicle detail + gallery reconciliation",
+  "baseSha": "652baf32e7ddcf69a5db5edccd467b2739107a66",
+  "baseBranch": "integration/phase-2r2-catalogue-reconciliation",
+  "targetBranch": "integration/phase-2r3-vehicle-detail-gallery",
+  "targetWorktree": "C:\\Users\\USER\\webperkasamotors\\.claude\\worktrees\\phase-2r3-vehicle-detail-gallery",
+  "writeOwner": "Claude Product/Technical",
+  "status": "REVIEW",
+  "statusHistory": ["ACTIVE", "REVIEW"],
+  "visualSource": "R3B c0b1bae81f24842f5982706b86d3d695f1f6417c",
+  "technicalSource": "Phase 2R.2 / Phase 2C",
+  "r3bPort": "SEMANTIC",
+  "protected": ["WhatsApp semantics", "description removed", "deterministic alt", "highlights disclosure", "Unit Lainnya", "AVAILABLE-only related", "Phase 2R.2 catalogue behavior"],
+  "browserQa": "HEADLESS FALLBACK (Chrome extension could not reach localhost); RESERVED NOT VERIFIED",
+  "reportPath": "docs/reports/phase-2r3-vehicle-detail-gallery-reconciliation.md",
+  "reportTxtPath": "docs/reports/txt/phase-2r3-vehicle-detail-gallery-reconciliation.txt",
+  "next": "PHASE-2R4 public product-spec implementation"
+}

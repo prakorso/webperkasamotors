@@ -390,6 +390,9 @@ export async function getRelatedVehicles(
     .from("vehicles")
     .select(VEHICLE_COLUMNS)
     .eq("vehicle_type", vehicle.vehicleType)
+    // "Unit Lainnya" suggests alternatives to buy: only AVAILABLE units
+    // qualify (never SOLD/RESERVED).
+    .eq("status", "AVAILABLE")
     .neq("id", vehicle.id)
     .order("created_at", { ascending: true })
     .limit(limit);

@@ -1,7 +1,16 @@
 import Link from "next/link";
+import { Check } from "lucide-react";
 import type { Vehicle, VehicleMedia } from "@/lib/types";
-import { formatIDR, formatMileage, vehicleMediaAlt, vehicleTitle } from "@/lib/utils/format";
-import { VehicleStatusBadge } from "@/components/ui/vehicle-status-badge";
+import {
+  formatIDR,
+  formatMileage,
+  fuelTypeLabel,
+  publicStatusLabel,
+  transmissionLabel,
+  vehicleMediaAlt,
+  vehicleTitle,
+} from "@/lib/utils/format";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   vehicleWhatsAppUrl,
@@ -25,19 +34,30 @@ import { SectionHeading } from "./section-heading";
  */
 const HIGHLIGHTS_VISIBLE_COUNT = 5;
 
-const SPEC_ROWS: Array<{ label: string; value: (v: Vehicle) => string }> = [
-  { label: "Tahun", value: (v) => String(v.year) },
-  { label: "Kilometer", value: (v) => formatMileage(v.mileageKm) },
-  {
-    label: "Transmisi",
-    value: (v) => (v.transmission === "AUTOMATIC" ? "Automatic" : v.transmission),
-  },
-  { label: "Bahan Bakar", value: (v) => v.fuelType.charAt(0) + v.fuelType.slice(1).toLowerCase() },
-  { label: "Warna Eksterior", value: (v) => v.exteriorColor ?? "—" },
-  { label: "Kondisi", value: (v) => (v.condition === "USED" ? "Used" : "New") },
-  { label: "Kapasitas CC", value: (v) => (v.capacityCc ? `${v.capacityCc} CC` : "—") },
-  { label: "Plat Nomor", value: (v) => v.plateNumber ?? "—" },
-];
+const STATUS_VARIANT = {
+  AVAILABLE: "success",
+  RESERVED: "warning",
+  SOLD: "neutral",
+} as const;
+
+/**
+ * Only rows that actually have a value are rendered (an empty optional
+ * spec is hidden, never printed as "—"). "Kondisi" (Used/New) was dropped
+ * from the public page: it is noise for a used-vehicle dealer. The field
+ * itself is untouched in the schema and the admin.
+ */
+function specRows(v: Vehicle): Array<{ label: string; value: string }> {
+  const rows: Array<{ label: string; value: string | undefined }> = [
+    { label: "Tahun", value: String(v.year) },
+    { label: "Kilometer", value: formatMileage(v.mileageKm) },
+    { label: "Transmisi", value: transmissionLabel(v.transmission) },
+    { label: "Bahan Bakar", value: fuelTypeLabel(v.fuelType) },
+    { label: "Warna", value: v.exteriorColor?.trim() || undefined },
+    { label: "Kapasitas Mesin", value: v.capacityCc ? `${v.capacityCc} CC` : undefined },
+    { label: "Plat Nomor", value: v.plateNumber?.trim() || undefined },
+  ];
+  return rows.filter((r): r is { label: string; value: string } => Boolean(r.value));
+}
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -60,6 +80,10 @@ export function VehicleDetail({
   const whatsappHref = isAvailable
     ? vehicleWhatsAppUrl(vehicle, whatsapp)
     : genericVehicleWhatsAppUrl(whatsapp);
+  const statusVariant =
+    vehicle.status in STATUS_VARIANT
+      ? STATUS_VARIANT[vehicle.status as keyof typeof STATUS_VARIANT]
+      : "neutral";
 
   // Resolved once here (not inside VehicleGallery) so the same fallback
   // — and the same objects — reach the main photo, the thumbnail strip,
@@ -69,64 +93,50 @@ export function VehicleDetail({
 
   const visibleHighlights = vehicle.highlights.slice(0, HIGHLIGHTS_VISIBLE_COUNT);
   const remainingHighlights = vehicle.highlights.slice(HIGHLIGHTS_VISIBLE_COUNT);
+  const specs = specRows(vehicle);
 
   return (
     <div className="mx-auto max-w-container px-6 py-10 md:px-8 lg:px-margin lg:py-16">
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-8 lg:grid-cols-12 lg:gap-12">
-        <div className="md:col-span-1 lg:col-span-7">
+      <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-8 lg:grid-cols-12 lg:gap-14">
+        <div className="md:col-span-1 lg:col-span-6">
           <VehicleGallery media={mediaWithAlt} />
         </div>
 
-        {/* Content order follows the approved vehicle-page model: identity,
-         *  availability, price, key specs, highlights, CTA — no
-         *  long-form description block (removed, Phase 2C.2). */}
-        <div className="rounded-[24px] border border-border/80 bg-surface p-6 shadow-[0_16px_48px_rgba(17,19,21,0.06)] md:col-span-1 md:p-7 lg:col-span-5 lg:p-8">
-          <VehicleStatusBadge status={vehicle.status} />
-          <h1 className="mt-4 font-display text-headline-lg text-ink lg:text-display-sm">
+        {/* Content order: identity, availability, price, key specs, CTA,
+         *  highlights — no long-form description block (removed, Phase
+         *  2C.2). R3B's editorial treatment (open layout, hairline rows,
+         *  small stock number) is applied here. The CTA sits above the
+         *  highlights (which run 15–27 lines of seller copy) so it stays
+         *  inside the first desktop viewport; R3B had pushed it below a
+         *  full-width specs section. */}
+        <article className="md:col-span-1 lg:col-span-6 lg:pt-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Badge variant={statusVariant}>{publicStatusLabel(vehicle.status)}</Badge>
+            <p className="font-body text-label uppercase tracking-[0.08em] text-muted">
+              {vehicle.stockNumber}
+            </p>
+          </div>
+
+          <h1 className="mt-5 max-w-2xl break-words font-display text-headline-lg leading-[1.08] text-ink lg:text-display-sm">
             {title}
           </h1>
-          <p className="mt-2 font-body text-body text-muted">{vehicle.stockNumber}</p>
-          <p className="mt-6 font-display text-headline-lg font-semibold tabular-nums text-ink">
+
+          <p className="mt-6 font-display text-[30px] font-semibold tabular-nums text-ink lg:text-[34px]">
             {formatIDR(vehicle.price)}
           </p>
 
-          <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 rounded-[16px] border border-border/80 bg-paper p-5 sm:grid-cols-3">
-            {SPEC_ROWS.map((row) => (
-              <div key={row.label}>
-                <dt className="font-body text-[12px] uppercase tracking-[0.06em] text-muted">
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 border-t border-border/80">
+            {specs.map((row) => (
+              <div key={row.label} className="border-b border-border/70 py-3">
+                <dt className="font-body text-[11px] uppercase tracking-[0.08em] text-muted">
                   {row.label}
                 </dt>
-                <dd className="mt-1 font-body text-[14px] font-medium text-ink">
-                  {row.value(vehicle)}
+                <dd className="mt-1 break-words font-body text-body font-medium text-ink">
+                  {row.value}
                 </dd>
               </div>
             ))}
           </dl>
-
-          {vehicle.highlights.length > 0 && (
-            <div className="mt-8 border-t border-border pt-6">
-              <h2 className="font-body text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
-                Sorotan
-              </h2>
-              <ul className="mt-3 space-y-2 font-body text-[14px] leading-relaxed text-ink">
-                {visibleHighlights.map((h, i) => (
-                  <li key={i}>{h}</li>
-                ))}
-              </ul>
-              {remainingHighlights.length > 0 && (
-                <details className="mt-2">
-                  <summary className="cursor-pointer font-body text-[13px] font-semibold text-primary [&::-webkit-details-marker]:hidden">
-                    Lihat {remainingHighlights.length} sorotan lainnya
-                  </summary>
-                  <ul className="mt-2 space-y-2 font-body text-[14px] leading-relaxed text-ink">
-                    {remainingHighlights.map((h, i) => (
-                      <li key={i}>{h}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </div>
-          )}
 
           <div className="mt-8">
             {whatsappHref ? (
@@ -161,7 +171,32 @@ export function VehicleDetail({
               </Link>
             )}
           </div>
-        </div>
+
+          {vehicle.highlights.length > 0 && (
+            <div className="mt-8">
+              <h2 className="font-body text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
+                Sorotan
+              </h2>
+              <ul className="mt-3 space-y-2 font-body text-[14px] leading-relaxed text-ink">
+                {visibleHighlights.map((h, i) => (
+                  <HighlightItem key={i} text={h} />
+                ))}
+              </ul>
+              {remainingHighlights.length > 0 && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer font-body text-[13px] font-semibold text-primary [&::-webkit-details-marker]:hidden">
+                    Lihat {remainingHighlights.length} sorotan lainnya
+                  </summary>
+                  <ul className="mt-2 space-y-2 font-body text-[14px] leading-relaxed text-ink">
+                    {remainingHighlights.map((h, i) => (
+                      <HighlightItem key={i} text={h} />
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
+        </article>
       </div>
 
       {relatedVehicles.length > 0 && (
@@ -180,5 +215,14 @@ export function VehicleDetail({
         </section>
       )}
     </div>
+  );
+}
+
+function HighlightItem({ text }: { text: string }) {
+  return (
+    <li className="flex items-start gap-3">
+      <Check size={16} strokeWidth={2} className="mt-1 shrink-0 text-primary" aria-hidden="true" />
+      <span>{text}</span>
+    </li>
   );
 }

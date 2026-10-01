@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import type { VehicleMedia } from "@/lib/types";
 import { VehicleLightbox } from "./vehicle-lightbox";
 
-const MAX_THUMBNAILS = 3;
+const MAX_THUMBNAILS = 4;
 
 /**
  * Compact carousel — replaces the old "1 large photo + every remaining
@@ -32,15 +32,12 @@ const MAX_THUMBNAILS = 3;
  * forward with it, so the thumbnails always show "what's next" rather
  * than freezing on the first 3 photos forever.
  *
- * Option B framing (CMS/UX refinement batch): the primary photo uses a
- * responsive aspect ratio — 4:3 on mobile (where a taller frame still
- * reads fine at narrow widths) widening to 16:9 from lg: up, instead of
- * a fixed 4:3 at every breakpoint. This makes the primary image shorter
- * and more horizontal on tablet/desktop — less vertically dominant next
- * to the vehicle info column — without cropping differently or touching
- * next/image's object-cover behavior; only the container's aspect ratio
- * changed. Thumbnails follow the same ratio for visual consistency with
- * the primary frame above them.
+ * Framing (R3B visual port): the uploaded showroom photography is
+ * predominantly portrait 4:5, so the primary frame follows that ratio and
+ * uses object-contain — the vehicle stays fully visible instead of being
+ * cropped into a landscape slot (a non-4:5 photo letterboxes on the muted
+ * frame rather than distorting). Compact 4:3 thumbnails (object-cover)
+ * keep the controls from adding a second tall image row.
  */
 export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
   const initialIndex = Math.max(
@@ -62,7 +59,7 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
 
   return (
     <div>
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-border/80 bg-surface-muted shadow-[0_18px_50px_rgba(17,19,21,0.08)] lg:aspect-[16/9]">
+      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[24px] border border-border/80 bg-surface-muted shadow-[0_18px_50px_rgba(17,19,21,0.08)]">
         <button
           type="button"
           onClick={() => setLightboxOpen(true)}
@@ -73,9 +70,9 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
           src={active.url}
           alt={active.altText}
           fill
-          sizes="(min-width: 1024px) 58vw, 100vw"
+          sizes="(min-width: 1024px) 50vw, 100vw"
           priority
-          className="object-cover"
+          className="object-contain"
         />
 
         {media.length > 1 && (
@@ -110,7 +107,7 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
       </div>
 
       {media.length > 1 && (
-        <div className="mt-3 grid grid-cols-3 gap-3">
+        <div className="mt-3 grid grid-cols-4 gap-2.5 sm:gap-3">
           {thumbnails.map((item) => {
             const itemIndex = media.indexOf(item);
             return (
@@ -121,11 +118,11 @@ export function VehicleGallery({ media }: { media: VehicleMedia[] }) {
                 aria-label={`Show ${item.altText || "photo"}`}
                 aria-pressed={itemIndex === activeIndex}
                 className={cn(
-                  "relative aspect-[4/3] overflow-hidden rounded-[14px] border bg-surface-muted transition-[border-color,box-shadow] duration-200 lg:aspect-[16/9]",
+                  "relative aspect-[4/3] overflow-hidden rounded-[12px] border bg-surface-muted transition-[border-color,box-shadow] duration-200",
                   itemIndex === activeIndex ? "border-ink shadow-[0_8px_24px_rgba(17,19,21,0.1)]" : "border-border hover:border-muted"
                 )}
               >
-                <Image src={item.url} alt={item.altText} fill sizes="20vw" className="object-cover" />
+                <Image src={item.url} alt={item.altText} fill sizes="(min-width: 1024px) 12vw, 25vw" className="object-cover" />
               </button>
             );
           })}

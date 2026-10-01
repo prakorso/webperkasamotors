@@ -33,6 +33,44 @@ export function vehicleMediaAlt(vehicle: Vehicle, media: VehicleMedia): string {
   return `${vehicleTitle(vehicle)} ${vehicle.year} — foto ${media.sortOrder + 1}`;
 }
 
+/**
+ * Public-site (Indonesian) display labels. Presentation only — underlying
+ * enum values are never rewritten, and `statusLabel` below (English, used
+ * by the admin) is deliberately left alone.
+ */
+const PUBLIC_STATUS_LABEL: Record<VehicleStatus, string> = {
+  DRAFT: "Draft",
+  AVAILABLE: "Tersedia",
+  RESERVED: "Dipesan",
+  SOLD: "Terjual",
+  ARCHIVED: "Arsip",
+};
+
+export function publicStatusLabel(status: VehicleStatus): string {
+  return PUBLIC_STATUS_LABEL[status];
+}
+
+const TRANSMISSION_LABEL: Record<Vehicle["transmission"], string> = {
+  MANUAL: "Manual",
+  AUTOMATIC: "Otomatis",
+  CVT: "CVT",
+};
+
+export function transmissionLabel(transmission: Vehicle["transmission"]): string {
+  return TRANSMISSION_LABEL[transmission] ?? transmission;
+}
+
+const FUEL_TYPE_LABEL: Record<Vehicle["fuelType"], string> = {
+  PETROL: "Bensin",
+  DIESEL: "Diesel",
+  HYBRID: "Hybrid",
+  ELECTRIC: "Listrik",
+};
+
+export function fuelTypeLabel(fuelType: Vehicle["fuelType"]): string {
+  return FUEL_TYPE_LABEL[fuelType] ?? fuelType;
+}
+
 const STATUS_LABEL: Record<VehicleStatus, string> = {
   DRAFT: "Draft",
   AVAILABLE: "Available",
