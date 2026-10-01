@@ -4,8 +4,8 @@ import { Pagination } from "@/components/public/pagination";
 import { getPublishedArticles } from "@/lib/data/articles";
 
 export const metadata: Metadata = {
-  title: "Articles",
-  description: "Perkasa Motors editorial content — buying guides, maintenance tips, and news.",
+  title: "Artikel",
+  description: "Artikel dari Perkasa Motors.",
 };
 
 export default async function ArticlesPage(props: PageProps<"/articles">) {
@@ -17,15 +17,15 @@ export default async function ArticlesPage(props: PageProps<"/articles">) {
   return (
     <div className="mx-auto max-w-container px-6 py-12 md:px-8 lg:px-margin lg:py-16">
       <div className="mb-10 max-w-2xl">
-        <h1 className="font-display text-headline-lg text-ink lg:text-display-sm">Articles</h1>
+        <h1 className="font-display text-headline-lg text-ink lg:text-display-sm">Artikel</h1>
         <p className="mt-3 font-body text-body-lg text-muted">
-          Buying guides, maintenance tips, and news from Perkasa Motors.
+          Artikel dari Perkasa Motors.
         </p>
       </div>
 
       {articles.length === 0 ? (
         <p className="rounded-[24px] border border-border/80 bg-surface p-10 text-center font-body text-body text-muted shadow-[0_12px_32px_rgba(17,19,21,0.05)]">
-          No articles published yet — check back soon.
+          Belum ada artikel.
         </p>
       ) : (
         <>

@@ -1,84 +1,76 @@
 import type { Metadata } from "next";
-import { SectionHeading } from "@/components/public/section-heading";
-import { ArticleContent } from "@/components/public/article-content";
-import { getPublishedAboutSections } from "@/lib/data/about-page";
+import { HowToBuySection } from "@/components/public/how-to-buy-section";
+import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
-import type { AboutPageSection } from "@/lib/types";
+import { genericWhatsAppUrl } from "@/lib/utils/whatsapp";
 
 export const metadata: Metadata = {
   title: "Tentang Kami",
-  description: "The story and standards behind Perkasa Motors.",
+  description: "Tentang Perkasa Motors: penjual mobil dan motor. Informasi unit, cara pembelian, dan kontak.",
 };
 
 /**
- * CMS-driven — replaces the Phase 1 static placeholder. Content comes
- * from the `about_page_sections` table (lib/data/about-page.ts), edited
- * from Admin > Website > About. Sections render in sort_order; the first
- * one gets the large intro treatment (matching this page's original
- * hero-style header), every section after that renders as a bordered
- * block with its own eyebrow/headline — the same generic shape works for
- * any future section (Team, History, Standards, ...) an admin adds later,
- * with zero changes to this page.
- *
- * An inactive/unpublished section, or a missing eyebrow (optional
- * everywhere), simply doesn't render — never a technical placeholder. If
- * every section is unpublished or missing, the page falls back to
- * generic, already-published brand copy (company name + footer tagline)
- * rather than showing nothing or admin-facing text.
+ * Short and factual: four blocks, only statements the business
+ * configuration supports (company name, address/phone/WhatsApp from
+ * website settings). No inspection, curation, warranty, after-sales,
+ * history or team claims. The CMS about_page_sections rows are
+ * intentionally not rendered here (the stored copy contains unsupported
+ * claims; cleaning that data is Phase 2R.5 admin/CMS work).
+ * OWNER_FACT_REQUIRED: opening hours, showroom visit policy.
  */
 export default async function AboutPage() {
-  const sections = await getPublishedAboutSections();
-
-  if (sections.length === 0) {
-    const settings = await getWebsiteSettings();
-    return (
-      <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
-        <div className="max-w-3xl">
-          <p className="mb-4 font-body text-label uppercase tracking-[0.1em] text-primary">
-            Tentang Kami
-          </p>
-          <h1 className="font-display text-headline-lg text-ink lg:text-display-sm">
-            {settings.companyName}
-          </h1>
-          {settings.footerDescription && (
-            <p className="mt-6 font-body text-body-lg text-muted">{settings.footerDescription}</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const [intro, ...rest] = sections;
+  const settings = await getWebsiteSettings();
+  const whatsappHref = genericWhatsAppUrl(settings);
 
   return (
     <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
-      <IntroSection section={intro} />
-      {rest.map((section) => (
-        <div key={section.id} className="mt-12 border-t border-border pt-12 lg:mt-16 lg:pt-16">
-          <SectionHeading eyebrow={section.eyebrow ?? undefined} title={section.headline ?? ""} />
-          {section.body && <ArticleContent content={section.body} />}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function IntroSection({ section }: { section: AboutPageSection }) {
-  return (
-    <div className="max-w-3xl">
-      {section.eyebrow && (
-        <p className="mb-4 font-body text-label uppercase tracking-[0.1em] text-primary">
-          {section.eyebrow}
+      <div className="max-w-3xl">
+        <p className="mb-4 font-body text-label uppercase tracking-[0.1em] text-primary">Tentang Kami</p>
+        <h1 className="font-display text-headline-lg text-ink lg:text-display-sm">Siapa Perkasa Motors</h1>
+        <p className="mt-6 font-body text-body-lg text-muted">
+          {settings.companyName} menjual mobil dan motor
+          {settings.address ? ` di ${settings.address}` : ""}. Unit yang ditampilkan di situs ini adalah stok
+          {" "}
+          {settings.companyName}.
         </p>
-      )}
-      {section.headline && (
-        <h1 className="font-display text-headline-lg text-ink lg:text-display-sm">
-          {section.headline}
-        </h1>
-      )}
-      {section.body && (
-        <p className="mt-6 font-body text-body-lg text-muted">{section.body}</p>
-      )}
+      </div>
+
+      <section aria-labelledby="about-sells-heading" className="mt-12 max-w-3xl border-t border-border pt-10">
+        <h2 id="about-sells-heading" className="font-display text-headline-md text-ink">
+          Apa yang kami jual
+        </h2>
+        <p className="mt-4 font-body text-body-lg text-muted">
+          Mobil dan motor. Setiap unit ditampilkan dengan foto, spesifikasi, dan harga. Unit yang sudah
+          terjual tetap ditampilkan di bagian Unit Terjual.
+        </p>
+      </section>
+
+      <HowToBuySection className="mt-12 border-t border-border pt-10" />
+
+      <section aria-labelledby="about-contact-heading" className="mt-12 max-w-3xl border-t border-border pt-10">
+        <h2 id="about-contact-heading" className="font-display text-headline-md text-ink">
+          Kontak &amp; lokasi
+        </h2>
+        <ul className="mt-4 flex flex-col gap-2 font-body text-body text-muted">
+          {settings.address && <li>{settings.address}</li>}
+          {settings.phone && (
+            <li>
+              <a href={`tel:${settings.phone}`} className="hover:text-primary">
+                {settings.phone}
+              </a>
+            </li>
+          )}
+        </ul>
+        {whatsappHref && (
+          <div className="mt-6">
+            <WhatsAppCta
+              href={whatsappHref}
+              label="Hubungi via WhatsApp"
+              className="h-auto min-h-13 whitespace-normal py-3 text-center"
+            />
+          </div>
+        )}
+      </section>
     </div>
   );
 }

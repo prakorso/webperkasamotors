@@ -4,6 +4,7 @@ import { WhatsappIcon } from "@/components/icons/social-icons";
 import { MobileNav } from "./mobile-nav";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getNavigationItems } from "@/lib/data/navigation";
+import { applyPublicNavRules, getPublicNavRules } from "@/lib/data/public-nav";
 import { genericWhatsAppUrl } from "@/lib/utils/whatsapp";
 
 /**
@@ -32,10 +33,12 @@ import { genericWhatsAppUrl } from "@/lib/utils/whatsapp";
  * still renders this exact header, just with default content.
  */
 export async function SiteHeader() {
-  const [settings, navItems] = await Promise.all([
+  const [settings, rawNavItems, navRules] = await Promise.all([
     getWebsiteSettings(),
     getNavigationItems("HEADER"),
+    getPublicNavRules(),
   ]);
+  const navItems = applyPublicNavRules(rawNavItems, navRules);
 
   const links = navItems.filter((item) => !item.isCta);
   const cta = navItems.find((item) => item.isCta);

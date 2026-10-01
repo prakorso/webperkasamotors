@@ -4,10 +4,13 @@ export function SectionHeading({
   eyebrow,
   title,
   className,
+  id,
 }: {
   eyebrow?: string;
   title: string;
   className?: string;
+  /** Optional id on the <h2>, for aria-labelledby on the surrounding section. */
+  id?: string;
 }) {
   return (
     <div className={cn("mb-10 lg:mb-12", className)}>
@@ -16,7 +19,7 @@ export function SectionHeading({
           {eyebrow}
         </p>
       )}
-      <h2 className="font-display text-headline-lg text-ink">{title}</h2>
+      <h2 id={id} className="font-display text-headline-lg text-ink">{title}</h2>
     </div>
   );
 }

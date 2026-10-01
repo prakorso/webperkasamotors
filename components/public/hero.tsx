@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
+import { WhatsappIcon } from "@/components/icons/social-icons";
 
 export interface HeroContent {
   eyebrow: string | null;
@@ -23,9 +24,9 @@ export const DEFAULT_HERO: HeroContent = {
   eyebrow: null,
   headline: "Presisi.\nPerforma.\nPerkasa.",
   description:
-    "A curated showroom of inspected, premium vehicles — every unit verified before it reaches you.",
+    "Mobil dan motor yang tersedia di Perkasa Motors, lengkap dengan foto, spesifikasi, dan harga. Tanya langsung lewat WhatsApp.",
   imageUrl: null,
-  ctaLabel: "Lihat Stok Tersedia",
+  ctaLabel: "Lihat Unit Tersedia",
   ctaUrl: "/cars",
 };
 
@@ -62,7 +63,13 @@ export function Hero({
   ctaUrl,
   priority = true,
   textClassName,
-}: HeroContent & { priority?: boolean; textClassName?: string }) {
+  whatsappHref,
+}: HeroContent & {
+  priority?: boolean;
+  textClassName?: string;
+  /** Optional secondary "Tanya via WhatsApp" action (generic message). Omitted when no usable WhatsApp number is configured. */
+  whatsappHref?: string | null;
+}) {
   const headlineLines = headline.split("\n").filter(Boolean);
 
   return (
@@ -104,10 +111,24 @@ export function Hero({
           {description && (
             <p className="mt-6 max-w-lg font-body text-body text-paper/78 lg:text-body-lg">{description}</p>
           )}
-          <div className="mt-8">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href={ctaUrl} className={buttonVariants({ variant: "primary", size: "lg" })}>
               {ctaLabel}
             </Link>
+            {whatsappHref && (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "lg" }),
+                  "gap-2 border border-paper/60 text-paper hover:bg-paper/10"
+                )}
+              >
+                <WhatsappIcon size={16} aria-hidden="true" />
+                Tanya via WhatsApp
+              </a>
+            )}
           </div>
         </div>
       </div>

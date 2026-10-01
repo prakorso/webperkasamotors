@@ -65,7 +65,7 @@ export default async function ArticleDetailPage(props: PageProps<"/articles/[slu
         href="/articles"
         className="font-body text-[13px] font-semibold uppercase tracking-[0.06em] text-muted transition-colors hover:text-primary"
       >
-        ← Articles
+        ← Artikel
       </Link>
 
       <div className="mt-6">

@@ -33,7 +33,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://webperkasamotors.ne
  */
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getWebsiteSettings();
-  const title = settings.seoTitle ?? `${settings.companyName} — Premium Automotive Showroom`;
+  const title = settings.seoTitle ?? `${settings.companyName} — Jual Beli Mobil dan Motor`;
   const description = settings.seoDescription ?? undefined;
 
   return {
@@ -59,7 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="id"
       className={`${spaceGrotesk.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-paper text-ink font-body">

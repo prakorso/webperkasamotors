@@ -108,6 +108,17 @@ export async function getPublishedArticles(
 }
 
 /** Every published article's slug — used by app/sitemap.ts. */
+/** Number of PUBLISHED articles — used only to gate public navigation (see lib/data/public-nav.ts). */
+export async function getPublishedArticleCount(): Promise<number> {
+  const supabase = getSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("articles")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "PUBLISHED");
+  if (error) throw new Error(`getPublishedArticleCount: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function getAllPublishedArticleSlugs(): Promise<string[]> {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase.from("articles").select("slug").eq("status", "PUBLISHED");

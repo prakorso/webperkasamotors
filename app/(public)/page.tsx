@@ -1,31 +1,34 @@
 import Link from "next/link";
 import { Hero, DEFAULT_HERO, type HeroContent } from "@/components/public/hero";
 import { HeroSlideshow } from "@/components/public/hero-slideshow";
-import { AboutSection, type AboutContent } from "@/components/public/about-section";
-import { WhyPerkasaSection, DEFAULT_WHY_PERKASA, type WhyPerkasaContent } from "@/components/public/why-perkasa-section";
-import { TestimonialsSection } from "@/components/public/testimonials-section";
+import { HowToBuySection } from "@/components/public/how-to-buy-section";
 import { SectionHeading } from "@/components/public/section-heading";
 import { VehicleCard } from "@/components/public/vehicle-card";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
-import { getFeaturedVehicles, getVehicleMedia } from "@/lib/data/vehicles";
+import {
+  getHomepageAvailableVehicles,
+  getHomepageSoldVehicles,
+  getVehicleMedia,
+} from "@/lib/data/vehicles";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
-import { getActiveHomepageBenefits } from "@/lib/data/homepage-benefits";
-import { getActiveTestimonials } from "@/lib/data/testimonials";
-import { genericWhatsAppUrl, vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
+import {
+  genericVehicleWhatsAppUrl,
+  genericWhatsAppUrl,
+  vehicleWhatsAppConfig,
+} from "@/lib/utils/whatsapp";
 import { cn } from "@/lib/utils/cn";
-import type { HeroSlideSettings, AboutSectionSettings, WhyPerkasaSectionSettings, HomepageBenefit } from "@/lib/types";
+import type { HeroSlideSettings, Vehicle } from "@/lib/types";
 
 /**
- * Featured Stock grid columns, keyed by how many featured vehicles there
- * actually are. A small, growing inventory means this is very often 1–2
- * items right now — a static `lg:grid-cols-4` would leave 2–3 empty
- * trailing column tracks next to the real cards, which reads as broken
- * or unfinished rather than as a small, intentional catalogue. Matching
- * the column count to the real count means the grid is always full.
- * (Static class strings, not a template literal, so Tailwind's build-time
- * scanner can find and keep them.)
+ * Unit Tersedia grid columns, keyed by how many units there actually are.
+ * A small, growing inventory means this is very often 1–2 items right
+ * now — a static `lg:grid-cols-4` would leave empty trailing column
+ * tracks next to the real cards, which reads as broken rather than as a
+ * small, intentional catalogue. Matching the column count to the real
+ * count means the grid is always full. (Static class strings, not a
+ * template literal, so Tailwind's build-time scanner can find them.)
  */
-const FEATURED_GRID_COLS: Record<number, string> = {
+const GRID_COLS: Record<number, string> = {
   1: "mx-auto max-w-sm sm:grid-cols-1 lg:grid-cols-1",
   2: "mx-auto max-w-3xl sm:grid-cols-2 lg:grid-cols-2",
   3: "sm:grid-cols-2 lg:grid-cols-3",
@@ -52,113 +55,123 @@ function resolveSlide(raw: HeroSlideSettings): HeroContent | null {
   };
 }
 
-/**
- * Unlike Hero, there's no hardcoded default About copy — an unusable
- * About section (inactive, or missing headline/description) means the
- * section is omitted from the page entirely, not replaced with
- * placeholder content. Same required bar the Server Action itself
- * enforces (lib/actions/site-settings.ts:validateAboutSection), checked
- * again here since the CMS row could in principle be edited outside the
- * validated form path.
- */
-function resolveAbout(raw: AboutSectionSettings): AboutContent | null {
-  if (!raw.isActive || !raw.headline?.trim() || !raw.description?.trim()) return null;
-  return {
-    eyebrow: raw.eyebrow,
-    headline: raw.headline,
-    description: raw.description,
-    imageUrl: raw.imageUrl,
-    ctaLabel: raw.ctaLabel,
-    ctaUrl: raw.ctaUrl,
-  };
-}
-
-/**
- * Unlike About, Why Perkasa DOES have a hardcoded default (the original
- * 3-card content, preserved as DEFAULT_WHY_PERKASA — see that file's own
- * comment for why) — same fallback shape as Hero. Falls back when the
- * section is inactive, has no headline, OR has zero active benefit
- * cards (an active section with nothing to show would otherwise render
- * an empty grid, which is exactly the "CMS misconfiguration must never
- * break the homepage" rule this whole phase keeps repeating).
- */
-function resolveWhyPerkasa(
-  raw: WhyPerkasaSectionSettings,
-  activeBenefits: HomepageBenefit[]
-): WhyPerkasaContent {
-  if (!raw.isActive || !raw.headline?.trim() || activeBenefits.length === 0) {
-    return DEFAULT_WHY_PERKASA;
-  }
-  return {
-    eyebrow: raw.eyebrow,
-    headline: raw.headline,
-    description: raw.description,
-    benefits: activeBenefits,
-  };
-}
-
-export default async function HomePage() {
-  const [featured, settings, benefits, testimonials] = await Promise.all([
-    getFeaturedVehicles(4),
-    getWebsiteSettings(),
-    getActiveHomepageBenefits(),
-    getActiveTestimonials(),
-  ]);
-  const featuredWithMedia = await Promise.all(
-    featured.map(async (vehicle) => ({
+async function withPrimaryMedia(vehicles: Vehicle[]) {
+  return Promise.all(
+    vehicles.map(async (vehicle) => ({
       vehicle,
       primaryMedia: (await getVehicleMedia(vehicle.id)).find((m) => m.isPrimary),
     }))
   );
+}
+
+/**
+ * Homepage (product spec): Hero > Unit Tersedia > Cara Pembelian > Unit
+ * Terjual > final WhatsApp CTA. The CMS About block, "Why Perkasa" cards
+ * and Testimonials are intentionally no longer rendered here (their CMS
+ * data and admin editors are untouched). Available/sold units come from
+ * real status queries, not from the is_featured flag.
+ */
+export default async function HomePage() {
+  const [available, sold, settings] = await Promise.all([
+    getHomepageAvailableVehicles(4),
+    getHomepageSoldVehicles(),
+    getWebsiteSettings(),
+  ]);
+  const [availableWithMedia, soldWithMedia] = await Promise.all([
+    withPrimaryMedia(available),
+    withPrimaryMedia(sold),
+  ]);
 
   // Zero usable slides (nothing configured, everything inactive, or every
-  // active slide missing a headline) falls back to the original hardcoded
-  // hero — resolved here, once, rather than inside Hero/HeroSlideshow, so
-  // both stay plain "render what I'm given" presentational pieces. A CMS
-  // misconfiguration can never produce a broken/empty homepage hero.
+  // active slide missing a headline) falls back to the hardcoded hero —
+  // resolved here, once, so Hero/HeroSlideshow stay plain "render what I'm
+  // given" components. A CMS misconfiguration can never produce a broken
+  // or empty homepage hero.
   const slides = [settings.heroSlide1, settings.heroSlide2, settings.heroSlide3]
     .map(resolveSlide)
     .filter((slide): slide is HeroContent => slide !== null);
-  const about = resolveAbout(settings.about);
-  const whyPerkasa = resolveWhyPerkasa(settings.whyPerkasa, benefits);
   const whatsappConfig = vehicleWhatsAppConfig(settings);
   const genericWhatsappHref = genericWhatsAppUrl(settings);
+  const emptyStateWhatsappHref = genericVehicleWhatsAppUrl(whatsappConfig);
 
   return (
     <>
-      {slides.length > 0 ? <HeroSlideshow slides={slides} /> : <Hero {...DEFAULT_HERO} />}
+      {slides.length > 0 ? (
+        <HeroSlideshow slides={slides} whatsappHref={genericWhatsappHref} />
+      ) : (
+        <Hero {...DEFAULT_HERO} whatsappHref={genericWhatsappHref} />
+      )}
 
-      <section className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
-        <div className="flex items-end justify-between">
-          <SectionHeading eyebrow="Showroom" title="Featured Stock" className="mb-0" />
-          <Link
-            href="/cars"
-            className="hidden font-body text-label font-semibold uppercase tracking-[0.06em] text-primary transition-colors hover:text-ink md:inline-block"
-          >
-            Lihat Semua →
-          </Link>
+      <section
+        aria-labelledby="home-available-heading"
+        className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+          <SectionHeading title="Unit Tersedia" id="home-available-heading" className="mb-0" />
+          <div className="flex gap-6 font-body text-label font-semibold uppercase tracking-[0.06em]">
+            <Link href="/cars" className="text-primary transition-colors hover:text-ink">
+              Semua Mobil →
+            </Link>
+            <Link href="/motorcycles" className="text-primary transition-colors hover:text-ink">
+              Semua Motor →
+            </Link>
+          </div>
         </div>
-        <div className={cn("mt-10 grid grid-cols-1 gap-6", FEATURED_GRID_COLS[featuredWithMedia.length] ?? FEATURED_GRID_COLS[4])}>
-          {featuredWithMedia.map(({ vehicle, primaryMedia }) => (
-            <VehicleCard
-              key={vehicle.id}
-              vehicle={vehicle}
-              primaryMedia={primaryMedia}
-              whatsapp={whatsappConfig}
-            />
-          ))}
-        </div>
+        {availableWithMedia.length > 0 ? (
+          <div className={cn("mt-10 grid grid-cols-1 gap-6", GRID_COLS[availableWithMedia.length] ?? GRID_COLS[4])}>
+            {availableWithMedia.map(({ vehicle, primaryMedia }) => (
+              <VehicleCard
+                key={vehicle.id}
+                vehicle={vehicle}
+                primaryMedia={primaryMedia}
+                whatsapp={whatsappConfig}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-10 flex flex-col items-center gap-4 rounded-[24px] border border-border/80 bg-surface p-6 text-center md:p-10">
+            <p className="font-body text-body text-muted">Belum ada unit tersedia saat ini.</p>
+            {emptyStateWhatsappHref && (
+              <WhatsAppCta
+                href={emptyStateWhatsappHref}
+                label="Tanya via WhatsApp"
+                variant="secondary"
+                size="md"
+                ariaLabel="Tanyakan unit yang akan datang lewat WhatsApp"
+              />
+            )}
+          </div>
+        )}
       </section>
 
-      {about && <AboutSection {...about} />}
+      <HowToBuySection className="mx-auto max-w-container px-6 pb-16 md:px-8 lg:px-margin lg:pb-section" />
 
-      <WhyPerkasaSection {...whyPerkasa} />
-
-      <TestimonialsSection testimonials={testimonials} />
+      {soldWithMedia.length > 0 && (
+        <section
+          aria-labelledby="home-sold-heading"
+          className="border-t border-border/80 bg-surface-muted/40"
+        >
+          <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
+            <SectionHeading title="Unit Terjual" id="home-sold-heading" />
+            <div
+              className={cn("grid grid-cols-1 gap-6", GRID_COLS[soldWithMedia.length] ?? GRID_COLS[3])}
+            >
+              {soldWithMedia.map(({ vehicle, primaryMedia }) => (
+                <VehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  primaryMedia={primaryMedia}
+                  whatsapp={whatsappConfig}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-container px-6 py-16 text-center md:px-8 lg:px-margin lg:py-section">
         <h2 className="mx-auto max-w-2xl font-display text-headline-lg text-ink">
-          Siap menemukan kendaraan impian Anda?
+          Tanyakan unit yang Anda cari.
         </h2>
         <div className="mt-8">
           {genericWhatsappHref ? (

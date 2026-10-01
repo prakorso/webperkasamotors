@@ -7,7 +7,7 @@ import { genericWhatsAppUrl } from "@/lib/utils/whatsapp";
 
 export const metadata: Metadata = {
   title: "Hubungi Kami",
-  description: "Get in touch with the Perkasa Motors sales team.",
+  description: "Hubungi Perkasa Motors lewat WhatsApp untuk menanyakan ketersediaan unit.",
 };
 
 export default async function ContactPage() {
@@ -25,8 +25,7 @@ export default async function ContactPage() {
             Tim kami siap membantu.
           </h1>
           <p className="mt-6 font-body text-body-lg text-muted">
-            Ajukan pertanyaan umum, jadwalkan kunjungan, atau tanyakan
-            ketersediaan unit tertentu — langsung lewat WhatsApp.
+            Tanyakan ketersediaan unit atau waktu kunjungan melalui WhatsApp.
           </p>
         </div>
 

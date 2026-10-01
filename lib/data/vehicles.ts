@@ -133,6 +133,45 @@ export async function getFeaturedVehicles(limit = 4): Promise<Vehicle[]> {
   return (data as unknown as VehicleRow[]).map(mapVehicleRow);
 }
 
+/** Homepage "Unit Terjual" cap. SOLD is social proof only; order is the existing deterministic created_at DESC (there is no sold_at yet), never presented as "recent". */
+export const HOMEPAGE_SOLD_LIMIT = 3;
+
+/**
+ * Homepage "Unit Tersedia": the latest AVAILABLE units across cars and
+ * motorcycles (same updated_at ordering as the catalogue's AVAILABLE tier).
+ * Deliberately NOT gated on is_featured — owners should not have to
+ * remember a flag for the homepage to show real stock. getFeaturedVehicles
+ * above is kept for an optional "pinned" use later but the homepage no
+ * longer calls it.
+ */
+export async function getHomepageAvailableVehicles(limit = 4): Promise<Vehicle[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select(VEHICLE_COLUMNS)
+    .eq("status", "AVAILABLE")
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(limit);
+
+  if (error) throw new Error(`getHomepageAvailableVehicles: ${error.message}`);
+  return (data as unknown as VehicleRow[]).map(mapVehicleRow);
+}
+
+export async function getHomepageSoldVehicles(limit = HOMEPAGE_SOLD_LIMIT): Promise<Vehicle[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select(VEHICLE_COLUMNS)
+    .eq("status", "SOLD")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(limit);
+
+  if (error) throw new Error(`getHomepageSoldVehicles: ${error.message}`);
+  return (data as unknown as VehicleRow[]).map(mapVehicleRow);
+}
+
 /** Every vehicle of a type, unpaginated — used by app/sitemap.ts, which needs full coverage, not one page. */
 export async function getVehiclesByType(type: VehicleType): Promise<Vehicle[]> {
   const supabase = getSupabaseServerClient();

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getFooterSettings } from "@/lib/data/footer";
+import { applyPublicNavRules, getPublicNavRules } from "@/lib/data/public-nav";
 import {
   FacebookIcon,
   InstagramIcon,
@@ -20,7 +21,14 @@ import { genericWhatsAppMessage } from "@/lib/utils/whatsapp";
  * configured, so an empty database renders byte-identical to before.
  */
 export async function SiteFooter() {
-  const footer = await getFooterSettings();
+  const [rawFooter, navRules] = await Promise.all([getFooterSettings(), getPublicNavRules()]);
+  const footer = {
+    ...rawFooter,
+    navGroups: rawFooter.navGroups
+      .map((group) => ({ ...group, items: applyPublicNavRules(group.items, navRules) }))
+      .filter((group) => group.items.length > 0),
+    legalLinks: applyPublicNavRules(rawFooter.legalLinks, navRules),
+  };
   const hasContact = footer.phone || footer.whatsapp || footer.email || footer.address;
   const hasSocial =
     footer.instagramUrl ||
@@ -78,8 +86,8 @@ export async function SiteFooter() {
                       href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={`Chat on WhatsApp: ${footer.whatsapp}`}
-                      title="Chat on WhatsApp"
+                      aria-label={`Chat lewat WhatsApp: ${footer.whatsapp}`}
+                      title="Chat lewat WhatsApp"
                       className="flex items-center gap-2 hover:text-primary"
                     >
                       <WhatsappIcon size={16} aria-hidden="true" />

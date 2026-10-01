@@ -36,7 +36,14 @@ const SLIDE_DURATION_MS = 3000;
  * Next/indicators/the CTA all work exactly as they already did (nothing
  * intercepts touch events).
  */
-export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
+export function HeroSlideshow({
+  slides,
+  whatsappHref,
+}: {
+  slides: HeroContent[];
+  /** Secondary generic WhatsApp action, passed through to every slide. */
+  whatsappHref?: string | null;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -66,7 +73,7 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
   const safeIndex = Math.min(activeIndex, slides.length - 1);
 
   if (slides.length <= 1) {
-    return <Hero {...slides[0]} />;
+    return <Hero {...slides[0]} whatsappHref={whatsappHref} />;
   }
 
   function goToNext() {
@@ -128,6 +135,7 @@ export function HeroSlideshow({ slides }: { slides: HeroContent[] }) {
           <Hero
             {...slide}
             priority={i === 0}
+            whatsappHref={whatsappHref}
             textClassName={i === safeIndex ? textInClass : textOutClass}
           />
         </div>
