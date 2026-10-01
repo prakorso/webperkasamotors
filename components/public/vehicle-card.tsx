@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Vehicle, VehicleMedia } from "@/lib/types";
 import { formatIDR, formatMileage, vehicleMediaAlt, vehicleTitle } from "@/lib/utils/format";
-import { VehicleStatusBadge } from "@/components/ui/vehicle-status-badge";
+import { Badge } from "@/components/ui/badge";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import {
   vehicleWhatsAppUrl,
@@ -10,10 +10,17 @@ import {
   type VehicleWhatsAppConfig,
 } from "@/lib/utils/whatsapp";
 
+/** Public (Indonesian) status labels for catalogue cards. The shared admin/detail `statusLabel` stays English and is untouched. */
+const CARD_STATUS: Partial<Record<Vehicle["status"], { label: string; variant: "success" | "warning" | "neutral" }>> = {
+  AVAILABLE: { label: "Tersedia", variant: "success" },
+  RESERVED: { label: "Dipesan", variant: "warning" },
+  SOLD: { label: "Terjual", variant: "neutral" },
+};
+
 interface VehicleCardProps {
   vehicle: Vehicle;
   primaryMedia?: VehicleMedia;
-  /** When provided, the card shows a direct "Saya Tertarik" WhatsApp CTA built from live vehicle data. Omit to render a link-only card. */
+  /** When provided, the card shows a direct WhatsApp CTA built from live vehicle data ("Saya Tertarik" for AVAILABLE, generic "Tanya Unit Lain" otherwise). Omit to render a link-only card. */
   whatsapp?: VehicleWhatsAppConfig;
 }
 
@@ -32,6 +39,8 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
   // must not produce a message implying this exact unit can still be
   // bought, so it falls back to a generic "ask about other units" CTA.
   const isAvailable = vehicle.status === "AVAILABLE";
+  const isSold = vehicle.status === "SOLD";
+  const cardStatus = CARD_STATUS[vehicle.status];
   const whatsappHref = whatsapp
     ? isAvailable
       ? vehicleWhatsAppUrl(vehicle, whatsapp)
@@ -39,7 +48,13 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
     : null;
 
   return (
-    <div className="group flex flex-col rounded-[20px] border border-border/80 bg-surface shadow-[0_14px_40px_rgba(17,19,21,0.06)] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-[0_24px_60px_rgba(17,19,21,0.1)]">
+    <div
+      className={
+        isSold
+          ? "group flex flex-col rounded-[20px] border border-border/70 bg-surface/80 transition-[border-color,background-color] duration-300 hover:border-ink/20 hover:bg-surface"
+          : "group flex flex-col rounded-[20px] border border-border/80 bg-surface shadow-[0_14px_40px_rgba(17,19,21,0.06)] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-ink/20 hover:shadow-[0_24px_60px_rgba(17,19,21,0.1)]"
+      }
+    >
       <Link
         href={detailHref}
         className="flex flex-1 flex-col rounded-[20px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
@@ -61,18 +76,32 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
               alt={vehicleMediaAlt(vehicle, primaryMedia)}
               fill
               sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035]"
+              className={
+                isSold
+                  ? "object-cover saturate-[0.6] brightness-[0.85] transition-[filter] duration-500 ease-out group-hover:saturate-[0.75]"
+                  : "object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035]"
+              }
             />
           )}
-          <div className="absolute left-3 top-3">
-            <VehicleStatusBadge status={vehicle.status} />
-          </div>
+          {cardStatus && (
+            <div className="absolute left-3 top-3">
+              <Badge variant={cardStatus.variant}>{cardStatus.label}</Badge>
+            </div>
+          )}
         </div>
         <div className="flex flex-1 flex-col gap-3 p-5 md:p-6">
           <p className="font-body text-label font-semibold uppercase tracking-[0.06em] text-muted">
             {vehicle.year}
           </p>
-          <h3 className="font-display text-headline-sm leading-tight text-ink">{vehicleTitle(vehicle)}</h3>
+          <h3
+            className={
+              isSold
+                ? "font-display text-headline-sm leading-tight text-ink/80"
+                : "font-display text-headline-sm leading-tight text-ink"
+            }
+          >
+            {vehicleTitle(vehicle)}
+          </h3>
           <dl className="grid grid-cols-2 gap-y-1 border-y border-border/70 py-3 font-body text-[13px] text-muted">
             <div>
               <dt className="sr-only">Transmission</dt>
@@ -83,7 +112,13 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
               <dd>{formatMileage(vehicle.mileageKm)}</dd>
             </div>
           </dl>
-          <p className="mt-auto font-display text-[22px] font-semibold tabular-nums text-ink">
+          <p
+            className={
+              isSold
+                ? "mt-auto font-display text-[20px] font-semibold tabular-nums text-muted"
+                : "mt-auto font-display text-[22px] font-semibold tabular-nums text-ink"
+            }
+          >
             {formatIDR(vehicle.price)}
           </p>
         </div>
@@ -94,8 +129,11 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
           <WhatsAppCta
             href={whatsappHref}
             label={isAvailable ? "Saya Tertarik" : "Tanya Unit Lain"}
-            variant="secondary"
-            size="md"
+            // AVAILABLE keeps the approved secondary button; RESERVED/SOLD get
+            // the quieter outline/sm treatment so the generic "Tanya Unit Lain"
+            // never competes with a vehicle-specific CTA.
+            variant={isAvailable ? "secondary" : "outline"}
+            size={isAvailable ? "md" : "sm"}
             className="w-full"
             ariaLabel={
               isAvailable

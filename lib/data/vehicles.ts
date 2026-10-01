@@ -208,7 +208,8 @@ const CATALOGUE_TIERS: Array<{ status: "AVAILABLE" | "RESERVED" | "SOLD"; orderC
 export async function getVehiclesByTypePaginated(
   type: VehicleType,
   page = 1,
-  perPage = VEHICLES_PER_PAGE
+  perPage = VEHICLES_PER_PAGE,
+  tiers: typeof CATALOGUE_TIERS = CATALOGUE_TIERS
 ): Promise<PaginatedVehicles> {
   const supabase = getSupabaseServerClient();
   const safePage = Math.max(1, page);
@@ -216,7 +217,7 @@ export async function getVehiclesByTypePaginated(
   const globalTo = globalFrom + perPage; // exclusive
 
   const tierCounts = await Promise.all(
-    CATALOGUE_TIERS.map(async (tier) => {
+    tiers.map(async (tier) => {
       const { count, error } = await supabase
         .from("vehicles")
         .select("id", { count: "exact", head: true })
@@ -230,8 +231,8 @@ export async function getVehiclesByTypePaginated(
 
   const rows: VehicleRow[] = [];
   let cursor = 0;
-  for (let i = 0; i < CATALOGUE_TIERS.length; i++) {
-    const tier = CATALOGUE_TIERS[i];
+  for (let i = 0; i < tiers.length; i++) {
+    const tier = tiers[i];
     const tierStart = cursor;
     const tierEnd = cursor + tierCounts[i]; // exclusive
     cursor = tierEnd;
@@ -263,6 +264,49 @@ export async function getVehiclesByTypePaginated(
     perPage,
     totalPages: Math.max(1, Math.ceil(totalCount / perPage)),
   };
+}
+
+/** Tiers shown in the public "Unit Tersedia" section: AVAILABLE first, then RESERVED. */
+const ACTIVE_CATALOGUE_TIERS = CATALOGUE_TIERS.filter((t) => t.status !== "SOLD");
+
+/**
+ * Cap for the public "Unit Terjual" section. SOLD is social proof, not
+ * inventory, so it must never dominate the page. There is no sold_at
+ * column yet (planned OS-readiness work), so "which 6" is the existing
+ * deterministic order — created_at DESC, id ASC — NOT "most recently sold".
+ */
+export const SOLD_CATALOGUE_LIMIT = 6;
+
+export interface CatalogueData {
+  /** AVAILABLE + RESERVED, paginated. SOLD never counts toward these pages. */
+  active: PaginatedVehicles;
+  /** Capped SOLD set. Empty except on the last active page, so SOLD never interrupts the available listing or creates a page of only sold units. */
+  sold: Vehicle[];
+}
+
+export async function getCatalogueByType(type: VehicleType, page = 1): Promise<CatalogueData> {
+  let active = await getVehiclesByTypePaginated(type, page, VEHICLES_PER_PAGE, ACTIVE_CATALOGUE_TIERS);
+  // An out-of-range ?page= would otherwise render an empty list; clamp to the last real page.
+  if (active.page > active.totalPages) {
+    active = await getVehiclesByTypePaginated(type, active.totalPages, VEHICLES_PER_PAGE, ACTIVE_CATALOGUE_TIERS);
+  }
+
+  let sold: Vehicle[] = [];
+  if (active.page >= active.totalPages) {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select(VEHICLE_COLUMNS)
+      .eq("vehicle_type", type)
+      .eq("status", "SOLD")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .limit(SOLD_CATALOGUE_LIMIT);
+    if (error) throw new Error(`getCatalogueByType (SOLD): ${error.message}`);
+    sold = (data as unknown as VehicleRow[]).map(mapVehicleRow);
+  }
+
+  return { active, sold };
 }
 
 export async function getVehicleBySlug(slug: string): Promise<Vehicle | null> {

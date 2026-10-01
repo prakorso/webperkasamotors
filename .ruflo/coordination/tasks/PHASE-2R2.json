@@ -1,0 +1,21 @@
+{
+  "task": "PHASE-2R2",
+  "taskType": "RECONCILIATION / UI_UX + PRODUCT",
+  "title": "Catalogue reconciliation",
+  "baseSha": "6881340dfdaf609695e9b6c53b81e43414b0a5ae",
+  "baseBranch": "integration/phase-2r1-integrated-baseline",
+  "targetBranch": "integration/phase-2r2-catalogue-reconciliation",
+  "targetWorktree": "C:\\Users\\USER\\webperkasamotors\\.claude\\worktrees\\phase-2r2-catalogue-reconciliation",
+  "writeOwner": "Claude Product/Technical",
+  "status": "REVIEW",
+  "statusHistory": ["ACTIVE", "REVIEW"],
+  "visualSource": "15e525fc43c16c91f2a3f58be0aa8a1801414005",
+  "technicalSource": "Phase 2C / Phase 2R.1 (6881340)",
+  "protectedBehaviors": ["Phase 2C WhatsApp semantics", "deterministic image alt", "trust-copy cleanup", "SOLD browsability", "no marketplace expansion"],
+  "ownerDecision": "SOLD generic CTA KEEP / secondary (Tanya Unit Lain)",
+  "soldCap": 6,
+  "notVerified": ["RESERVED browser state (no data)", "empty-state visual (no data change allowed)"],
+  "reportPath": "docs/reports/phase-2r2-catalogue-reconciliation.md",
+  "reportTxtPath": "docs/reports/txt/phase-2r2-catalogue-reconciliation.txt",
+  "next": "PHASE-2R3 vehicle detail + gallery reconciliation"
+}
