@@ -1,0 +1,21 @@
+{
+  "task": "PHASE-2R5",
+  "taskType": "PRODUCT IMPLEMENTATION / ADMIN CMS SIMPLIFICATION",
+  "title": "Admin / CMS simplification",
+  "baseSha": "665a8a623a50a25abe23a80366eba0291efcd927",
+  "baseBranch": "integration/phase-2r4-public-product-spec",
+  "targetBranch": "integration/phase-2r5-admin-cms-simplification",
+  "targetWorktree": "C:\\Users\\USER\\webperkasamotors\\.claude\\worktrees\\phase-2r5-admin-cms-simplification",
+  "writeOwner": "Claude Product/Technical",
+  "status": "REVIEW",
+  "statusHistory": ["ACTIVE", "REVIEW"],
+  "productSource": "Phase A+B Product/Admin audit",
+  "databaseMode": "READ ONLY",
+  "protected": ["Phase 2R.2", "Phase 2R.3", "Phase 2R.4"],
+  "cmsContentPatch": "PREPARED, NOT EXECUTED (see report section AC)",
+  "notVerified": ["signed-in admin browser QA (no credentials; auth gate verified only)", "live quick status/price mutation"],
+  "ownerDecisionsPending": ["approve CMS content patch items 1-8", "signed-in admin walk-through", "whether once-reserved vehicles may be deleted"],
+  "reportPath": "docs/reports/phase-2r5-admin-cms-simplification.md",
+  "reportTxtPath": "docs/reports/txt/phase-2r5-admin-cms-simplification.txt",
+  "next": "PHASE-2R6 operating system readiness (or the owner content-approval gate first)"
+}

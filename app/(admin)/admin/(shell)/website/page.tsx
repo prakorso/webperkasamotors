@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/admin/page-header";
 import { WebsiteSubnav } from "@/components/admin/website-subnav";
-import { WebsiteGeneralForm } from "@/components/admin/website-general-form";
+import { ContactWhatsappForm } from "@/components/admin/contact-whatsapp-form";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 
-export const metadata: Metadata = { title: "Website — General" };
+export const metadata: Metadata = { title: "Website — Kontak & WhatsApp" };
 
-export default async function AdminWebsiteGeneralPage() {
+export default async function AdminWebsiteContactPage() {
   const settings = await getWebsiteSettings();
 
   return (
     <div>
       <PageHeader
         title="Website"
-        description="Branding, contact info, social links, and SEO for the public site."
+        description="Kontak dan WhatsApp diubah di sini saja; header, footer, halaman Kontak, dan tombol WhatsApp ikut berubah."
       />
       <WebsiteSubnav />
-      <WebsiteGeneralForm settings={settings} />
+      <ContactWhatsappForm settings={settings} />
     </div>
   );
 }

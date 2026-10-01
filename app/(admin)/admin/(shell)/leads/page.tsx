@@ -17,7 +17,7 @@ export default async function AdminLeadsPage() {
     <div>
       <PageHeader
         title="Customer Leads"
-        description={`${leads.length} inquiries from the public vehicle inquiry form.`}
+        description={`${leads.length} data lama. Halaman ini tidak lagi dipakai: situs memakai WhatsApp langsung dan tidak membuat data baru di sini.`}
       />
       <div className="overflow-x-auto border border-border bg-surface">
         <table className="w-full min-w-[760px] border-collapse">

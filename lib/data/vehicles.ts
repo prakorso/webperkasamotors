@@ -461,6 +461,17 @@ export async function getAllVehiclesForAdmin(): Promise<Vehicle[]> {
   return (data as unknown as VehicleRow[]).map(mapVehicleRow);
 }
 
+/** Admin-only: created/updated timestamps per vehicle id — used by the dashboard's "recently edited" and "long-lived draft" lists. Vehicle itself carries no timestamps. */
+export async function getVehicleActivityForAdmin(): Promise<
+  Record<string, { createdAt: string; updatedAt: string }>
+> {
+  const supabase = await getSupabaseSessionClient();
+  const { data, error } = await supabase.from("vehicles").select("id, created_at, updated_at");
+  if (error) throw new Error(`getVehicleActivityForAdmin: ${error.message}`);
+  const rows = data as unknown as Array<{ id: string; created_at: string; updated_at: string }>;
+  return Object.fromEntries(rows.map((r) => [r.id, { createdAt: r.created_at, updatedAt: r.updated_at }]));
+}
+
 export async function getVehicleByIdForAdmin(id: string): Promise<Vehicle | null> {
   const supabase = await getSupabaseSessionClient();
   const { data, error } = await supabase

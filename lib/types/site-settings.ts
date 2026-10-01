@@ -63,9 +63,9 @@ export interface WebsiteSettings {
    *  supabase/migrations/20260819010000_why_perkasa_and_testimonials_storage.sql.
    *  The benefit cards themselves live in the homepage_benefits table
    *  (lib/data/homepage-benefits.ts), not here — this is only the
-   *  section's eyebrow/headline/description/active. Falls back to the
-   *  hardcoded DEFAULT_WHY_PERKASA (components/public/why-perkasa-section.tsx)
-   *  when inactive or headline is empty, same pattern as Hero. */
+   *  section's eyebrow/headline/description/active.
+   *  LEGACY / DORMANT: no longer rendered publicly (Phase 2R.4) and no
+   *  longer editable in the admin (Phase 2R.5); stored data is kept. */
   whyPerkasa: WhyPerkasaSectionSettings;
 }
 

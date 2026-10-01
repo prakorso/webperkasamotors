@@ -2,20 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
+import { normalizeIndonesianPhone } from "@/lib/utils/phone";
 
 /**
- * Server Actions must live in their own whole-file `"use server"` module,
- * separate from lib/data/site-settings.ts's plain read functions — mixing
- * the two in one file breaks Next's client/server bundle split the moment
- * a Client Component imports anything from it (confirmed against
- * node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-server.md).
- * lib/data/site-settings.ts still owns the shape (WebsiteSettings) and the
- * read path; this file only owns writes.
+ * Contact & WhatsApp - the single owner-facing source for business contact
+ * facts (Phase 2R.5). Writes the same website_settings columns the old
+ * "General" and "Footer" forms both wrote (phone, whatsapp, email, address,
+ * social URLs), so there is exactly one place to edit them; the public
+ * header, footer, contact page and WhatsApp buttons all read these columns.
+ * Partial by design: it never touches SEO, copyright, hero or section
+ * columns, so saving it cannot overwrite them.
  */
-
-export interface UpdateWebsiteSettingsInput {
+export interface UpdateContactSettingsInput {
   companyName: string;
-  tagline: string | null;
   phone: string | null;
   whatsapp: string | null;
   email: string | null;
@@ -25,19 +24,37 @@ export interface UpdateWebsiteSettingsInput {
   tiktokUrl: string | null;
   youtubeUrl: string | null;
   linkedinUrl: string | null;
-  seoTitle: string | null;
-  seoDescription: string | null;
-  defaultCtaLabel: string | null;
-  defaultCtaUrl: string | null;
-  copyrightText: string;
   whatsappLeadTemplate: string | null;
   whatsappGenericTemplate: string | null;
 }
 
-/** Staff-only. RLS enforces this regardless — the session client carries no elevated privilege on its own. */
-export async function updateWebsiteSettings(
-  input: UpdateWebsiteSettingsInput
+function validUrlOrNull(value: string | null): boolean {
+  if (!value) return true;
+  try {
+    const u = new URL(value);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+export async function updateContactSettings(
+  input: UpdateContactSettingsInput
 ): Promise<{ error: string | null }> {
+  if (!input.companyName.trim()) return { error: "Nama usaha wajib diisi." };
+  if (input.whatsapp && !normalizeIndonesianPhone(input.whatsapp)) {
+    return { error: "Nomor WhatsApp tidak valid. Gunakan nomor seluler Indonesia, mis. +62 8xx xxxx xxxx." };
+  }
+  for (const [label, url] of [
+    ["Instagram", input.instagramUrl],
+    ["Facebook", input.facebookUrl],
+    ["TikTok", input.tiktokUrl],
+    ["YouTube", input.youtubeUrl],
+    ["LinkedIn", input.linkedinUrl],
+  ] as const) {
+    if (!validUrlOrNull(url)) return { error: `Alamat ${label} harus berupa tautan lengkap (https://...).` };
+  }
+
   const supabase = await getSupabaseSessionClient();
   const {
     data: { user },
@@ -47,8 +64,7 @@ export async function updateWebsiteSettings(
   const { error } = await supabase
     .from("website_settings")
     .update({
-      company_name: input.companyName,
-      tagline: input.tagline,
+      company_name: input.companyName.trim(),
       phone: input.phone,
       whatsapp: input.whatsapp,
       email: input.email,
@@ -58,16 +74,48 @@ export async function updateWebsiteSettings(
       tiktok_url: input.tiktokUrl,
       youtube_url: input.youtubeUrl,
       linkedin_url: input.linkedinUrl,
-      seo_title: input.seoTitle,
-      seo_description: input.seoDescription,
-      default_cta_label: input.defaultCtaLabel,
-      default_cta_url: input.defaultCtaUrl,
-      copyright_text: input.copyrightText,
-      // Trimmed-empty is treated the same as null — a textarea cleared to
-      // whitespace should fall back to the hardcoded default template
-      // (lib/utils/whatsapp.ts), not save an effectively-blank message.
       whatsapp_lead_template: input.whatsappLeadTemplate?.trim() || null,
       whatsapp_generic_template: input.whatsappGenericTemplate?.trim() || null,
+      updated_by: user.id,
+    })
+    .eq("id", 1);
+
+  if (error) return { error: error.message };
+  revalidatePath("/", "layout");
+  return { error: null };
+}
+
+/**
+ * Lanjutan - rarely-changed presentation settings: default SEO, footer
+ * description and copyright. Partial like updateContactSettings. tagline
+ * and the default CTA columns are intentionally not editable here (no
+ * public page renders them) and are left untouched.
+ */
+export interface UpdateAdvancedSettingsInput {
+  seoTitle: string | null;
+  seoDescription: string | null;
+  footerDescription: string | null;
+  copyrightText: string;
+}
+
+export async function updateAdvancedSettings(
+  input: UpdateAdvancedSettingsInput
+): Promise<{ error: string | null }> {
+  if (!input.copyrightText.trim()) return { error: "Teks hak cipta wajib diisi." };
+
+  const supabase = await getSupabaseSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { error } = await supabase
+    .from("website_settings")
+    .update({
+      seo_title: input.seoTitle,
+      seo_description: input.seoDescription,
+      footer_description: input.footerDescription,
+      copyright_text: input.copyrightText.trim(),
       updated_by: user.id,
     })
     .eq("id", 1);

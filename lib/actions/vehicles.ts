@@ -17,29 +17,46 @@ import { getSupabaseSessionClient } from "@/lib/supabase/server-session";
  * called from Client Components.
  */
 
+/**
+ * What the owner-facing form submits (Phase 2R.5). Everything below the
+ * "business facts" block is optional on purpose: when a field is omitted
+ * it is left untouched on update (and defaulted on create), so the form
+ * cannot accidentally overwrite a value another action changed after the
+ * page loaded - notably `status`, which is now changed only by
+ * setVehicleStatus, and `description` / SEO / flags, which have no input
+ * in the form at all.
+ */
 export interface VehicleInput {
+  // Business facts - required.
   vehicleType: VehicleType;
   brand: string;
   model: string;
-  variant: string | null;
   year: number;
   price: number;
   mileageKm: number;
   transmission: Transmission;
   fuelType: FuelType;
-  exteriorColor: string | null;
-  capacityCc: number | null;
-  plateNumber: string | null;
-  location: string | null;
-  condition: "NEW" | "USED";
-  status: VehicleStatus;
-  isPublished: boolean;
-  isFeatured: boolean;
-  description: string;
-  highlights: string[];
-  seoTitle: string | null;
-  seoDescription: string | null;
+  // Business facts - optional.
+  variant?: string | null;
+  exteriorColor?: string | null;
+  capacityCc?: number | null;
+  plateNumber?: string | null;
+  highlights?: string[];
+  // System fields - never shown to the owner; omitted = unchanged / default.
+  location?: string | null;
+  condition?: "NEW" | "USED";
+  description?: string;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  isFeatured?: boolean;
 }
+
+const VEHICLE_TYPES: VehicleType[] = ["CAR", "MOTORCYCLE"];
+const TRANSMISSIONS: Transmission[] = ["MANUAL", "AUTOMATIC", "CVT"];
+const FUEL_TYPES: FuelType[] = ["PETROL", "DIESEL", "HYBRID", "ELECTRIC"];
+/** Statuses the public site can show. is_published is derived from this, never chosen by the owner. */
+const PUBLIC_STATUSES: VehicleStatus[] = ["AVAILABLE", "RESERVED", "SOLD"];
+const ALL_STATUSES: VehicleStatus[] = ["DRAFT", "AVAILABLE", "RESERVED", "SOLD", "ARCHIVED"];
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -59,6 +76,9 @@ const CURRENT_YEAR = new Date().getFullYear();
  * VehicleInput at all anymore. See generateStockNumber below.
  */
 function validateVehicleInput(input: VehicleInput): string | null {
+  if (!VEHICLE_TYPES.includes(input.vehicleType)) return "Pilih jenis kendaraan.";
+  if (!TRANSMISSIONS.includes(input.transmission)) return "Pilih transmisi.";
+  if (!FUEL_TYPES.includes(input.fuelType)) return "Pilih bahan bakar.";
   if (!input.brand.trim()) return "Brand is required.";
   if (!input.model.trim()) return "Model is required.";
   if (!Number.isInteger(input.year) || input.year < 1980 || input.year > CURRENT_YEAR + 1) {
@@ -66,7 +86,8 @@ function validateVehicleInput(input: VehicleInput): string | null {
   }
   if (!Number.isFinite(input.price) || input.price <= 0) return "Price must be a positive number.";
   if (!Number.isFinite(input.mileageKm) || input.mileageKm < 0) return "Mileage cannot be negative.";
-  if (input.capacityCc !== null && (!Number.isFinite(input.capacityCc) || input.capacityCc <= 0)) {
+  if (!Number.isInteger(input.mileageKm)) return "Kilometer harus berupa bilangan bulat.";
+  if (input.capacityCc != null && (!Number.isFinite(input.capacityCc) || input.capacityCc <= 0)) {
     return "Kapasitas CC must be a positive number.";
   }
   return null;
@@ -81,29 +102,29 @@ function validateVehicleInput(input: VehicleInput): string | null {
  * identity actually changed (see updateVehicle's own comment).
  */
 function toRow(input: VehicleInput) {
-  return {
+  const row: Record<string, unknown> = {
     vehicle_type: input.vehicleType,
     brand: input.brand.trim(),
     model: input.model.trim(),
-    variant: input.variant?.trim() || null,
     year: input.year,
     price: input.price,
     mileage_km: input.mileageKm,
     transmission: input.transmission,
     fuel_type: input.fuelType,
-    exterior_color: input.exteriorColor?.trim() || null,
-    capacity_cc: input.capacityCc,
-    plate_number: input.plateNumber?.trim() || null,
-    location: input.location?.trim() || null,
-    condition: input.condition,
-    status: input.status,
-    is_published: input.isPublished,
-    is_featured: input.isFeatured,
-    description: input.description.trim(),
-    highlights: input.highlights.filter((h) => h.trim().length > 0),
-    seo_title: input.seoTitle?.trim() || null,
-    seo_description: input.seoDescription?.trim() || null,
   };
+  // Optional/system fields are written only when the caller supplied them.
+  if (input.variant !== undefined) row.variant = input.variant?.trim() || null;
+  if (input.exteriorColor !== undefined) row.exterior_color = input.exteriorColor?.trim() || null;
+  if (input.capacityCc !== undefined) row.capacity_cc = input.capacityCc;
+  if (input.plateNumber !== undefined) row.plate_number = input.plateNumber?.trim() || null;
+  if (input.highlights !== undefined) row.highlights = input.highlights.filter((h) => h.trim().length > 0);
+  if (input.location !== undefined) row.location = input.location?.trim() || null;
+  if (input.condition !== undefined) row.condition = input.condition;
+  if (input.description !== undefined) row.description = input.description.trim();
+  if (input.seoTitle !== undefined) row.seo_title = input.seoTitle?.trim() || null;
+  if (input.seoDescription !== undefined) row.seo_description = input.seoDescription?.trim() || null;
+  if (input.isFeatured !== undefined) row.is_featured = input.isFeatured;
+  return row;
 }
 
 /** Friendlier message for the two UNIQUE constraints (stock_number, slug) than raw Postgres error text. */
@@ -146,7 +167,7 @@ function slugify(value: string): string {
 function buildSlugBase(input: {
   brand: string;
   model: string;
-  variant: string | null;
+  variant?: string | null;
   year: number;
 }): string {
   const parts = [input.brand, input.model, input.variant, String(input.year)].filter(
@@ -223,7 +244,17 @@ export async function createVehicle(
 
   const { data, error } = await supabase
     .from("vehicles")
-    .insert({ ...toRow(input), slug, stock_number: stockNumber, created_by: user.id })
+    .insert({
+      // New units always start as a private draft; the owner publishes
+      // them with setVehicleStatus ("Tayangkan") once photos are added.
+      status: "DRAFT",
+      is_published: false,
+      condition: "USED",
+      ...toRow(input),
+      slug,
+      stock_number: stockNumber,
+      created_by: user.id,
+    })
     .select("id")
     .single();
 
@@ -393,6 +424,108 @@ export async function deleteVehicle(id: string): Promise<{ error: string | null 
   if (!user) return { error: "You must be signed in." };
 
   const { error } = await supabase.from("vehicles").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
+// Quick actions (Phase 2R.5). Deliberately narrow: each one changes exactly
+// the field(s) its name says, validates on the server, and reuses the same
+// database rules as the full form (delete-lock triggers, RLS, revalidation).
+// There is no generic "update any field" endpoint.
+// ---------------------------------------------------------------------------
+
+/**
+ * Allowed owner-facing transitions. ARCHIVED is reachable only through
+ * archiveVehicle; DRAFT is where new units start and where an unpublished
+ * unit can be returned.
+ */
+const ALLOWED_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
+  DRAFT: ["AVAILABLE"],
+  AVAILABLE: ["RESERVED", "SOLD", "DRAFT"],
+  RESERVED: ["AVAILABLE", "SOLD"],
+  // SOLD is final from the owner UI: moving it back to AVAILABLE would make the
+  // unit deletable again and let its permanently-reserved stock number be reused.
+  SOLD: [],
+  ARCHIVED: ["DRAFT", "AVAILABLE"],
+};
+
+/**
+ * Changes a vehicle's status and derives is_published from it, so the
+ * owner has one decision instead of two: AVAILABLE / RESERVED / SOLD are
+ * public, DRAFT / ARCHIVED are not. Calling it with the vehicle's current
+ * status (for a public one) re-syncs a legacy row whose is_published flag
+ * disagreed with its status.
+ *
+ * Going from a non-public state (DRAFT/ARCHIVED) to a public one requires
+ * at least one photo, so a vehicle never goes live with an empty gallery.
+ */
+export async function setVehicleStatus(
+  id: string,
+  status: VehicleStatus
+): Promise<{ error: string | null }> {
+  if (!ALL_STATUSES.includes(status) || status === "ARCHIVED") {
+    return { error: "Status tidak valid." };
+  }
+
+  const supabase = await getSupabaseSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { data: current, error: currentError } = await supabase
+    .from("vehicles")
+    .select("status, is_published")
+    .eq("id", id)
+    .maybeSingle();
+  if (currentError) return { error: currentError.message };
+  if (!current) return { error: "Vehicle not found." };
+
+  const from = (current as unknown as { status: VehicleStatus }).status;
+  const isResync = from === status && PUBLIC_STATUSES.includes(status);
+  if (from === status && !isResync) return { error: null };
+  if (!isResync && !ALLOWED_TRANSITIONS[from]?.includes(status)) {
+    return { error: `Tidak bisa mengubah status dari ${from} ke ${status}.` };
+  }
+
+  if (!PUBLIC_STATUSES.includes(from) && PUBLIC_STATUSES.includes(status)) {
+    const { count, error: mediaError } = await supabase
+      .from("vehicle_media")
+      .select("id", { count: "exact", head: true })
+      .eq("vehicle_id", id);
+    if (mediaError) return { error: mediaError.message };
+    if (!count) return { error: "Tambahkan minimal satu foto sebelum menayangkan unit ini." };
+  }
+
+  const { error } = await supabase
+    .from("vehicles")
+    .update({ status, is_published: PUBLIC_STATUSES.includes(status) })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  return { error: null };
+}
+
+/** Changes only the price. Must be a positive whole number of rupiah. */
+export async function setVehiclePrice(
+  id: string,
+  price: number
+): Promise<{ error: string | null }> {
+  if (!Number.isFinite(price) || !Number.isInteger(price) || price <= 0) {
+    return { error: "Harga harus berupa angka lebih dari 0." };
+  }
+
+  const supabase = await getSupabaseSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const { error } = await supabase.from("vehicles").update({ price }).eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/", "layout");

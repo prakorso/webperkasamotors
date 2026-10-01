@@ -100,7 +100,7 @@ export function Sidebar({
             className="flex w-full items-center gap-3 px-3 py-2.5 font-body text-[13px] text-muted hover:text-ink"
           >
             <LogOut size={18} aria-hidden />
-            Sign Out
+            Keluar
           </button>
         </div>
       </aside>

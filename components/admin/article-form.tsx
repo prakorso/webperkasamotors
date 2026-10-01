@@ -143,7 +143,7 @@ export function ArticleForm({ article }: { article?: Article }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <Fieldset title="Content">
+      <Fieldset title="Artikel">
         <div>
           <Label htmlFor="title">
             Title
@@ -151,6 +151,54 @@ export function ArticleForm({ article }: { article?: Article }) {
           </Label>
           <Input id="title" value={form.title} onChange={(e) => set("title", e.target.value)} required />
         </div>
+        <div className="md:col-span-2">
+          <Label htmlFor="content">
+            Body
+            <RequiredMark />
+          </Label>
+          <Textarea
+            id="content"
+            rows={14}
+            value={form.content}
+            onChange={(e) => set("content", e.target.value)}
+            placeholder={"Write the article here. Leave a blank line between paragraphs."}
+            required
+          />
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            Plain text — a blank line starts a new paragraph on the public page.
+          </p>
+        </div>
+      </Fieldset>
+
+      <Fieldset title="Publikasi">
+        <div>
+          <Label htmlFor="status">Status</Label>
+          <select
+            id="status"
+            value={form.status}
+            onChange={(e) => set("status", e.target.value as typeof form.status)}
+            className={SELECT_CLASS}
+          >
+            <option value="DRAFT">Draft</option>
+            <option value="PUBLISHED">Published</option>
+          </select>
+          <p className="mt-1.5 font-body text-[12px] text-muted-2">
+            <strong className="text-ink">Draft</strong> — Not visible on the public website.
+            <br />
+            <strong className="text-ink">Published</strong> — Visible on the public website.
+          </p>
+        </div>
+      </Fieldset>
+
+      <details open={Boolean(slugError)} className="border border-border bg-surface p-6">
+        <summary className="cursor-pointer font-body text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+          Lanjutan (opsional)
+        </summary>
+        <p className="mt-3 font-body text-[12px] text-muted-2">
+          Semua kolom di sini boleh dikosongkan: alamat halaman dibuat dari judul, dan judul SEO memakai judul
+          artikel. Alamat artikel yang sudah terbit tetap berfungsi meski diubah.
+        </p>
+        <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
         <div>
           <Label htmlFor="slug">
             URL Slug
@@ -185,26 +233,6 @@ export function ArticleForm({ article }: { article?: Article }) {
             placeholder="Short summary shown on the articles listing page"
           />
         </div>
-        <div className="md:col-span-2">
-          <Label htmlFor="content">
-            Body
-            <RequiredMark />
-          </Label>
-          <Textarea
-            id="content"
-            rows={14}
-            value={form.content}
-            onChange={(e) => set("content", e.target.value)}
-            placeholder={"Write the article here. Leave a blank line between paragraphs."}
-            required
-          />
-          <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Plain text — a blank line starts a new paragraph on the public page.
-          </p>
-        </div>
-      </Fieldset>
-
-      <Fieldset title="Organization &amp; Publishing">
         <div>
           <Label htmlFor="category">
             Category
@@ -229,26 +257,8 @@ export function ArticleForm({ article }: { article?: Article }) {
             placeholder="Comma-separated, e.g. maintenance, tips"
           />
         </div>
-        <div>
-          <Label htmlFor="status">Status</Label>
-          <select
-            id="status"
-            value={form.status}
-            onChange={(e) => set("status", e.target.value as typeof form.status)}
-            className={SELECT_CLASS}
-          >
-            <option value="DRAFT">Draft</option>
-            <option value="PUBLISHED">Published</option>
-          </select>
-          <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            <strong className="text-ink">Draft</strong> — Not visible on the public website.
-            <br />
-            <strong className="text-ink">Published</strong> — Visible on the public website.
-          </p>
         </div>
-      </Fieldset>
-
-      <Fieldset title="SEO (optional)">
+        <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
         <div>
           <Label htmlFor="seoTitle">
             SEO Title
@@ -273,7 +283,8 @@ export function ArticleForm({ article }: { article?: Article }) {
             placeholder="Falls back to Excerpt"
           />
         </div>
-      </Fieldset>
+        </div>
+      </details>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" variant="primary" size="lg" disabled={saving}>

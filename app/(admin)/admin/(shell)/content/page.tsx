@@ -8,11 +8,10 @@ import { vehicleTitle } from "@/lib/utils/format";
 export const metadata: Metadata = { title: "Content" };
 
 /**
- * Content Library — browse, correct, hide, or delete anything across
- * every vehicle. Deliberately has no "Add Content" entry point: creation
- * only happens from the vehicle it belongs to
- * (components/admin/vehicle-social-content.tsx on the Inventory edit
- * page), so there's exactly one way to add content, not two.
+ * DORMANT (Phase 2R.5): not linked from the admin navigation. The public
+ * site no longer shows social content and the per-vehicle editor was
+ * removed from the Inventory page, so this is kept only as a read/clean-up
+ * view of the stored items - there is no way to add new ones from the UI.
  */
 export default async function AdminContentPage() {
   const [items, vehicles] = await Promise.all([getAllContentForAdmin(), getAllVehiclesForAdmin()]);
@@ -21,14 +20,13 @@ export default async function AdminContentPage() {
   return (
     <div>
       <PageHeader
-        title="Content"
-        description={`${items.length} item${items.length === 1 ? "" : "s"} — everything across every vehicle. To add new content, open the vehicle it belongs to from Inventory.`}
+        title="Content (arsip)"
+        description={`${items.length} item tersimpan. Situs tidak lagi menampilkan konten sosial; halaman ini hanya arsip.`}
       />
       {items.length === 0 ? (
         <div className="border border-dashed border-border bg-surface p-8 text-center">
           <p className="font-body text-[13px] text-muted-2">
-            No content yet. Add a social media link from a vehicle&apos;s Inventory page — it will
-            show up here too.
+            Tidak ada konten tersimpan.
           </p>
         </div>
       ) : (

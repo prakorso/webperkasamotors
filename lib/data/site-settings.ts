@@ -40,7 +40,7 @@ const EMPTY_ABOUT_SECTION: AboutSectionSettings = {
   isActive: false,
 };
 
-/** An unconfigured Why Perkasa section — falls back to DEFAULT_WHY_PERKASA (components/public/why-perkasa-section.tsx), not an empty section. */
+/** An unconfigured Why Perkasa section. LEGACY / DORMANT: the public homepage no longer renders Why Perkasa (Phase 2R.4) and its admin editor was removed (Phase 2R.5); the columns are kept untouched. */
 const EMPTY_WHY_PERKASA_SECTION: WhyPerkasaSectionSettings = {
   eyebrow: null,
   headline: null,
