@@ -159,6 +159,39 @@ await db.exec(`select set_config('request.jwt.claim.sub','', false); update publ
 const lastNull = (await q("select changed_by from public.vehicle_status_history where vehicle_id=$1 order by changed_at desc limit 1", [V.fresh]))[0];
 check("changed_by is NULL when there is no signed-in user", lastNull.changed_by === null);
 
+
+// ---- Phase 2R.6A security hardening tests (SECURITY DEFINER, search_path, privileges) ----
+const cfg = await q("select proname, proconfig, prosecdef from pg_proc where proname in ('vehicles_status_lifecycle','vehicles_before_delete') order by proname");
+check("both functions are SECURITY DEFINER with an EMPTY search_path", cfg.length === 2 && cfg.every((f) => f.prosecdef && Array.isArray(f.proconfig) && f.proconfig.includes('search_path=""')), JSON.stringify(cfg.map((f) => f.proconfig)));
+for (const fn of ["public.vehicles_status_lifecycle()", "public.vehicles_before_delete()"]) {
+  const pr = await q(`select has_function_privilege('anon','${fn}','execute') a, has_function_privilege('authenticated','${fn}','execute') u`);
+  const pubx = await q(`select exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a where p.oid='${fn}'::regprocedure and a.grantee = 0 and a.privilege_type='EXECUTE') as pub`);
+  check(`${fn}: no EXECUTE for anon, authenticated or PUBLIC`, !pr[0].a && !pr[0].u && !pubx[0].pub);
+}
+let direct = null; try { await asStaff("select public.vehicles_status_lifecycle()"); } catch (x) { direct = x; }
+check("a signed-in staff user cannot call the trigger function directly", direct !== null, direct?.message?.slice(0, 70));
+check("the triggers still fire for staff after the EXECUTE revoke (history rows were written above)", (await q("select count(*)::int c from public.vehicle_status_history where changed_by = $1", [STAFF]))[0].c > 0);
+
+// object-shadowing attempt: look-alike objects in an attacker schema placed FIRST in the caller's search_path
+await db.exec(`
+  create schema attacker;
+  create table attacker.vehicle_status_history (like public.vehicle_status_history including defaults);
+  create table attacker.profiles (id uuid primary key);
+  create table attacker.stock_number_pool (like public.stock_number_pool including defaults);
+  insert into attacker.profiles values ('${STAFF}');
+  set search_path = attacker, public;
+`);
+const SH = "a0000000-0000-0000-0000-0000000000a1";
+await db.exec(mk(SH, "CAR-0900", "AVAILABLE", true, "car-0900-shadow"));
+await db.exec(`update public.vehicles set status='RESERVED' where id='${SH}'`);
+const inPublic = (await q("select count(*)::int c from public.vehicle_status_history where vehicle_id=$1", [SH]))[0].c;
+const inAttacker = (await q("select count(*)::int c from attacker.vehicle_status_history")).length ? (await q("select count(*)::int c from attacker.vehicle_status_history"))[0].c : 0;
+check("shadowing: history row lands in public.vehicle_status_history, attacker look-alike stays empty", inPublic === 1 && inAttacker === 0, `public=${inPublic} attacker=${inAttacker}`);
+await db.exec(`update public.vehicles set status='AVAILABLE' where id='${SH}'`);
+const shadowDel = await tryq(`delete from public.vehicles where id='${SH}'`);
+check("shadowing: delete guard still blocks a once-reserved vehicle", shadowDel !== null && shadowDel.code === "23514");
+await db.exec("set search_path = public; drop schema attacker cascade;");
+
 const failed = results.filter((x) => !x.ok);
 console.log(`\n${results.length - failed.length}/${results.length} passed`);
 process.exit(failed.length ? 1 : 0);

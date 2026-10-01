@@ -89,7 +89,9 @@ create or replace function public.vehicles_status_lifecycle()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+-- Empty search_path + schema-qualified names: nothing in this function can
+-- be hijacked by an object a caller creates in another schema.
+set search_path = ''
 as $$
 begin
   new.status_changed_at := now();
@@ -121,6 +123,12 @@ create trigger vehicles_status_lifecycle
   when (old.status is distinct from new.status)
   execute function public.vehicles_status_lifecycle();
 
+-- Both functions are trigger functions: nobody needs (or should have) the
+-- right to call them. A trigger does not need EXECUTE on its function at fire
+-- time, so removing it from every client role is safe and removes the
+-- default PUBLIC execute grant.
+revoke all on function public.vehicles_status_lifecycle() from public, anon, authenticated;
+
 -- 4. Baseline history for vehicles that are ALREADY reserved or sold --------
 -- Without this, a vehicle that is RESERVED today could be returned to
 -- AVAILABLE and then deleted, because the history table starts empty.
@@ -143,7 +151,9 @@ create or replace function public.vehicles_before_delete()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+-- Hardened from `public` to an empty search_path (all references below are
+-- schema-qualified), so object shadowing cannot affect the delete guard.
+set search_path = ''
 as $$
 begin
   if old.status in ('SOLD', 'RESERVED')
@@ -169,3 +179,5 @@ $$;
 
 comment on function public.vehicles_before_delete() is
   'Blocks deletion of any vehicle that is, or ever was, RESERVED or SOLD (current status OR vehicle_status_history), and releases the stock number of any other deleted vehicle into stock_number_pool for reuse.';
+
+revoke all on function public.vehicles_before_delete() from public, anon, authenticated;
