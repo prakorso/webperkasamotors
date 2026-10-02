@@ -87,6 +87,10 @@
 
   /* -- Layout -- */
   --container-max: 90rem; /* 1440px */
+  /* Tailwind v4 resolves `max-w-container` from the --container-* namespace;
+     without this the class generated no rule and layouts were uncontained
+     above 1440px. */
+  --container-container: var(--container-max);
 }
 
 :root {
