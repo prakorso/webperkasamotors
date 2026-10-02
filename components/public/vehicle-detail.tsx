@@ -20,6 +20,7 @@ import {
 import { VehicleGallery } from "./vehicle-gallery";
 import { VehicleCard } from "./vehicle-card";
 import { WhatsAppCta } from "./whatsapp-cta";
+import { MobileVehicleCta } from "./mobile-vehicle-cta";
 import { SectionHeading } from "./section-heading";
 
 /**
@@ -94,9 +95,10 @@ export function VehicleDetail({
   const visibleHighlights = vehicle.highlights.slice(0, HIGHLIGHTS_VISIBLE_COUNT);
   const remainingHighlights = vehicle.highlights.slice(HIGHLIGHTS_VISIBLE_COUNT);
   const specs = specRows(vehicle);
+  const formattedPrice = formatIDR(vehicle.price);
 
   return (
-    <div className="mx-auto max-w-[var(--container-max)] px-6 py-10 md:px-8 lg:px-margin lg:py-16">
+    <div className="relative mx-auto max-w-[var(--container-max)] px-6 py-10 md:px-8 lg:px-margin lg:py-16">
       <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-8 lg:grid-cols-12 lg:gap-14">
         <div className="md:col-span-1 lg:col-span-6">
           <VehicleGallery media={mediaWithAlt} />
@@ -122,8 +124,38 @@ export function VehicleDetail({
           </h1>
 
           <p className="mt-6 font-display text-[30px] font-semibold tabular-nums text-ink lg:text-[34px]">
-            {formatIDR(vehicle.price)}
+            {formattedPrice}
           </p>
+
+          {isAvailable && (
+            <aside
+              aria-label="Hubungi Perkasa Motors mengenai kendaraan ini"
+              className="mt-8 border-y border-border/80 py-6"
+            >
+              <p className="max-w-[54ch] font-body text-body leading-relaxed text-muted">
+                Tanyakan ketersediaan unit, jadwalkan cek unit, atau konsultasikan opsi
+                pembayaran melalui WhatsApp.
+              </p>
+              <div className="mt-5">
+                {whatsappHref ? (
+                  <WhatsAppCta
+                    href={whatsappHref}
+                    label="Tanya via WhatsApp"
+                    size="lg"
+                    className="h-auto min-h-13 w-full whitespace-normal py-3 text-center sm:w-auto"
+                    ariaLabel={`Tanya ${title} lewat WhatsApp`}
+                  />
+                ) : (
+                  <Link
+                    href="/#kontak"
+                    className={buttonVariants({ variant: "primary", size: "lg" })}
+                  >
+                    Hubungi Kami
+                  </Link>
+                )}
+              </div>
+            </aside>
+          )}
 
           <dl className="mt-8 grid grid-cols-2 gap-x-8 border-t border-border/80">
             {specs.map((row) => (
@@ -138,39 +170,25 @@ export function VehicleDetail({
             ))}
           </dl>
 
-          <div className="mt-8">
-            {whatsappHref ? (
-              <WhatsAppCta
-                href={whatsappHref}
-                label={isAvailable ? "Saya Tertarik dengan Unit Ini" : "Tanya Unit Lain"}
-                // buttonVariants defaults to whitespace-nowrap, sized for
-                // short labels — at 12px+tracked-uppercase the AVAILABLE
-                // label (29 characters) is wider than a 320-375px viewport
-                // can hold at "lg" size (h-13, px-8), which would either
-                // clip the text or push the page into horizontal scroll.
-                // Overriding to wrap + auto height (twMerge resolves the
-                // whitespace/height conflicts in favor of these) keeps it
-                // on one line wherever there's room and lets it break to
-                // two lines, still centered and fully tappable, wherever
-                // there isn't. The shorter non-AVAILABLE label never needs
-                // to wrap, but sharing one className keeps both states
-                // visually identical in height/alignment.
-                className="h-auto min-h-13 w-full whitespace-normal py-3 text-center sm:w-auto"
-                ariaLabel={
-                  isAvailable
-                    ? `Tanya ${title} lewat WhatsApp`
-                    : "Tanya unit lain yang tersedia lewat WhatsApp"
-                }
-              />
-            ) : (
-              <Link
-                href="/#kontak"
-                className={buttonVariants({ variant: "primary", size: "lg" })}
-              >
-                Hubungi Kami
-              </Link>
-            )}
-          </div>
+          {!isAvailable && (
+            <div className="mt-8">
+              {whatsappHref ? (
+                <WhatsAppCta
+                  href={whatsappHref}
+                  label="Tanya Unit Lain"
+                  className="min-h-13 w-full text-center sm:w-auto"
+                  ariaLabel="Tanya unit lain yang tersedia lewat WhatsApp"
+                />
+              ) : (
+                <Link
+                  href="/#kontak"
+                  className={buttonVariants({ variant: "primary", size: "lg" })}
+                >
+                  Hubungi Kami
+                </Link>
+              )}
+            </div>
+          )}
 
           {vehicle.highlights.length > 0 && (
             <div className="mt-8">
@@ -213,6 +231,17 @@ export function VehicleDetail({
             ))}
           </div>
         </section>
+      )}
+
+      {isAvailable && whatsappHref && (
+        <>
+          <div className="h-20 md:hidden" aria-hidden="true" />
+          <MobileVehicleCta
+            href={whatsappHref}
+            price={formattedPrice}
+            vehicleTitle={title}
+          />
+        </>
       )}
     </div>
   );
