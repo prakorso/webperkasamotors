@@ -125,3 +125,60 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* -- Homepage anchors: sticky header (h-16 / 72px / h-20) must not cover a section heading -- */
+html {
+  scroll-padding-top: 5.5rem;
+}
+
+/* -- Homepage testimonial rail (CSS only, no JS) --
+   Default (touch, small screens, reduced motion): a native swipeable row.
+   Desktop with hover and no reduced-motion preference: slow automatic
+   loop that pauses on hover/focus. Fewer than 4 items render static. */
+.testimonial-rail {
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  padding-block: 0.5rem;
+}
+.testimonial-track {
+  display: flex;
+  width: max-content;
+  padding-inline: 1.5rem;
+}
+.testimonial-rail--static .testimonial-track {
+  margin-inline: auto;
+}
+.testimonial-group {
+  display: flex;
+  gap: 1.25rem;
+  padding-right: 1.25rem;
+}
+.testimonial-group--clone {
+  display: none;
+}
+@keyframes testimonial-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 768px) and (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .testimonial-rail:not(.testimonial-rail--static) {
+    overflow: hidden;
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  }
+  .testimonial-rail:not(.testimonial-rail--static) .testimonial-track {
+    padding-inline: 0;
+    animation: testimonial-scroll var(--testimonial-duration, 40s) linear infinite;
+  }
+  .testimonial-rail:not(.testimonial-rail--static) .testimonial-group--clone {
+    display: flex;
+  }
+  .testimonial-rail:hover .testimonial-track,
+  .testimonial-rail:focus-within .testimonial-track {
+    animation-play-state: paused;
+  }
+}

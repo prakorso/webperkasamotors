@@ -4,7 +4,13 @@ import { WhatsappIcon } from "@/components/icons/social-icons";
 import { MobileNav } from "./mobile-nav";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getNavigationItems } from "@/lib/data/navigation";
-import { applyPublicNavRules, getPublicNavRules } from "@/lib/data/public-nav";
+import {
+  WHATSAPP_CTA_LABEL,
+  applyPublicNavRules,
+  getPublicNavRules,
+  withCoreLinks,
+} from "@/lib/data/public-nav";
+import type { NavigationItem } from "@/lib/types";
 import { genericWhatsAppUrl } from "@/lib/utils/whatsapp";
 
 /**
@@ -38,14 +44,29 @@ export async function SiteHeader() {
     getNavigationItems("HEADER"),
     getPublicNavRules(),
   ]);
-  const navItems = applyPublicNavRules(rawNavItems, navRules);
-
-  const links = navItems.filter((item) => !item.isCta);
-  const cta = navItems.find((item) => item.isCta);
-  // The header CTA ("Hubungi Kami") opens WhatsApp directly with the
-  // generic message — no lead form. Falls back to its configured nav href
-  // (e.g. /contact) only if no usable WhatsApp number is set.
+  // Primary navigation: Beli Mobil, Beli Motor, Artikel (only when >= 3
+  // articles are published). Links to the retired About/Pembiayaan/Kontak
+  // pages are never shown, and the CMS "CTA" row is replaced by the single
+  // WhatsApp CTA below.
+  const links = withCoreLinks(
+    applyPublicNavRules(rawNavItems, navRules).filter((item) => !item.isCta),
+    "HEADER",
+    null
+  );
   const ctaWhatsAppHref = genericWhatsAppUrl(settings);
+  const cta: NavigationItem | undefined = ctaWhatsAppHref
+    ? {
+        id: "whatsapp-cta",
+        placement: "HEADER",
+        groupLabel: null,
+        label: WHATSAPP_CTA_LABEL,
+        href: "/",
+        sortOrder: 99,
+        isVisible: true,
+        isExternal: false,
+        isCta: true,
+      }
+    : undefined;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-surface/95 shadow-[0_8px_30px_rgba(17,19,21,0.05)] backdrop-blur-md">

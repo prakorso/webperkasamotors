@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { getFooterSettings } from "@/lib/data/footer";
-import { applyPublicNavRules, getPublicNavRules } from "@/lib/data/public-nav";
+import { applyPublicNavRules, getPublicNavRules, withCoreLinks } from "@/lib/data/public-nav";
 import {
   FacebookIcon,
   InstagramIcon,
@@ -26,11 +26,22 @@ function copyrightStatement(companyName: string, configuredText: string) {
 
 export async function SiteFooter() {
   const [rawFooter, navRules] = await Promise.all([getFooterSettings(), getPublicNavRules()]);
+  // Footer navigation (R1): Beli Mobil, Beli Motor, Artikel (only when >= 3
+  // articles are published). Links to the retired About/Pembiayaan/Kontak
+  // pages are dropped; the two catalogue links are guaranteed even if the
+  // CMS rows are removed.
+  const ruledGroups = rawFooter.navGroups
+    .map((group) => ({ ...group, items: applyPublicNavRules(group.items, navRules) }))
+    .filter((group) => group.items.length > 0);
+  const navGroups = ruledGroups.length
+    ? [
+        { ...ruledGroups[0], items: withCoreLinks(ruledGroups[0].items, "FOOTER_NAV", ruledGroups[0].groupLabel) },
+        ...ruledGroups.slice(1),
+      ]
+    : [{ groupLabel: null, items: withCoreLinks([], "FOOTER_NAV", null) }];
   const footer = {
     ...rawFooter,
-    navGroups: rawFooter.navGroups
-      .map((group) => ({ ...group, items: applyPublicNavRules(group.items, navRules) }))
-      .filter((group) => group.items.length > 0),
+    navGroups,
     legalLinks: applyPublicNavRules(rawFooter.legalLinks, navRules),
   };
   const hasContact = footer.phone || footer.whatsapp || footer.email || footer.address;
@@ -153,7 +164,7 @@ export async function SiteFooter() {
               )}
 
               {hasContact && (
-                <div className="order-1 sm:order-2">
+                <div id="kontak" className="order-1 sm:order-2">
                   <p className="font-body text-label font-semibold uppercase tracking-[0.14em] text-paper/60">
                     Kontak
                   </p>

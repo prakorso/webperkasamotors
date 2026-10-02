@@ -13,7 +13,7 @@ export default async function AdminWebsiteContactPage() {
     <div>
       <PageHeader
         title="Website"
-        description="Kontak dan WhatsApp diubah di sini saja; header, footer, halaman Kontak, dan tombol WhatsApp ikut berubah."
+        description="Kontak dan WhatsApp diubah di sini saja; footer dan semua tombol WhatsApp di situs ikut berubah."
       />
       <WebsiteSubnav />
       <ContactWhatsappForm settings={settings} />

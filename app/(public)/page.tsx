@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { Hero, DEFAULT_HERO, type HeroContent } from "@/components/public/hero";
 import { HeroSlideshow } from "@/components/public/hero-slideshow";
+import { HomepageAboutSection } from "@/components/public/homepage-about-section";
 import { HowToBuySection } from "@/components/public/how-to-buy-section";
+import { PaymentMethodsSection } from "@/components/public/payment-methods-section";
+import { TestimonialsSection } from "@/components/public/testimonials-section";
 import { SectionHeading } from "@/components/public/section-heading";
 import { VehicleCard } from "@/components/public/vehicle-card";
+import { buttonVariants } from "@/components/ui/button";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import {
   getHomepageAvailableVehicles,
@@ -11,9 +15,12 @@ import {
   getVehicleMedia,
 } from "@/lib/data/vehicles";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
+import { getHomepageAbout } from "@/lib/data/homepage-about";
+import { getActiveTestimonials } from "@/lib/data/testimonials";
 import {
   genericVehicleWhatsAppUrl,
   genericWhatsAppUrl,
+  paymentWhatsAppUrl,
   vehicleWhatsAppConfig,
 } from "@/lib/utils/whatsapp";
 import { cn } from "@/lib/utils/cn";
@@ -33,6 +40,8 @@ const GRID_COLS: Record<number, string> = {
   2: "mx-auto max-w-3xl sm:grid-cols-2 lg:grid-cols-2",
   3: "sm:grid-cols-2 lg:grid-cols-3",
   4: "sm:grid-cols-2 lg:grid-cols-4",
+  5: "sm:grid-cols-2 lg:grid-cols-3",
+  6: "sm:grid-cols-2 lg:grid-cols-3",
 };
 
 /**
@@ -65,17 +74,21 @@ async function withPrimaryMedia(vehicles: Vehicle[]) {
 }
 
 /**
- * Homepage (product spec): Hero > Unit Tersedia > Cara Pembelian > Unit
- * Terjual > final WhatsApp CTA. The CMS About block, "Why Perkasa" cards
- * and Testimonials are intentionally no longer rendered here (their CMS
- * data and admin editors are untouched). Available/sold units come from
- * real status queries, not from the is_featured flag.
+ * Homepage (Owner-approved IA, locked order): Hero > Unit Tersedia > Tentang
+ * Perkasa Motors > Cara Pembelian > Mekanisme Pembayaran > Testimoni (only
+ * when real active testimonials exist) > Unit Terjual > footer. There is no
+ * separate final CTA block: WhatsApp is reachable from the hero, the header,
+ * the payment section, every unit card and the footer. Unit Tersedia is
+ * capped at 6 (balanced cars/motorcycles) and Unit Terjual at 4, both
+ * limited in the data layer; neither uses the is_featured flag.
  */
 export default async function HomePage() {
-  const [available, sold, settings] = await Promise.all([
-    getHomepageAvailableVehicles(4),
+  const [available, sold, settings, about, testimonials] = await Promise.all([
+    getHomepageAvailableVehicles(),
     getHomepageSoldVehicles(),
     getWebsiteSettings(),
+    getHomepageAbout(),
+    getActiveTestimonials().catch(() => []),
   ]);
   const [availableWithMedia, soldWithMedia] = await Promise.all([
     withPrimaryMedia(available),
@@ -93,6 +106,7 @@ export default async function HomePage() {
   const whatsappConfig = vehicleWhatsAppConfig(settings);
   const genericWhatsappHref = genericWhatsAppUrl(settings);
   const emptyStateWhatsappHref = genericVehicleWhatsAppUrl(whatsappConfig);
+  const paymentWhatsappHref = paymentWhatsAppUrl(settings);
 
   return (
     <>
@@ -103,22 +117,13 @@ export default async function HomePage() {
       )}
 
       <section
+        id="unit-tersedia"
         aria-labelledby="home-available-heading"
         className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section"
       >
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <SectionHeading title="Unit Tersedia" id="home-available-heading" className="mb-0" />
-          <div className="flex gap-6 font-body text-label font-semibold uppercase tracking-[0.06em]">
-            <Link href="/cars" className="text-primary transition-colors hover:text-ink">
-              Semua Mobil →
-            </Link>
-            <Link href="/motorcycles" className="text-primary transition-colors hover:text-ink">
-              Semua Motor →
-            </Link>
-          </div>
-        </div>
+        <SectionHeading title="Unit Tersedia" id="home-available-heading" className="mb-0" />
         {availableWithMedia.length > 0 ? (
-          <div className={cn("mt-10 grid grid-cols-1 gap-6", GRID_COLS[availableWithMedia.length] ?? GRID_COLS[4])}>
+          <div className={cn("mt-10 grid grid-cols-1 gap-6", GRID_COLS[availableWithMedia.length] ?? GRID_COLS[6])}>
             {availableWithMedia.map(({ vehicle, primaryMedia }) => (
               <VehicleCard
                 key={vehicle.id}
@@ -142,19 +147,47 @@ export default async function HomePage() {
             )}
           </div>
         )}
+        <nav aria-label="Lihat semua unit" className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link href="/cars" className={buttonVariants({ variant: "outline", size: "lg" })}>
+            Lihat Semua Mobil
+          </Link>
+          <Link href="/motorcycles" className={buttonVariants({ variant: "outline", size: "lg" })}>
+            Lihat Semua Motor
+          </Link>
+        </nav>
       </section>
 
-      <HowToBuySection className="mx-auto max-w-container px-6 pb-16 md:px-8 lg:px-margin lg:pb-section" />
+      <HomepageAboutSection
+        about={about}
+        companyName={settings.companyName}
+        address={settings.address}
+        className="mx-auto max-w-container border-t border-border/80 px-6 py-16 md:px-8 lg:px-margin lg:py-section"
+      />
+
+      <div className="border-y border-border/80 bg-surface-muted/40">
+        <HowToBuySection className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section" />
+      </div>
+
+      <PaymentMethodsSection
+        whatsappHref={paymentWhatsappHref}
+        className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section"
+      />
+
+      <TestimonialsSection
+        testimonials={testimonials}
+        className="border-t border-border/80 bg-surface py-16 lg:py-section"
+      />
 
       {soldWithMedia.length > 0 && (
         <section
+          id="unit-terjual"
           aria-labelledby="home-sold-heading"
           className="border-t border-border/80 bg-surface-muted/40"
         >
           <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-section">
             <SectionHeading title="Unit Terjual" id="home-sold-heading" />
             <div
-              className={cn("grid grid-cols-1 gap-6", GRID_COLS[soldWithMedia.length] ?? GRID_COLS[3])}
+              className={cn("grid grid-cols-1 gap-6", GRID_COLS[soldWithMedia.length] ?? GRID_COLS[4])}
             >
               {soldWithMedia.map(({ vehicle, primaryMedia }) => (
                 <VehicleCard
@@ -168,28 +201,6 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-
-      <section className="mx-auto max-w-container px-6 py-16 text-center md:px-8 lg:px-margin lg:py-section">
-        <h2 className="mx-auto max-w-2xl font-display text-headline-lg text-ink">
-          Tanyakan unit yang Anda cari.
-        </h2>
-        <div className="mt-8">
-          {genericWhatsappHref ? (
-            <WhatsAppCta
-              href={genericWhatsappHref}
-              label="Hubungi via WhatsApp"
-              className="h-auto min-h-13 whitespace-normal py-3 text-center"
-            />
-          ) : (
-            <Link
-              href="/contact"
-              className="inline-flex h-13 items-center rounded-[12px] border border-primary bg-primary px-8 font-body text-label font-semibold uppercase tracking-[0.06em] text-primary-ink shadow-[0_8px_20px_rgba(215,25,32,0.14)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-primary-hover hover:bg-primary-hover"
-            >
-              Hubungi Kami
-            </Link>
-          )}
-        </div>
-      </section>
     </>
   );
 }

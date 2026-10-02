@@ -164,7 +164,7 @@ export function VehicleDetail({
               />
             ) : (
               <Link
-                href="/contact"
+                href="/#kontak"
                 className={buttonVariants({ variant: "primary", size: "lg" })}
               >
                 Hubungi Kami

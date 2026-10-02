@@ -8,3 +8,4 @@ export * from "./footer";
 export * from "./homepage-benefit";
 export * from "./testimonial";
 export * from "./about-page";
+export * from "./homepage-about";

@@ -37,16 +37,16 @@ export interface TestimonialInput {
 }
 
 function validateTestimonial(input: TestimonialInput): string | null {
-  if (!input.customerName.trim()) return "Customer Name is required.";
+  if (!input.customerName.trim()) return "Nama customer wajib diisi.";
   if (input.customerName.length > CUSTOMER_NAME_MAX_LENGTH) {
-    return `Customer Name must be ${CUSTOMER_NAME_MAX_LENGTH} characters or fewer.`;
+    return `Nama customer maksimal ${CUSTOMER_NAME_MAX_LENGTH} karakter.`;
   }
-  if (!input.testimonial.trim()) return "Testimonial is required.";
+  if (!input.testimonial.trim()) return "Testimoni wajib diisi.";
   if (input.testimonial.length > TESTIMONIAL_MAX_LENGTH) {
-    return `Testimonial must be ${TESTIMONIAL_MAX_LENGTH} characters or fewer.`;
+    return `Testimoni maksimal ${TESTIMONIAL_MAX_LENGTH} karakter.`;
   }
   if ((input.roleLabel?.length ?? 0) > ROLE_LABEL_MAX_LENGTH) {
-    return `Role Label must be ${ROLE_LABEL_MAX_LENGTH} characters or fewer.`;
+    return `Unit dibeli maksimal ${ROLE_LABEL_MAX_LENGTH} karakter.`;
   }
   // storagePath, if present, must be a real upload from this feature's
   // own upload control — sanity check only, mirrors
@@ -76,7 +76,7 @@ export async function createTestimonial(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: "Anda harus masuk terlebih dahulu." };
 
   const { data: last } = await supabase
     .from("testimonials")
@@ -120,7 +120,7 @@ export async function updateTestimonial(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: "Anda harus masuk terlebih dahulu." };
 
   const { error } = await supabase
     .from("testimonials")
@@ -138,7 +138,7 @@ export async function deleteTestimonial(id: string): Promise<{ error: string | n
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: "Anda harus masuk terlebih dahulu." };
 
   const { data: row } = await supabase
     .from("testimonials")
@@ -166,7 +166,7 @@ export async function reorderTestimonials(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: "Anda harus masuk terlebih dahulu." };
 
   for (const item of items) {
     const { error } = await supabase
@@ -175,6 +175,53 @@ export async function reorderTestimonials(
       .eq("id", item.id);
     if (error) return { error: error.message };
   }
+
+  revalidatePath("/", "layout");
+  return { error: null };
+}
+
+/**
+ * Owner-facing fields only (name, unit bought, quote, active) - the Website >
+ * Beranda > Testimoni editor. Unlike updateTestimonial it never touches the
+ * photo, so editing text can never drop an existing photo. role_label stores
+ * the "Unit Dibeli" text; sort order is changed with reorderTestimonials.
+ */
+export interface TestimonialTextInput {
+  customerName: string;
+  vehicleLabel: string | null;
+  testimonial: string;
+  isActive: boolean;
+}
+
+export async function updateTestimonialFields(
+  id: string,
+  input: TestimonialTextInput
+): Promise<{ error: string | null }> {
+  const validationError = validateTestimonial({
+    customerName: input.customerName,
+    testimonial: input.testimonial,
+    roleLabel: input.vehicleLabel,
+    photoStoragePath: null,
+    isActive: input.isActive,
+  });
+  if (validationError) return { error: validationError };
+
+  const supabase = await getSupabaseSessionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Anda harus masuk terlebih dahulu." };
+
+  const { error } = await supabase
+    .from("testimonials")
+    .update({
+      customer_name: input.customerName.trim(),
+      testimonial: input.testimonial.trim(),
+      role_label: input.vehicleLabel?.trim() || null,
+      is_active: input.isActive,
+    })
+    .eq("id", id);
+  if (error) return { error: error.message };
 
   revalidatePath("/", "layout");
   return { error: null };

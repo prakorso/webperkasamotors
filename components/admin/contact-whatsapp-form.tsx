@@ -134,7 +134,7 @@ export function ContactWhatsappForm({ settings }: { settings: WebsiteSettings })
           <Label htmlFor="address">Alamat</Label>
           <Input id="address" value={form.address} onChange={(e) => set("address", e.target.value)} />
           <p className="mt-1.5 font-body text-[12px] text-muted-2">
-            Tampil di footer, halaman Kontak, dan halaman Tentang. Jam buka dan aturan kunjungan belum ada
+            Tampil di footer dan bagian Tentang di beranda. Jam buka dan aturan kunjungan belum ada
             di situs.
           </p>
         </div>

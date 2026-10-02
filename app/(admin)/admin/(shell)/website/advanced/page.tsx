@@ -42,17 +42,21 @@ export default async function AdminWebsiteAdvancedPage() {
             sampai ada minimal 3 artikel terbit.
           </li>
           <li>
-            Tautan ke <code className="font-mono text-ink">/financing</code> selalu tampil sebagai
-            &ldquo;Pembiayaan&rdquo;, apa pun nama yang tersimpan di bawah (misalnya &ldquo;Simulasi
-            Kredit&rdquo;).
+            Tautan ke halaman yang sudah tidak ada (<code className="font-mono text-ink">/about</code>,{" "}
+            <code className="font-mono text-ink">/financing</code>, <code className="font-mono text-ink">/contact</code>)
+            tidak ditampilkan di situs. Isinya sekarang ada di beranda.
           </li>
-          <li>Alamat tautan inti (/cars, /motorcycles, /about, /contact, /financing) jangan diubah.</li>
+          <li>
+            Menu utama yang tampil: Beli Mobil, Beli Motor, dan Artikel (bila syaratnya terpenuhi). Tombol
+            WhatsApp di header diatur otomatis dari Kontak &amp; WhatsApp.
+          </li>
+          <li>Alamat tautan inti (/cars, /motorcycles) jangan diubah.</li>
         </ul>
       </section>
 
       <section>
         <h2 className="mb-4 font-display text-headline-sm text-ink">Menu header</h2>
-        <NavigationManager placement="HEADER" initialItems={headerItems} showCta />
+        <NavigationManager placement="HEADER" initialItems={headerItems} showCta={false} />
       </section>
 
       <section>

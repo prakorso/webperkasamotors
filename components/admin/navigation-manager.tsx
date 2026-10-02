@@ -13,6 +13,7 @@ import {
   type NavigationItemInput,
 } from "@/lib/actions/navigation";
 import type { NavigationItem, NavPlacement } from "@/lib/types";
+import { isRetiredPublicHref } from "@/lib/utils/retired-routes";
 
 interface NavigationManagerProps {
   placement: NavPlacement;
@@ -189,6 +190,7 @@ export function NavigationManager({
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1.5">
                     {!item.isVisible && <Badge variant="neutral">Hidden</Badge>}
+                    {isRetiredPublicHref(item.href) && <Badge variant="warning">Tidak tampil di situs</Badge>}
                     {item.isCta && <Badge variant="primary">CTA</Badge>}
                     {item.isExternal && <Badge variant="outline">External</Badge>}
                   </div>

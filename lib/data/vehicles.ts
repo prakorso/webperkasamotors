@@ -133,29 +133,66 @@ export async function getFeaturedVehicles(limit = 4): Promise<Vehicle[]> {
   return (data as unknown as VehicleRow[]).map(mapVehicleRow);
 }
 
-/** Homepage "Unit Terjual" cap. SOLD is social proof only; order is the existing deterministic created_at DESC (there is no sold_at yet), never presented as "recent". */
-export const HOMEPAGE_SOLD_LIMIT = 3;
+/** Homepage "Unit Terjual" cap. SOLD is social proof only, never a full archive; order is the existing deterministic created_at DESC (sold_at is NULL for legacy units, so it is not used), never presented as "recent". */
+export const HOMEPAGE_SOLD_LIMIT = 4;
+
+/** Homepage "Unit Tersedia" cap, so the section stays clean however large the AVAILABLE inventory grows. */
+export const HOMEPAGE_AVAILABLE_LIMIT = 6;
+
+type RecencyRow = VehicleRow & { updated_at: string };
 
 /**
- * Homepage "Unit Tersedia": the latest AVAILABLE units across cars and
- * motorcycles (same updated_at ordering as the catalogue's AVAILABLE tier).
- * Deliberately NOT gated on is_featured — owners should not have to
- * remember a flag for the homepage to show real stock. getFeaturedVehicles
- * above is kept for an optional "pinned" use later but the homepage no
- * longer calls it.
+ * Homepage selection algorithm (pure, deterministic). Inputs are each
+ * type's AVAILABLE rows, newest first (updated_at DESC, id ASC):
+ *  1. take up to 3 of each type;
+ *  2. if slots remain (one type had fewer than 3), fill them with that
+ *     other type's next-newest rows; leftovers can only come from one
+ *     type, because a type with fewer than 3 has no extra rows to give;
+ *  3. never exceed the cap;
+ *  4. display newest first across both types (updated_at DESC, id ASC).
  */
-export async function getHomepageAvailableVehicles(limit = 4): Promise<Vehicle[]> {
-  const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("vehicles")
-    .select(VEHICLE_COLUMNS)
-    .eq("status", "AVAILABLE")
-    .order("updated_at", { ascending: false })
-    .order("id", { ascending: true })
-    .limit(limit);
+export function selectBalancedAvailable<T extends { id: string; updated_at: string }>(
+  cars: T[],
+  motorcycles: T[],
+  limit = HOMEPAGE_AVAILABLE_LIMIT
+): T[] {
+  const perType = Math.floor(limit / 2);
+  const pickedCars = cars.slice(0, perType);
+  const pickedMotos = motorcycles.slice(0, perType);
+  const remaining = limit - pickedCars.length - pickedMotos.length;
+  const extras = [...cars.slice(perType), ...motorcycles.slice(perType)];
+  const fill = remaining > 0 ? extras.slice(0, remaining) : [];
+  return [...pickedCars, ...pickedMotos, ...fill]
+    .slice(0, limit)
+    .sort((x, y) =>
+      x.updated_at === y.updated_at ? (x.id < y.id ? -1 : 1) : x.updated_at < y.updated_at ? 1 : -1
+    );
+}
 
-  if (error) throw new Error(`getHomepageAvailableVehicles: ${error.message}`);
-  return (data as unknown as VehicleRow[]).map(mapVehicleRow);
+/**
+ * Homepage "Unit Tersedia": at most HOMEPAGE_AVAILABLE_LIMIT (6) latest
+ * AVAILABLE units, balanced between cars and motorcycles (see
+ * selectBalancedAvailable). Limits are applied in the queries (at most 6
+ * rows per type are fetched, never the whole inventory). Deliberately NOT
+ * gated on is_featured. getFeaturedVehicles above is kept for an optional
+ * "pinned" use later but the homepage no longer calls it.
+ */
+export async function getHomepageAvailableVehicles(limit = HOMEPAGE_AVAILABLE_LIMIT): Promise<Vehicle[]> {
+  const supabase = getSupabaseServerClient();
+  const fetchType = async (type: VehicleType): Promise<RecencyRow[]> => {
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select(`${VEHICLE_COLUMNS}, updated_at`)
+      .eq("status", "AVAILABLE")
+      .eq("vehicle_type", type)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .limit(limit);
+    if (error) throw new Error(`getHomepageAvailableVehicles(${type}): ${error.message}`);
+    return data as unknown as RecencyRow[];
+  };
+  const [cars, motorcycles] = await Promise.all([fetchType("CAR"), fetchType("MOTORCYCLE")]);
+  return selectBalancedAvailable(cars, motorcycles, limit).map(mapVehicleRow);
 }
 
 export async function getHomepageSoldVehicles(limit = HOMEPAGE_SOLD_LIMIT): Promise<Vehicle[]> {

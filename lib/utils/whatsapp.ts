@@ -149,3 +149,11 @@ export function genericWhatsAppUrl(settings: WebsiteSettings): string | null {
     genericWhatsAppMessage(settings.companyName, settings.whatsappGenericTemplate)
   );
 }
+
+/** Generic payment-mechanism inquiry (homepage "Mekanisme Pembayaran" CTA); same destination as every other CTA, no vehicle context. */
+export function paymentWhatsAppUrl(settings: WebsiteSettings): string | null {
+  return buildWhatsAppUrl(
+    settings.whatsapp,
+    `Halo ${settings.companyName}, saya ingin menanyakan mekanisme pembayaran (tunai, tempo, atau kredit) untuk unit yang tersedia. Mohon informasinya.`
+  );
+}
