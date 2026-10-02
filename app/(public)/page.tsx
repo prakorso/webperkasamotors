@@ -16,6 +16,7 @@ import {
 } from "@/lib/data/vehicles";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getHomepageAbout } from "@/lib/data/homepage-about";
+import { getActiveAboutMedia } from "@/lib/data/homepage-about-media";
 import { getActiveTestimonials } from "@/lib/data/testimonials";
 import {
   genericVehicleWhatsAppUrl,
@@ -83,11 +84,12 @@ async function withPrimaryMedia(vehicles: Vehicle[]) {
  * limited in the data layer; neither uses the is_featured flag.
  */
 export default async function HomePage() {
-  const [available, sold, settings, about, testimonials] = await Promise.all([
+  const [available, sold, settings, about, aboutMedia, testimonials] = await Promise.all([
     getHomepageAvailableVehicles(),
     getHomepageSoldVehicles(),
     getWebsiteSettings(),
     getHomepageAbout(),
+    getActiveAboutMedia(),
     getActiveTestimonials().catch(() => []),
   ]);
   const [availableWithMedia, soldWithMedia] = await Promise.all([
@@ -159,6 +161,7 @@ export default async function HomePage() {
 
       <HomepageAboutSection
         about={about}
+        media={aboutMedia}
         companyName={settings.companyName}
         address={settings.address}
         className="mx-auto max-w-container border-t border-border/80 px-6 py-16 md:px-8 lg:px-margin lg:py-section"

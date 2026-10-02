@@ -81,7 +81,7 @@ export function Hero({
   const headlineLines = headline.split("\n").filter(Boolean);
 
   return (
-    <section className="relative flex w-full flex-col overflow-hidden bg-ink xl:h-[82svh] xl:min-h-[680px] xl:flex-row xl:items-center">
+    <section className="relative flex w-full flex-col overflow-hidden bg-graphite xl:h-[82svh] xl:min-h-[680px] xl:flex-row xl:items-center xl:bg-ink">
       {imageUrl ? (
         <div className="relative aspect-[3/2] w-full shrink-0 md:aspect-[16/10] lg:aspect-[2/1] xl:absolute xl:inset-0 xl:aspect-auto">
           <Image
@@ -97,6 +97,9 @@ export function Hero({
               dark block instead, so the image is shown unobstructed. */}
           <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(17,19,21,0.82)_0%,rgba(17,19,21,0.56)_42%,rgba(17,19,21,0.18)_100%)] xl:block" />
           <div className="absolute inset-x-0 bottom-0 hidden h-32 bg-gradient-to-t from-ink/60 to-transparent xl:block" />
+          {/* Tablet/mobile only: a restrained tonal bridge so the photo settles
+              into the content surface instead of ending on a hard edge. */}
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-graphite/70 to-transparent xl:hidden" />
         </div>
       ) : (
         <>
@@ -133,10 +136,13 @@ export function Hero({
                 rel="noopener noreferrer"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "lg" }),
-                  // Secondary action: a light text action on mobile, the
-                  // outlined button from tablet up (lower weight than the
-                  // primary CTA at every size).
-                  "min-h-11 gap-2 text-paper hover:bg-paper/10 md:border md:border-paper/60"
+                  // Secondary action (outlined, restrained, never as dominant as
+                  // the solid red primary). Below xl it sits on the graphite
+                  // surface with a visible border and a faint fill so it reads
+                  // as an intentional button; full width on mobile, auto from
+                  // md. From xl (the approved desktop overlay) it is exactly
+                  // the original transparent outlined button.
+                  "min-h-11 w-full gap-2 border border-paper/55 bg-paper/[0.07] text-paper hover:border-paper/80 hover:bg-paper/[0.14] md:w-auto xl:border-paper/60 xl:bg-transparent xl:hover:border-paper/60 xl:hover:bg-paper/10"
                 )}
               >
                 <WhatsappIcon size={16} aria-hidden="true" />

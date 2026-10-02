@@ -78,6 +78,8 @@ export function VehicleDetail({
   // vehicle-card.tsx) — the highest-value page on the site is exactly
   // where a misleading "buy this sold unit" message would matter most.
   const isAvailable = vehicle.status === "AVAILABLE";
+  const isSold = vehicle.status === "SOLD";
+  const isReserved = vehicle.status === "RESERVED";
   const whatsappHref = isAvailable
     ? vehicleWhatsAppUrl(vehicle, whatsapp)
     : genericVehicleWhatsAppUrl(whatsapp);
@@ -170,7 +172,16 @@ export function VehicleDetail({
             ))}
           </dl>
 
-          {!isAvailable && (
+          {/* SOLD: historical/proof state, so NO WhatsApp CTA and no sticky bar
+              (Owner decision) - just a clear, quiet statement. RESERVED keeps
+              its existing generic "Tanya Unit Lain" CTA below. */}
+          {isSold && (
+            <p className="mt-8 border-y border-border/80 py-5 font-body text-body text-muted">
+              Unit ini sudah terjual.
+            </p>
+          )}
+
+          {isReserved && (
             <div className="mt-8">
               {whatsappHref ? (
                 <WhatsAppCta

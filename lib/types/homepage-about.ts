@@ -18,3 +18,26 @@ export interface HomepageAboutAdminState {
   about: HomepageAbout;
   schemaReady: boolean;
 }
+
+/**
+ * One real photo in the homepage About "proof" area - backed by the
+ * homepage_about_media table (supabase/migrations/20261003010000_homepage_about_media.sql,
+ * PREPARED, applied only after Owner authorization). The file lives in the
+ * existing public site-assets bucket. Only REAL Perkasa Motors photos belong
+ * here (customer handovers, transactions, showroom moments); there is no
+ * fallback or placeholder content.
+ */
+export interface AboutMedia {
+  id: string;
+  url: string;
+  storagePath: string;
+  caption: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+/** Admin view: the items plus whether the table exists yet (the manager is disabled until it does). */
+export interface AboutMediaAdminState {
+  items: AboutMedia[];
+  schemaReady: boolean;
+}

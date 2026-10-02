@@ -3,9 +3,11 @@ import { PageHeader } from "@/components/admin/page-header";
 import { WebsiteSubnav } from "@/components/admin/website-subnav";
 import { HomepageHeroForm } from "@/components/admin/homepage-hero-form";
 import { HomepageAboutForm } from "@/components/admin/homepage-about-form";
+import { HomepageAboutMediaManager } from "@/components/admin/homepage-about-media-manager";
 import { HomepageTestimonialsManager } from "@/components/admin/homepage-testimonials-manager";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { getHomepageAboutState } from "@/lib/data/homepage-about";
+import { getAboutMediaAdminState } from "@/lib/data/homepage-about-media";
 import { getAllTestimonialsForAdmin } from "@/lib/data/testimonials";
 import { HOMEPAGE_AVAILABLE_LIMIT, HOMEPAGE_SOLD_LIMIT } from "@/lib/data/vehicles";
 
@@ -18,9 +20,10 @@ export const metadata: Metadata = { title: "Website — Beranda" };
  * by the code, so there is deliberately nothing to edit for them.
  */
 export default async function AdminWebsiteHomepagePage() {
-  const [settings, aboutState, testimonials] = await Promise.all([
+  const [settings, aboutState, aboutMedia, testimonials] = await Promise.all([
     getWebsiteSettings(),
     getHomepageAboutState(),
+    getAboutMediaAdminState(),
     getAllTestimonialsForAdmin().catch(() => []),
   ]);
 
@@ -29,7 +32,7 @@ export default async function AdminWebsiteHomepagePage() {
       <div>
         <PageHeader
           title="Website"
-          description="Yang bisa diubah di beranda: Hero, Tentang Perkasa Motors, dan Testimoni. Perubahan langsung tampil di situs."
+          description="Yang bisa diubah di beranda: Hero, Tentang Perkasa Motors (teks dan foto), dan Testimoni. Perubahan langsung tampil di situs."
         />
         <WebsiteSubnav />
       </div>
@@ -37,6 +40,8 @@ export default async function AdminWebsiteHomepagePage() {
       <HomepageHeroForm settings={settings} />
 
       <HomepageAboutForm state={aboutState} />
+
+      <HomepageAboutMediaManager state={aboutMedia} />
 
       <HomepageTestimonialsManager initialItems={testimonials} />
 

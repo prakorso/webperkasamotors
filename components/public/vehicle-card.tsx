@@ -20,7 +20,7 @@ const CARD_STATUS: Partial<Record<Vehicle["status"], { label: string; variant: "
 interface VehicleCardProps {
   vehicle: Vehicle;
   primaryMedia?: VehicleMedia;
-  /** When provided, the card shows a direct WhatsApp CTA built from live vehicle data ("Saya Tertarik" for AVAILABLE, generic "Tanya Unit Lain" otherwise). Omit to render a link-only card. */
+  /** When provided, the card shows a direct WhatsApp CTA built from live vehicle data ("Saya Tertarik" for AVAILABLE, generic "Tanya Unit Lain" for RESERVED). SOLD cards never show a WhatsApp CTA. Omit to render a link-only card. */
   whatsapp?: VehicleWhatsAppConfig;
 }
 
@@ -34,18 +34,20 @@ interface VehicleCardProps {
 export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProps) {
   const basePath = vehicle.vehicleType === "CAR" ? "/cars" : "/motorcycles";
   const detailHref = `${basePath}/${vehicle.slug}`;
-  // AVAILABLE = acquisition state → the normal per-vehicle CTA. Anything
-  // else (SOLD, RESERVED) is a social-proof/information state — the card
-  // must not produce a message implying this exact unit can still be
-  // bought, so it falls back to a generic "ask about other units" CTA.
+  // AVAILABLE = acquisition state → the normal per-vehicle CTA. RESERVED
+  // keeps its own contract (a generic "ask about other units" CTA, never a
+  // message implying this exact unit can be bought). SOLD is purely
+  // historical/social proof: it has NO WhatsApp CTA at all (Owner decision),
+  // only the prominent centered "Terjual" marker and the link to its detail.
   const isAvailable = vehicle.status === "AVAILABLE";
   const isSold = vehicle.status === "SOLD";
   const cardStatus = CARD_STATUS[vehicle.status];
-  const whatsappHref = whatsapp
-    ? isAvailable
-      ? vehicleWhatsAppUrl(vehicle, whatsapp)
-      : genericVehicleWhatsAppUrl(whatsapp)
-    : null;
+  const whatsappHref =
+    whatsapp && !isSold
+      ? isAvailable
+        ? vehicleWhatsAppUrl(vehicle, whatsapp)
+        : genericVehicleWhatsAppUrl(whatsapp)
+      : null;
 
   return (
     <div
@@ -83,10 +85,20 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
               }
             />
           )}
-          {cardStatus && (
-            <div className="absolute left-3 top-3">
-              <Badge variant={cardStatus.variant}>{cardStatus.label}</Badge>
+          {isSold ? (
+            // Centered, restrained marker (not a loud e-commerce "sold out"
+            // banner): translucent dark pill, light type, soft blur.
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="rounded-full border border-paper/45 bg-ink/60 px-6 py-2.5 font-body text-[13px] font-semibold uppercase tracking-[0.2em] text-paper shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-sm">
+                Terjual
+              </span>
             </div>
+          ) : (
+            cardStatus && (
+              <div className="absolute left-3 top-3">
+                <Badge variant={cardStatus.variant}>{cardStatus.label}</Badge>
+              </div>
+            )
           )}
         </div>
         <div className="flex flex-1 flex-col gap-3 p-5 md:p-6">
