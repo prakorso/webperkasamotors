@@ -1,0 +1,61 @@
+PERKASA MOTORS — UI-R3C FOOTER REDESIGN
+Date: 2026-10-01
+Status: REVIEW
+
+TASK RECORD
+Task: UI-R3C
+Task type: UI_UX
+Base branch: feat/ui-r3a1-catalogue-parity
+Base SHA: 24f790cc62805b8257f919cc56c81a55d3df5f8b
+Target branch: feat/ui-r3c-footer-redesign
+Worktree: C:\Users\USER\webperkasamotors\.claude\worktrees\ui-r3c-footer-redesign
+Write owner: Codex (/root)
+Reviewer and merge authority: Owner
+
+SCOPE
+Redesign the shared public footer as a compact, premium automotive closing
+section. No catalogue, vehicle detail, related-vehicle, homepage, header,
+financing, contact, CMS, Supabase, inventory, or global-token behavior changed.
+
+IMPLEMENTATION
+- Kept the implementation localized to components/public/site-footer.tsx.
+- Replaced the generic wide grid with an asymmetric brand-led composition.
+- Reused the existing Logo component and live CMS company/brand data.
+- Integrated real social destinations as labeled links in the brand area.
+- Curated the existing footer navigation without adding destinations.
+- Grouped factual contact information with the existing WhatsApp action.
+- Preserved phone normalization, WhatsApp destination, and generic message logic.
+- Gave mobile a deliberate Brand, Social, Contact, Explore, Bottom Bar order.
+- Normalized suffix-versus-complete CMS copyright text so one statement renders.
+- Retained existing legal links conditionally; none were invented.
+
+VISIBLE EDGE QA
+Microsoft Edge was run visibly against the production build with footer-region
+captures at 1440px and true 390px device emulation for:
+- Homepage
+- Cars catalogue
+- Motorcycles catalogue
+- /cars/hyundai-grand-avega-hatchback-2012
+
+RESULTS
+- All eight route/viewport combinations rendered the shared footer consistently.
+- Desktop footer height: 421px on every representative surface.
+- Mobile footer height: 812px with intentional non-column reading order.
+- No horizontal overflow at 1440px or 390px.
+- Exactly one visible copyright symbol/statement on every surface.
+- One preserved WhatsApp link on every surface.
+- Zero empty footer links and zero broken footer images.
+- Existing internal destinations /about, /contact, /financing, and /articles
+  returned HTTP 200.
+- Local artifacts: C:\Users\USER\AppData\Local\Temp\Perkasa-UI-R3C-QA
+- Visible Edge remains open at the Motorcycles footer in desktop view.
+
+TECHNICAL VERIFICATION
+npm run lint: PASS
+npx tsc --noEmit: PASS
+npm run build: PASS
+git diff --check: PASS before checkpoint preparation
+
+HANDOFF
+The redesign is a checkpoint for Owner review, not approval. No merge or deploy
+was performed. Approved R3A, R3A.1, and R3B behavior remains unchanged.

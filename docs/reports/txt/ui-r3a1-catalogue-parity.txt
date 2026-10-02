@@ -1,0 +1,82 @@
+PERKASA MOTORS — UI-R3A.1 CATALOGUE PARITY
+Date: 2026-10-01
+Status: REVIEW
+
+TASK RECORD
+Task: UI-R3A.1
+Task type: UI_UX
+Base branch: feat/ui-r3b-vehicle-detail
+Base SHA: c0b1bae81f24842f5982706b86d3d695f1f6417c
+Target branch: feat/ui-r3a1-catalogue-parity
+Worktree: C:\Users\USER\webperkasamotors\.claude\worktrees\ui-r3a1-catalogue-parity
+Write owner: Codex (/root)
+Reviewer and merge authority: Owner
+
+SCOPE
+Bring /motorcycles into parity with the approved /cars catalogue hierarchy.
+No footer, homepage, CMS, schema, WhatsApp business logic, dependency, merge,
+or deployment work was performed.
+
+ROOT CAUSE
+The shared VehicleCatalogue already supported the R3A available/sold split,
+including empty states, sold archive hierarchy, sold card presentation, detail
+links, and CTA suppression. /cars passed separateSoldInventory; /motorcycles did
+not. The gap was page composition, not missing shared behavior.
+
+IMPLEMENTATION
+Enabled the existing shared separateSoldInventory behavior on
+app/(public)/motorcycles/page.tsx. No catalogue or card logic was duplicated and
+no shared component refactor was needed.
+
+EXPECTED BEHAVIOR CONFIRMED
+- Available inventory is the first, primary section on both sibling routes.
+- Sold inventory is isolated in the lower “Sudah Terjual” archive.
+- Available and sold cards are not mixed in the primary grid.
+- Available cards retain their vehicle-specific WhatsApp CTA.
+- Sold cards remain linked to detail pages but have no WhatsApp purchase CTA.
+- Sold photography is subdued and carries an explicit “Sold Out” label.
+- The existing shared empty-state behavior remains available for zero total
+  inventory and for a page with no active inventory.
+
+RELATED VEHICLE AUDIT
+Both app/(public)/cars/[slug]/page.tsx and
+app/(public)/motorcycles/[slug]/page.tsx call the same getRelatedVehicles query.
+At base SHA c0b1bae, that shared query explicitly filters status to AVAILABLE.
+No motorcycle-specific related-vehicle parity bug was found and R3B was not
+changed.
+
+VISIBLE EDGE QA
+Environment: isolated worktree, Next.js dev server, live configured data.
+Routes and viewports:
+- /cars at 1440px
+- /motorcycles at 1440px
+- /motorcycles at true 390px device emulation
+
+Measured results:
+- /cars desktop: document 1440 / viewport 1440; no horizontal overflow;
+  1 available card, 7 sold cards, 1 available WhatsApp link, 0 sold WhatsApp
+  links, 7 Sold Out labels, 0 broken images.
+- /motorcycles desktop: document 1440 / viewport 1440; no horizontal overflow;
+  1 available card, 6 sold cards, 1 available WhatsApp link, 0 sold WhatsApp
+  links, 6 Sold Out labels, 0 broken images.
+- /motorcycles mobile: document 390 / viewport 390; no horizontal overflow;
+  1 available card, 6 sold cards, 1 available WhatsApp link, 0 sold WhatsApp
+  links, 6 Sold Out labels, 0 broken images.
+- All rendered catalogue cards retained a non-empty category-correct detail URL.
+
+QA ARTIFACTS
+Local review artifacts are under:
+C:\Users\USER\AppData\Local\Temp\Perkasa-UI-R3A1-QA
+They include Cars desktop, Motorcycles desktop, Motorcycles 390px, and JSON
+measurements. These local artifacts are not committed.
+
+VERIFICATION
+npm run lint: PASS
+npx tsc --noEmit: PASS
+npm run build: PASS
+git diff --check: PASS before checkpoint preparation
+
+HANDOFF
+Protected Cars R3A behavior remains intact. The implementation is a one-line
+page-level opt-in to the already-approved shared catalogue system. Owner review,
+approval, and merge remain outstanding. No merge or deploy was performed.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/brand/logo";
 import { getFooterSettings } from "@/lib/data/footer";
 import { applyPublicNavRules, getPublicNavRules } from "@/lib/data/public-nav";
 import {
@@ -12,14 +13,17 @@ import {
 import { normalizeIndonesianPhone } from "@/lib/utils/phone";
 import { genericWhatsAppMessage } from "@/lib/utils/whatsapp";
 
-/**
- * PHASE 2C: fully database-driven (Footer Manager, via lib/data/footer.ts)
- * — company name/description, contact, social, nav groups, legal, and
- * copyright text. Layout/classes are unchanged from Phase 1 for the parts
- * that exist today (company block + one "Navigasi" group); contact,
- * social, and legal are new *optional* blocks that only render when
- * configured, so an empty database renders byte-identical to before.
- */
+function copyrightStatement(companyName: string, configuredText: string) {
+  const configured = configuredText.trim();
+
+  // The CMS may store either a suffix ("All rights reserved.") or a full
+  // statement. Do not prepend a second generated copyright to a complete one.
+  if (/^(?:©|copyright\b)/i.test(configured)) return configured;
+
+  const owner = `© ${new Date().getFullYear()} ${companyName}`;
+  return configured ? `${owner}. ${configured}` : owner;
+}
+
 export async function SiteFooter() {
   const [rawFooter, navRules] = await Promise.all([getFooterSettings(), getPublicNavRules()]);
   const footer = {
@@ -30,193 +34,193 @@ export async function SiteFooter() {
     legalLinks: applyPublicNavRules(rawFooter.legalLinks, navRules),
   };
   const hasContact = footer.phone || footer.whatsapp || footer.email || footer.address;
-  const hasSocial =
-    footer.instagramUrl ||
-    footer.facebookUrl ||
-    footer.tiktokUrl ||
-    footer.youtubeUrl ||
-    footer.linkedinUrl;
-  // Bug fix (discovered during the Leads/WhatsApp phase): this used to be
-  // footer.whatsapp.replace(/\D/g, ""), which strips non-digits but never
-  // turns a leading "0" into the "62" country code wa.me actually needs —
-  // "082233184122" produced a broken link, not "6282233184122". Falls
-  // back to the old naive stripping only if the configured value doesn't
-  // parse as a real Indonesian number, so a previously-visible link never
-  // disappears outright.
+  const socialLinks = [
+    ...(footer.instagramUrl
+      ? [{ label: "Instagram", href: footer.instagramUrl, icon: <InstagramIcon size={16} /> }]
+      : []),
+    ...(footer.facebookUrl
+      ? [{ label: "Facebook", href: footer.facebookUrl, icon: <FacebookIcon size={16} /> }]
+      : []),
+    ...(footer.tiktokUrl
+      ? [{ label: "TikTok", href: footer.tiktokUrl, icon: <TiktokIcon size={16} /> }]
+      : []),
+    ...(footer.youtubeUrl
+      ? [{ label: "YouTube", href: footer.youtubeUrl, icon: <YoutubeIcon size={16} /> }]
+      : []),
+    ...(footer.linkedinUrl
+      ? [{ label: "LinkedIn", href: footer.linkedinUrl, icon: <LinkedinIcon size={16} /> }]
+      : []),
+  ];
+
+  // Preserve the established destination and generic message behavior.
   const whatsappNumber = footer.whatsapp
     ? (normalizeIndonesianPhone(footer.whatsapp) ?? footer.whatsapp.replace(/\D/g, ""))
     : null;
-  // Same generic pre-filled message every other non-vehicle CTA on the
-  // site uses. Destination behavior is unchanged — still footer.whatsapp.
   const whatsappHref = whatsappNumber
     ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
         genericWhatsAppMessage(footer.companyName, footer.whatsappGenericTemplate)
       )}`
     : null;
+  const showNavGroupLabels = footer.navGroups.length > 1;
 
   return (
-    <footer className="border-t border-border bg-ink text-paper">
-        {/* py-section (120px) is the editorial rhythm for content
-            sections — the footer is navigational chrome, not content, so
-            it gets a lighter desktop rhythm (80px) instead of inheriting
-            the same generous spacing as a homepage section. */}
-      <div className="mx-auto max-w-container px-6 py-16 md:px-8 lg:px-margin lg:py-20">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
-          <div className="lg:col-span-6">
-            <p className="font-display text-headline-lg">{footer.companyName}</p>
+    <footer className="border-t-2 border-primary bg-ink text-paper">
+      <div className="mx-auto max-w-[var(--container-max)] px-6 py-12 md:px-8 lg:px-margin lg:py-14">
+        <div className="grid gap-10 border-b border-white/10 pb-10 lg:grid-cols-12 lg:gap-x-12 lg:pb-12">
+          <div className="lg:col-span-5">
+            <Link
+              href="/"
+              aria-label={`${footer.companyName} home`}
+              className="inline-flex min-h-11 items-center rounded-sm transition-opacity hover:opacity-85"
+            >
+              <Logo
+                companyName={footer.companyName}
+                logoUrl={footer.logoUrl}
+                textClassName="text-headline-lg text-paper md:text-[34px]"
+                imageClassName="h-9 md:h-10"
+              />
+            </Link>
+
             {footer.description && (
-              <p className="mt-4 max-w-sm font-body text-body text-muted-2">
+              <p className="mt-4 max-w-md font-body text-body leading-relaxed text-paper/70">
                 {footer.description}
               </p>
             )}
 
-            {hasContact && (
-              <ul className="mt-6 flex flex-col gap-1.5 font-body text-[13px] text-paper/80">
-                {footer.address && <li>{footer.address}</li>}
-                {footer.phone && (
-                  <li>
-                    <a href={`tel:${footer.phone}`} className="hover:text-primary">
-                      {footer.phone}
-                    </a>
-                  </li>
-                )}
-                {footer.whatsapp && whatsappHref && (
-                  <li>
+            {socialLinks.length > 0 && (
+              <div className="mt-7">
+                <p className="font-body text-label font-semibold uppercase tracking-[0.14em] text-paper/60">
+                  Ikuti Kami
+                </p>
+                <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+                  {socialLinks.map((social) => (
+                    <li key={social.label}>
+                      <a
+                        href={social.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-11 items-center gap-2 font-body text-[13px] font-medium text-paper/75 transition-colors hover:text-primary"
+                      >
+                        {social.icon}
+                        {social.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-6 lg:col-start-7">
+            <div
+              className={
+                hasContact && footer.navGroups.length > 0
+                  ? "grid gap-8 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] sm:gap-10"
+                  : "grid gap-8"
+              }
+            >
+              {footer.navGroups.length > 0 && (
+                <nav aria-label="Footer" className="order-2 sm:order-1">
+                  <p className="font-body text-label font-semibold uppercase tracking-[0.14em] text-paper/60">
+                    Jelajahi
+                  </p>
+                  <div className="mt-3 flex flex-col gap-5">
+                    {footer.navGroups.map((group) => (
+                      <div key={group.groupLabel ?? "ungrouped"}>
+                        {showNavGroupLabels && group.groupLabel && (
+                          <p className="mb-1 font-body text-[11px] uppercase tracking-[0.12em] text-paper/45">
+                            {group.groupLabel}
+                          </p>
+                        )}
+                        <ul className="flex flex-col">
+                          {group.items.map((link) => (
+                            <li key={link.id}>
+                              <Link
+                                href={link.href}
+                                target={link.isExternal ? "_blank" : undefined}
+                                rel={link.isExternal ? "noopener noreferrer" : undefined}
+                                className="inline-flex min-h-11 items-center font-body text-body text-paper/80 transition-colors hover:text-primary"
+                              >
+                                {link.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </nav>
+              )}
+
+              {hasContact && (
+                <div className="order-1 sm:order-2">
+                  <p className="font-body text-label font-semibold uppercase tracking-[0.14em] text-paper/60">
+                    Kontak
+                  </p>
+                  <div className="mt-4 font-body text-[14px] leading-relaxed text-paper/75">
+                    {footer.address && <p className="max-w-xs">{footer.address}</p>}
+                    {(footer.phone || footer.email) && (
+                      <ul className={footer.address ? "mt-3" : undefined}>
+                        {footer.phone && (
+                          <li>
+                            <a
+                              href={`tel:${footer.phone}`}
+                              className="inline-flex min-h-10 items-center transition-colors hover:text-primary"
+                            >
+                              {footer.phone}
+                            </a>
+                          </li>
+                        )}
+                        {footer.email && (
+                          <li>
+                            <a
+                              href={`mailto:${footer.email}`}
+                              className="inline-flex min-h-10 items-center transition-colors hover:text-primary"
+                            >
+                              {footer.email}
+                            </a>
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+
+                  {footer.whatsapp && whatsappHref && (
                     <a
                       href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={`Chat lewat WhatsApp: ${footer.whatsapp}`}
                       title="Chat lewat WhatsApp"
-                      className="flex items-center gap-2 hover:text-primary"
+                      className="mt-5 inline-flex min-h-12 items-center gap-3 rounded-[12px] bg-primary px-5 font-body text-primary-ink shadow-[0_10px_28px_rgba(215,25,32,0.18)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-primary-hover hover:shadow-[0_14px_32px_rgba(169,15,21,0.24)] active:translate-y-px"
                     >
-                      <WhatsappIcon size={16} aria-hidden="true" />
-                      {footer.whatsapp}
+                      <WhatsappIcon size={17} aria-hidden="true" />
+                      <span className="flex flex-col text-left">
+                        <span className="text-label font-semibold uppercase tracking-[0.08em]">
+                          WhatsApp
+                        </span>
+                        <span className="text-[13px] leading-4">{footer.whatsapp}</span>
+                      </span>
                     </a>
-                  </li>
-                )}
-                {footer.email && (
-                  <li>
-                    <a href={`mailto:${footer.email}`} className="hover:text-primary">
-                      {footer.email}
-                    </a>
-                  </li>
-                )}
-              </ul>
-            )}
-
-            {hasSocial && (
-              <div className="mt-6">
-                <p className="font-body text-label uppercase tracking-[0.1em] text-muted-2">Social</p>
-                <ul className="mt-4 flex items-center gap-4">
-                  {footer.instagramUrl && (
-                    <li>
-                      <a
-                        href={footer.instagramUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Instagram"
-                        className="block text-paper/80 transition-colors hover:text-primary"
-                      >
-                        <InstagramIcon />
-                      </a>
-                    </li>
                   )}
-                  {footer.facebookUrl && (
-                    <li>
-                      <a
-                        href={footer.facebookUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Facebook"
-                        className="block text-paper/80 transition-colors hover:text-primary"
-                      >
-                        <FacebookIcon />
-                      </a>
-                    </li>
-                  )}
-                  {footer.tiktokUrl && (
-                    <li>
-                      <a
-                        href={footer.tiktokUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="TikTok"
-                        className="block text-paper/80 transition-colors hover:text-primary"
-                      >
-                        <TiktokIcon />
-                      </a>
-                    </li>
-                  )}
-                  {footer.youtubeUrl && (
-                    <li>
-                      <a
-                        href={footer.youtubeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="YouTube"
-                        className="block text-paper/80 transition-colors hover:text-primary"
-                      >
-                        <YoutubeIcon />
-                      </a>
-                    </li>
-                  )}
-                  {footer.linkedinUrl && (
-                    <li>
-                      <a
-                        href={footer.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="LinkedIn"
-                        className="block text-paper/80 transition-colors hover:text-primary"
-                      >
-                        <LinkedinIcon />
-                      </a>
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {footer.navGroups.length > 0 && (
-            <div className="flex flex-col gap-8 lg:col-span-3 lg:col-start-8">
-              {footer.navGroups.map((group) => (
-                <div key={group.groupLabel ?? "ungrouped"}>
-                  {group.groupLabel && (
-                    <p className="font-body text-label uppercase tracking-[0.1em] text-muted-2">
-                      {group.groupLabel}
-                    </p>
-                  )}
-                  <ul className="mt-6 flex flex-col gap-3">
-                    {group.items.map((link) => (
-                      <li key={link.id}>
-                        <Link
-                          href={link.href}
-                          target={link.isExternal ? "_blank" : undefined}
-                          rel={link.isExternal ? "noopener noreferrer" : undefined}
-                          className="font-body text-body text-paper/80 hover:text-primary"
-                        >
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          </div>
         </div>
 
-        <div className="mt-16 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8 font-body text-[13px] text-muted-2">
-          <p>
-            © {new Date().getFullYear()} {footer.companyName}. {footer.copyrightText}
-          </p>
+        <div className="mt-6 flex flex-col gap-3 font-body text-[12px] text-paper/60 sm:flex-row sm:items-center sm:justify-between">
+          <p>{copyrightStatement(footer.companyName, footer.copyrightText)}</p>
           {footer.legalLinks.length > 0 && (
-            <ul className="flex gap-4">
+            <ul className="flex flex-wrap gap-x-5 gap-y-2">
               {footer.legalLinks.map((link) => (
                 <li key={link.id}>
-                  <Link href={link.href} className="hover:text-primary">
+                  <Link
+                    href={link.href}
+                    target={link.isExternal ? "_blank" : undefined}
+                    rel={link.isExternal ? "noopener noreferrer" : undefined}
+                    className="inline-flex min-h-10 items-center transition-colors hover:text-primary"
+                  >
                     {link.label}
                   </Link>
                 </li>

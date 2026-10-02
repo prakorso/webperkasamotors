@@ -96,7 +96,7 @@ export function VehicleDetail({
   const specs = specRows(vehicle);
 
   return (
-    <div className="mx-auto max-w-container px-6 py-10 md:px-8 lg:px-margin lg:py-16">
+    <div className="mx-auto max-w-[var(--container-max)] px-6 py-10 md:px-8 lg:px-margin lg:py-16">
       <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-8 lg:grid-cols-12 lg:gap-14">
         <div className="md:col-span-1 lg:col-span-6">
           <VehicleGallery media={mediaWithAlt} />
