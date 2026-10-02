@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { WhatsAppCta } from "./whatsapp-cta";
 
 interface MobileVehicleCtaProps {
@@ -14,44 +14,43 @@ export function MobileVehicleCta({
   price,
   vehicleTitle,
 }: MobileVehicleCtaProps) {
-  const [placement, setPlacement] = useState<"hidden" | "fixed" | "docked">("hidden");
+  const ctaRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const footer = document.querySelector("footer");
-    const decisionArea = document.querySelector(
-      'aside[aria-label="Hubungi Perkasa Motors mengenai kendaraan ini"]'
-    );
-    if (!footer || !decisionArea) return;
-
-    let frame = 0;
     const updateVisibility = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
+      const cta = ctaRef.current;
+      const footer = document.querySelector("footer");
+      const decisionArea = document.querySelector(
+        'aside[aria-label="Hubungi Perkasa Motors mengenai kendaraan ini"]'
+      );
+      if (!cta) return;
+
+      let placement: "hidden" | "fixed" | "docked" = "hidden";
+      if (footer && decisionArea && window.innerWidth < 768) {
         const footerTop = footer.getBoundingClientRect().top;
+        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
         const decisionRect = decisionArea.getBoundingClientRect();
         const decisionAreaVisible =
           decisionRect.bottom > 0 && decisionRect.top <= window.innerHeight + 80;
 
-        setPlacement(
-          decisionAreaVisible
+        placement = decisionAreaVisible
+          ? "hidden"
+          : footerTop <= headerBottom + 80
             ? "hidden"
-            : footerTop <= window.innerHeight + 80
-              ? "docked"
-              : "fixed"
-        );
-      });
+          : footerTop <= window.innerHeight + 80
+            ? "docked"
+            : "fixed";
+      }
+
+      cta.hidden = placement === "hidden";
+      cta.classList.toggle("fixed", placement === "fixed");
+      cta.classList.toggle("absolute", placement === "docked");
     };
 
-    const footerObserver = new IntersectionObserver(updateVisibility, {
-      rootMargin: "0px 0px 80px",
-    });
-    const decisionObserver = new IntersectionObserver(updateVisibility, {
-      rootMargin: "0px 0px 80px",
-    });
+    const domObserver = new MutationObserver(updateVisibility);
 
     updateVisibility();
-    footerObserver.observe(footer);
-    decisionObserver.observe(decisionArea);
+    domObserver.observe(document.body, { childList: true, subtree: true });
     window.addEventListener("scroll", updateVisibility, { passive: true });
     document.addEventListener("scroll", updateVisibility, {
       capture: true,
@@ -61,9 +60,7 @@ export function MobileVehicleCta({
     window.visualViewport?.addEventListener("resize", updateVisibility);
 
     return () => {
-      cancelAnimationFrame(frame);
-      footerObserver.disconnect();
-      decisionObserver.disconnect();
+      domObserver.disconnect();
       window.removeEventListener("scroll", updateVisibility);
       document.removeEventListener("scroll", updateVisibility, { capture: true });
       window.removeEventListener("resize", updateVisibility);
@@ -71,12 +68,12 @@ export function MobileVehicleCta({
     };
   }, []);
 
-  if (placement === "hidden") return null;
-
   return (
     <aside
+      ref={ctaRef}
+      hidden
       aria-label={`Kontak untuk ${vehicleTitle}`}
-      className={`${placement === "docked" ? "absolute" : "fixed"} inset-x-0 bottom-0 z-40 border-t border-border/90 bg-paper/95 shadow-[0_-10px_30px_rgba(17,19,21,0.1)] backdrop-blur-sm md:hidden`}
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/90 bg-paper/95 shadow-[0_-10px_30px_rgba(17,19,21,0.1)] backdrop-blur-sm md:hidden"
     >
       <div className="mx-auto flex max-w-[var(--container-max)] items-center gap-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
         <div className="min-w-0 shrink-0">
