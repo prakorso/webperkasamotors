@@ -15,13 +15,12 @@ const SLIDE_DURATION_MS = 3000;
  * - 1 slide: renders a single static Hero — no timer, no indicators, no
  *   Previous/Next, no crossfade machinery at all (matches the current/
  *   original single-hero behavior exactly).
- * - 2–3 slides: all slides mount simultaneously, stacked; only the active
- *   one is visible (opacity + absolute positioning on the rest), which is
+ * - 2–3 slides: all slides mount simultaneously, stacked in one grid cell; only the
+ *   active one is visible (opacity on the rest), which is
  *   what makes a crossfade possible without a carousel library — the
  *   outgoing and incoming slide are both already in the DOM when the
- *   transition starts. Since every Hero has the same fixed viewport-unit
- *   height, swapping which slide is "in flow" vs. "absolute" never causes
- *   layout shift.
+ *   transition starts. Since all slides share one grid cell, swapping the
+ *   active slide never causes layout shift.
  *
  * Only the first slide gets priority (eager) image loading — the rest
  * load at whatever priority the browser would normally give an
@@ -105,43 +104,43 @@ export function HeroSlideshow({
 
   return (
     <div
-      // Explicit height on the wrapper itself (matching Hero's own h-[..vh]
-      // scale) — every slide below is `absolute inset-0`, including the
-      // active one, so sizing never depends on which single slide happens
-      // to be "in flow". Previously only the active slide was in normal
-      // flow and the rest were absolute; at the moment the active index
-      // changed, the outgoing slide switched to absolute while the
-      // incoming one switched out of it in the same render, and both were
-      // still mid-opacity-transition — a real window where two slides
-      // could render fully stacked and visible together (observed at
-      // 768px). Every slide now uses the same absolute/inset-0 box at all
-      // times, so only opacity (never layout) ever changes between them.
-      className="relative h-[72svh] min-h-[540px] w-full overflow-hidden md:h-[74svh] lg:h-[82svh] lg:min-h-[680px]"
+      // Hero responsive fix R1: every slide occupies the SAME grid cell
+      // (col-start-1 row-start-1), so the wrapper's height is simply the
+      // tallest slide and never depends on which slide is active - only
+      // opacity changes between slides, never layout. From xl the Hero
+      // itself is a fixed-height overlay (82svh); below xl its height comes
+      // from its content (image block + text), so the grid cell grows with
+      // the tallest slide and nothing is clipped.
+      className="relative w-full overflow-hidden bg-ink"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
     >
-      {slides.map((slide, i) => (
-        <div
-          key={i}
-          aria-hidden={i !== safeIndex}
-          className={
-            i === safeIndex
-              ? `absolute inset-0 z-10 opacity-100 ${transitionClass}`
-              : `pointer-events-none absolute inset-0 z-0 opacity-0 ${transitionClass}`
-          }
-        >
-          <Hero
-            {...slide}
-            priority={i === 0}
-            whatsappHref={whatsappHref}
-            textClassName={i === safeIndex ? textInClass : textOutClass}
-          />
-        </div>
-      ))}
+      <div className="grid">
+        {slides.map((slide, i) => (
+          <div
+            key={i}
+            aria-hidden={i !== safeIndex}
+            inert={i !== safeIndex}
+            className={
+              i === safeIndex
+                ? `col-start-1 row-start-1 z-10 opacity-100 ${transitionClass}`
+                : `pointer-events-none col-start-1 row-start-1 z-0 opacity-0 ${transitionClass}`
+            }
+          >
+            <Hero
+              {...slide}
+              priority={i === 0}
+              whatsappHref={whatsappHref}
+              textClassName={i === safeIndex ? textInClass : textOutClass}
+            />
+          </div>
+        ))}
+      </div>
 
-      <div className="absolute inset-x-0 bottom-6 z-20 flex items-center justify-center gap-4 md:bottom-8">
+      {/* Controls: in normal flow under the content on tablet/mobile (never over the photo); overlaid at the bottom of the hero from xl. */}
+      <div className="z-20 flex items-center justify-center gap-4 pb-6 pt-1 md:pb-8 xl:absolute xl:inset-x-0 xl:bottom-8 xl:pb-0 xl:pt-0">
         <button
           type="button"
           onClick={goToPrevious}
