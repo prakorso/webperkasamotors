@@ -12,8 +12,8 @@ import {
  * process, not marketing content). Four steps shown as a timeline:
  * icon - line - icon on desktop, a vertical timeline on mobile. The icons
  * are monoline outlines (see outline-icons.tsx).
- * OWNER_FACT_REQUIRED: the owner should confirm these steps match how
- * units are actually sold (notably steps 3 and 4).
+ * OWNER_APPROVED (R1A): the four-step structure is locked by the Owner and
+ * stays code-owned (no CMS editing).
  */
 const STEPS: Array<{
   title: string;

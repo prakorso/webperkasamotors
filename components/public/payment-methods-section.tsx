@@ -14,7 +14,7 @@ import {
  * business has confirmed. The three methods are peers (no "recommended"
  * plan, no pricing-tier styling) and share the monoline outline family
  * with "Cara Pembelian".
- * OWNER_FACT_REQUIRED: the owner should confirm Cash Tempo wording.
+ * OWNER_APPROVED (R1A): the Cash Tempo wording below is the Owner's final text.
  */
 const METHODS: Array<{
   title: string;
@@ -29,7 +29,7 @@ const METHODS: Array<{
   {
     title: "Cash Tempo",
     description:
-      "Pembayaran dilakukan sesuai kesepakatan antara pembeli dan Perkasa Motors dalam periode pembayaran yang disepakati.",
+      "Pembayaran dilakukan secara bertahap dalam periode dan nominal yang disepakati antara pembeli dan Perkasa Motors.",
     Icon: CalendarCoinOutlineIcon,
   },
   {
