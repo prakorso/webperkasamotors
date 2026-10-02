@@ -81,7 +81,7 @@ export function Hero({
   const headlineLines = headline.split("\n").filter(Boolean);
 
   return (
-    <section className="relative flex w-full flex-col overflow-hidden bg-graphite xl:h-[82svh] xl:min-h-[680px] xl:flex-row xl:items-center xl:bg-ink">
+    <section className="relative flex w-full flex-col overflow-hidden bg-ink xl:h-[82svh] xl:min-h-[680px] xl:flex-row xl:items-center">
       {imageUrl ? (
         <div className="relative aspect-[3/2] w-full shrink-0 md:aspect-[16/10] lg:aspect-[2/1] xl:absolute xl:inset-0 xl:aspect-auto">
           <Image
@@ -99,7 +99,7 @@ export function Hero({
           <div className="absolute inset-x-0 bottom-0 hidden h-32 bg-gradient-to-t from-ink/60 to-transparent xl:block" />
           {/* Tablet/mobile only: a restrained tonal bridge so the photo settles
               into the content surface instead of ending on a hard edge. */}
-          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-graphite/70 to-transparent xl:hidden" />
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-ink/70 to-transparent xl:hidden" />
         </div>
       ) : (
         <>
@@ -137,7 +137,7 @@ export function Hero({
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "lg" }),
                   // Secondary action (outlined, restrained, never as dominant as
-                  // the solid red primary). Below xl it sits on the graphite
+                  // the solid red primary). Below xl it sits on the dark (ink)
                   // surface with a visible border and a faint fill so it reads
                   // as an intentional button; full width on mobile, auto from
                   // md. From xl (the approved desktop overlay) it is exactly

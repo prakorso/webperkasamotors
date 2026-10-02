@@ -111,7 +111,7 @@ export function HeroSlideshow({
       // itself is a fixed-height overlay (82svh); below xl its height comes
       // from its content (image block + text), so the grid cell grows with
       // the tallest slide and nothing is clipped.
-      className="relative w-full overflow-hidden bg-graphite xl:bg-ink"
+      className="relative w-full overflow-hidden bg-ink"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}

@@ -1,0 +1,47 @@
+PERKASA MOTORS - HERO SURFACE COLOR REVERT ONLY
+
+STATUS: PASS
+
+BASE: origin/main 5765bd9274066ea92e488155a8c9e87cc99d9a8a
+BRANCH: fix/hero-surface-black (isolated worktree .claude/worktrees/hero-surface-black)
+
+FILES CHANGED:
+- components/public/hero.tsx
+    section surface below xl: bg-graphite -> bg-ink (desktop xl:bg-ink no longer needed, same color)
+    image-to-content transition gradient: from-graphite/70 -> from-ink/70
+    one code comment updated
+- components/public/hero-slideshow.tsx
+    slideshow wrapper: bg-graphite xl:bg-ink -> bg-ink
+
+HERO SURFACE: REVERTED
+  Tablet/mobile content surface computed color: rgb(17, 19, 21) = ink #111315, the previous approved black
+  (was graphite rgb(35, 39, 41)). Verified at 1024, 768, 390.
+
+DESKTOP HERO: UNCHANGED
+  1440: surface rgb(17, 19, 21), hero height 738px, headline 68px, primary 191x52 (156x52 slide 2),
+  secondary 289x52 transparent with 1px border at 60% - identical to current production.
+
+WHATSAPP CTA OUTLINE: PRESERVED
+  Below xl: 1px border at 55% paper, 7% paper fill, full width 342px at 390, height 52 - identical to production.
+  Primary CTA unchanged (solid red, same size).
+
+UNCHANGED: CTA labels and destinations, hierarchy, spacing, layout structure, image ratios
+(3:2 / 16:10 / 2:1 / desktop full-bleed), carousel timing and controls, homepage order, all other pages.
+
+VALIDATION:
+  npm run lint: PASS
+  npx next typegen: PASS
+  npx tsc --noEmit: PASS
+  npm run build: PASS (26 routes)
+
+BROWSER QA (production build, both live hero slides): PASS
+  1440: desktop overlay unchanged
+  1024: stacked, image block 1009x505, 0 CTA/controls/headline overlap with image
+  768:  stacked, image block 753x471, 0 overlap
+  390:  stacked, image block 390x260, 0 overlap, black surface, outlined WhatsApp CTA visible
+  No horizontal overflow at any width. 0 console errors (browser-extension runtime.lastError noise excluded).
+
+NO DATABASE CHANGE
+NO CMS CHANGE
+NO DEPLOY
+NO MERGE (branch pushed for review only)
