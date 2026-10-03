@@ -44,17 +44,17 @@ Source audits: `docs/reports/measurement-foundation-r0-audit.md` (event taxonomy
 - **API (client):** `getConsentStatus()`, `setConsentStatus()`, `subscribeToConsent()` (also reacts to other tabs via the `storage` event), `openPrivacySettings()` (dispatches `perkasa:open-privacy-settings`), `googleConsentState(status)` (the Consent Mode mapping).
 - **Version bump:** if purposes or vendors change materially, increment `CONSENT_VERSION`. Old choices then read as "no choice" and the bar re-asks.
 - **UI:** `components/public/consent-banner.tsx`. A compact bottom bar on the public layout only. "Tolak" and "Terima" have equal weight. While it is open it sets `--consent-offset`, used for body padding and the mobile sticky vehicle CTA offset, so it never permanently covers content. Reopened from the footer "Pengaturan Privasi" (`components/public/privacy-settings-button.tsx`) and from `/privacy`. When reopened it shows the current choice, focuses its title, closes on Esc and returns focus.
-- **Notice:** `/privacy` (`app/(public)/privacy/page.tsx`). It is factual and names no unconfirmed legal entity, address, retention period or legal basis. **Update it in R1B** (it currently says the analytics/ads services are not yet active).
+- **Notice:** `/privacy` (`app/(public)/privacy/page.tsx`). It is factual and names no unconfirmed legal entity, address, retention period or legal basis. Updated in R1B to describe the live behavior (GA4/Meta after consent, Google Consent Mode signals when denied).
 
-### R1B loader contract (implemented — `components/public/measurement-loader.tsx`)
+### R1B loader contract (implemented and verified live — `components/public/measurement-loader.tsx`)
 
-1. Before GTM loads: `window.dataLayer = window.dataLayer || []; gtag('consent', 'default', { ...googleConsentState(null), wait_for_update: 500 })`.
-2. Immediately after: if `getConsentStatus()` is set, `gtag('consent', 'update', googleConsentState(status))`.
-3. On every change (`subscribeToConsent`): `gtag('consent', 'update', …)`.
-4. The GTM container script loads via `next/script` (`strategy="afterInteractive"`), gated a second time inside the script itself on `window.location.hostname === MEASUREMENT_HOSTNAME`, and only rendered at all when `NEXT_PUBLIC_GTM_ID` is set.
-5. **Meta Pixel** is a GTM tag (Custom HTML or the Meta template), not app code — it must not load at all until `status === "accepted"` (Meta has no Consent-Mode equivalent that prevents `_fbp`). Configure its GTM trigger with an additional consent check on `ad_storage` (or a custom consent type) granted. On a later "Tolak", stop firing; the cookie set earlier remains until it expires (document this in the notice).
-6. GA4 tags fire only with `analytics_storage` granted (GTM's built-in Google consent check, no extra configuration needed). Advanced consent mode (cookieless pings) is **not** used unless the Owner decides otherwise. Use basic mode: no Google tag loads before acceptance.
-7. **page_view** is not app code at all — GTM's own History Change trigger (patches `pushState`/`replaceState`/`popstate`, which Next.js App Router's client navigation uses natively) plus a GA4 event tag is the single mechanism. Do not add a manual route-change page_view in the app and do not rely on the GA4 Configuration tag's own automatic page_view (disable it) — see §39 of the production-release report for the exact GTM tag/trigger setup once the container exists.
+1. `consent default` (denied, `wait_for_update: 500`) and the replay of a stored "accepted" choice (`consent update`) are emitted by the **same inline script** that injects `gtm.js`, before the GTM snippet. A React effect is too late — Tag Assistant showed tags firing before consent in that case. `gtag` must push the `arguments` object, never an array.
+2. The inline script is rendered only when `NEXT_PUBLIC_GTM_ID` is set and re-checks `window.location.hostname === MEASUREMENT_HOSTNAME`.
+3. The component's effect handles later changes: on every `subscribeToConsent` change it pushes `gtag('consent','update', …)` and then the custom event `perkasa_consent_update`. GTM does not re-run an All Pages tag that was blocked by consent, so `Meta - Base` also fires on the `perkasa_consent_update` trigger. Its Custom HTML is guarded (`window.__pkInit`) so it initialises once.
+4. **Meta Pixel** is a GTM Custom HTML tag requiring additional consent `ad_storage`. With no choice or "Tolak" it never loads (`fbq` undefined, no `fbevents.js`). A cookie set earlier remains until it expires after a later "Tolak".
+5. **GA4** uses the Google tag with built-in consent checks (Consent Mode v2). With consent denied the Google tag may still send cookieless pings; this is stated in `/privacy`.
+6. **page_view:** GA4 uses the Google tag plus Enhanced measurement "Page views" (history-based). Meta uses the `Meta - PageView (SPA)` tag on the GTM History Change trigger. The app adds no manual page_view.
+7. `whatsapp_click` is a delegated click listener on `a[data-wa-location]` (dedupe 1s). `view_item` is pushed once per detail mount.
 
 ## 3. Placement and exclusions
 
@@ -69,7 +69,7 @@ Source audits: `docs/reports/measurement-foundation-r0-audit.md` (event taxonomy
 
 | Event | Trigger | GA4 | Meta | Key event |
 |---|---|---|---|---|
-| `page_view` | Every public page (GTM History Change trigger — zero app code, see §2.7 above) | Automatic | `PageView` | No |
+| `page_view` | Every public page (GA4 Enhanced measurement history-based; Meta via History Change tag — zero app code, see loader contract above) | Automatic | `PageView` | No |
 | `view_item` | Vehicle detail render, once per path (`components/public/view-item-tracker.tsx`) | Recommended | `ViewContent` (**AVAILABLE only** — configure the GTM trigger to require `vehicle_status = AVAILABLE`) | No |
 | `whatsapp_click` | Click on any `wa.me` CTA (10 canonical locations: `header`, `mobile_menu`, `hero`, `vehicle_card`, `catalogue_empty_state`, `payment_section`, `detail_inline`, `detail_sticky`, `detail_reserved`, `footer` — one delegated listener in `measurement-loader.tsx`) | Custom | `Contact` | **Yes** |
 | `select_item` | Vehicle card click | **Deferred** — not implemented in R1B (section 35: defer when it would complicate the release; core events took priority) | — | No |
@@ -85,13 +85,8 @@ Accidental rapid double-tap on the same CTA (same `cta_location` + `href` within
 
 **Future (Perkasa OS / CRM, not browser):** `conversation_started`, `lead_created`, `qualified_lead`, `site_visit`, `booking_created`, `vehicle_sold`.
 
-## 5. R1B remaining work (code is done; this is the live-account phase)
+## 5. R1B status
 
-1. Owner-held accounts: GTM container, GA4 property (Asia/Jakarta, IDR), Meta Pixel/dataset under the business's Business Manager, Search Console **Domain** property (DNS TXT on `perkasamotors.id`) — not yet created/discovered.
-2. Set `NEXT_PUBLIC_GTM_ID` in Netlify production env once the container exists. GA4 Measurement ID and Meta Pixel ID are GTM-side variables, never app env vars (GTM is the only tag-loading layer — see §8 of the R1B request).
-3. Build the GTM tags/triggers/variables themselves (GA4 config, `GA4 - Event - view_item`, `GA4 - Event - whatsapp_click` marked as a GA4 **Key Event**, `Meta - Base`, `Meta - ViewContent`, `Meta - Contact`, the History Change page_view tag) — none of this is app code.
-4. Office IP list for the GA4 internal-traffic filter (optional, deferred until supplied).
-5. Update `/privacy` copy from "not yet active" to the live description once the above is actually verified firing in production — not before (section 47: never claim activation that hasn't been confirmed).
-6. QA once the container exists: GTM Preview/Tag Assistant, GA4 DebugView, Meta Test Events, both consent states, the host gate, `/admin` exclusion, 1440/768/390.
+Live and verified in production: GTM container `GTM-5B2CG228` (published version "Perkasa Motors Measurement Foundation R1"), GA4 `G-XLBH4NP844`, Meta dataset `2546559625844473`, Search Console domain property for `perkasamotors.id`. See `docs/reports/measurement-foundation-r1b-production-release.md` for evidence and open items.
 
-**Already done (this file, code-verified):** CTAs instrumented with `data-wa-*` attributes plus one delegated listener (zero visible UI change — confirmed via local SSR HTML diff and a live consent-flow browser pass); `item_id` confirmed as `vehicle.stockNumber`; `lint` / `tsc --noEmit` / `next build` / `npm audit --omit=dev` all pass.
+Deferred: `select_item`, `vehicle_gallery_open`, GA4 internal-traffic filter (needs an office IP list), marking `whatsapp_click` as a GA4 key event (GA4 lists an event only after it has been processed, up to 24h), and a live RESERVED / empty-catalogue check (no such data exists on the live site).

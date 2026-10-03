@@ -78,20 +78,27 @@ export default async function PrivacyPage() {
         <section>
           <h2>Analitik dan iklan</h2>
           <p>
-            {company} berencana menggunakan layanan berikut untuk memahami cara situs digunakan (misalnya
-            halaman yang dilihat dan klik tombol WhatsApp) serta mengukur efektivitas iklan:
+            {company} menggunakan layanan berikut untuk memahami cara situs digunakan (misalnya halaman
+            yang dilihat, unit yang dibuka, dan klik tombol WhatsApp) serta mengukur efektivitas iklan:
           </p>
           <ul>
             <li>Google Tag Manager dan Google Analytics (Google)</li>
             <li>Meta Pixel (Meta)</li>
           </ul>
           <p>
-            Layanan ini hanya diaktifkan jika Anda memilih <strong className="text-ink">Terima</strong>.
-            Jika Anda memilih <strong className="text-ink">Tolak</strong> atau belum memilih, layanan ini
-            tidak dimuat. Saat aktif, layanan tersebut dapat memasang cookie (misalnya _ga atau _fbp) dan
-            memproses data perangkat serta penggunaan situs sesuai kebijakan privasi Google dan Meta.
+            Cookie dan pengukuran Google Analytics serta Meta Pixel hanya diaktifkan jika Anda memilih{" "}
+            <strong className="text-ink">Terima</strong>. Jika Anda memilih{" "}
+            <strong className="text-ink">Tolak</strong> atau belum memilih, Meta Pixel tidak dimuat dan
+            cookie analitik atau iklan tidak dipasang. Google Tag Manager tetap dimuat dan Google dapat
+            menerima sinyal agregat tanpa cookie (Consent Mode) yang tidak memakai penanda perangkat. Saat
+            aktif, layanan tersebut dapat memasang cookie (misalnya _ga atau _fbp) dan memproses data
+            perangkat serta penggunaan situs sesuai kebijakan privasi Google dan Meta.
           </p>
-          <p>Pada tanggal pembaruan di atas, layanan analitik dan iklan tersebut belum aktif di situs ini.</p>
+          <p>
+            Klik tombol WhatsApp dicatat sebagai niat menghubungi saja, bersama informasi unit yang sedang
+            dilihat. Nomor telepon, isi pesan, dan percakapan WhatsApp Anda tidak dikirim ke layanan
+            analitik atau iklan.
+          </p>
         </section>
 
         <section>
