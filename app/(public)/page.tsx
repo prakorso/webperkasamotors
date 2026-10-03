@@ -138,6 +138,7 @@ export default async function HomePage() {
                 vehicle={vehicle}
                 primaryMedia={primaryMedia}
                 whatsapp={whatsappConfig}
+                listContext="home_available"
               />
             ))}
           </div>
@@ -151,6 +152,7 @@ export default async function HomePage() {
                 variant="secondary"
                 size="md"
                 ariaLabel="Tanyakan unit yang akan datang lewat WhatsApp"
+                tracking={{ location: "catalogue_empty_state", context: "generic" }}
               />
             )}
           </div>
@@ -204,6 +206,7 @@ export default async function HomePage() {
                   vehicle={vehicle}
                   primaryMedia={primaryMedia}
                   whatsapp={whatsappConfig}
+                  listContext="home_sold"
                 />
               ))}
             </div>

@@ -65,6 +65,7 @@ export function VehicleCatalogue({
                   vehicle={vehicle}
                   primaryMedia={mediaByVehicleId[vehicle.id]}
                   whatsapp={whatsapp}
+                  listContext="catalogue_available"
                 />
               ))}
             </div>
@@ -80,6 +81,7 @@ export function VehicleCatalogue({
                 variant="secondary"
                 size="md"
                 ariaLabel="Tanyakan unit yang akan datang lewat WhatsApp"
+                tracking={{ location: "catalogue_empty_state", context: "generic" }}
               />
             )}
           </div>
@@ -104,6 +106,7 @@ export function VehicleCatalogue({
                 vehicle={vehicle}
                 primaryMedia={mediaByVehicleId[vehicle.id]}
                 whatsapp={whatsapp}
+                listContext="catalogue_sold"
               />
             ))}
           </div>

@@ -22,6 +22,8 @@ import { VehicleCard } from "./vehicle-card";
 import { WhatsAppCta } from "./whatsapp-cta";
 import { MobileVehicleCta } from "./mobile-vehicle-cta";
 import { SectionHeading } from "./section-heading";
+import { ViewItemTracker } from "./view-item-tracker";
+import { vehicleTrackingFields } from "@/lib/measurement/events";
 
 /**
  * Real inventory highlights currently run 15–27 items (raw seller ad-copy
@@ -101,6 +103,7 @@ export function VehicleDetail({
 
   return (
     <div className="relative mx-auto max-w-[var(--container-max)] px-6 py-10 md:px-8 lg:px-margin lg:py-16">
+      <ViewItemTracker vehicle={vehicle} />
       <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-8 lg:grid-cols-12 lg:gap-14">
         <div className="md:col-span-1 lg:col-span-6">
           <VehicleGallery media={mediaWithAlt} />
@@ -146,6 +149,7 @@ export function VehicleDetail({
                     size="lg"
                     className="h-auto min-h-13 w-full whitespace-normal py-3 text-center sm:w-auto"
                     ariaLabel={`Tanya ${title} lewat WhatsApp`}
+                    tracking={{ location: "detail_inline", context: "vehicle", ...vehicleTrackingFields(vehicle) }}
                   />
                 ) : (
                   <Link
@@ -189,6 +193,8 @@ export function VehicleDetail({
                   label="Tanya Unit Lain"
                   className="min-h-13 w-full text-center sm:w-auto"
                   ariaLabel="Tanya unit lain yang tersedia lewat WhatsApp"
+                  // Generic inquiry, not tied to this exact (RESERVED) unit — section 29.
+                  tracking={{ location: "detail_reserved", context: "generic", vehicleStatus: vehicle.status }}
                 />
               ) : (
                 <Link
@@ -238,6 +244,7 @@ export function VehicleDetail({
                 vehicle={related}
                 primaryMedia={primaryMedia}
                 whatsapp={whatsapp}
+                listContext="related"
               />
             ))}
           </div>
@@ -251,6 +258,7 @@ export function VehicleDetail({
             href={whatsappHref}
             price={formattedPrice}
             vehicleTitle={title}
+            vehicle={vehicle}
           />
         </>
       )}

@@ -106,6 +106,8 @@ export function MobileNav({ links, cta, ctaWhatsAppHref }: MobileNavProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setOpen(false)}
+                  data-wa-location="mobile_menu"
+                  data-wa-context="generic"
                   className="mt-4 flex h-11 items-center justify-center gap-2 rounded-[12px] border border-primary bg-primary font-body text-label font-semibold uppercase tracking-[0.06em] text-primary-ink shadow-[0_10px_24px_rgba(215,25,32,0.16)] transition-colors duration-200 hover:border-primary-hover hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                 >
                   <WhatsappIcon size={14} aria-hidden="true" />

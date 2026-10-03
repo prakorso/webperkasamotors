@@ -204,6 +204,8 @@ export async function SiteFooter() {
                       rel="noopener noreferrer"
                       aria-label={`Chat lewat WhatsApp: ${footer.whatsapp}`}
                       title="Chat lewat WhatsApp"
+                      data-wa-location="footer"
+                      data-wa-context="generic"
                       className="mt-5 inline-flex min-h-12 items-center gap-3 rounded-[12px] bg-primary px-5 font-body text-primary-ink shadow-[0_10px_28px_rgba(215,25,32,0.18)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-primary-hover hover:shadow-[0_14px_32px_rgba(169,15,21,0.24)] active:translate-y-px"
                     >
                       <WhatsappIcon size={17} aria-hidden="true" />

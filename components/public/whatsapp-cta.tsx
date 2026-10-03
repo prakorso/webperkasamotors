@@ -1,6 +1,22 @@
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { WhatsappIcon } from "@/components/icons/social-icons";
+import type { CtaLocation, CtaContext, ListContext } from "@/lib/measurement/events";
+import type { VehicleStatus } from "@/lib/types";
+
+/** Measurement context for the single delegated whatsapp_click listener (components/public/measurement-loader.tsx) — never destination number or message text, see lib/measurement/events.ts. */
+interface WhatsAppTracking {
+  location: CtaLocation;
+  context: CtaContext;
+  listContext?: ListContext;
+  itemId?: string;
+  itemName?: string;
+  itemBrand?: string;
+  itemCategory?: string;
+  itemVariant?: string;
+  vehicleStatus?: VehicleStatus;
+  value?: number;
+}
 
 interface WhatsAppCtaProps {
   /** Pre-built wa.me URL — see lib/utils/whatsapp.ts:buildWhatsAppUrl. Render nothing when that returns null. */
@@ -12,6 +28,7 @@ interface WhatsAppCtaProps {
   className?: string;
   /** Accessible name; defaults to `label`. Pass when the visible text needs more context (e.g. which vehicle). */
   ariaLabel?: string;
+  tracking: WhatsAppTracking;
 }
 
 /**
@@ -21,6 +38,10 @@ interface WhatsAppCtaProps {
  * desktop — no JS, no window.open. Styled with the shared buttonVariants
  * so it matches every other CTA on the site (focus ring, tap target,
  * icon alignment all come from there).
+ *
+ * `tracking` renders as data-wa-* attributes read by the one delegated
+ * click listener in components/public/measurement-loader.tsx — this
+ * component itself has no click handler and no analytics import.
  */
 export function WhatsAppCta({
   href,
@@ -29,6 +50,7 @@ export function WhatsAppCta({
   size = "lg",
   className,
   ariaLabel,
+  tracking,
 }: WhatsAppCtaProps) {
   return (
     <a
@@ -37,6 +59,16 @@ export function WhatsAppCta({
       rel="noopener noreferrer"
       aria-label={ariaLabel ?? label}
       className={cn(buttonVariants({ variant, size }), className)}
+      data-wa-location={tracking.location}
+      data-wa-context={tracking.context}
+      data-wa-list-context={tracking.listContext}
+      data-item-id={tracking.itemId}
+      data-item-name={tracking.itemName}
+      data-item-brand={tracking.itemBrand}
+      data-item-category={tracking.itemCategory}
+      data-item-variant={tracking.itemVariant}
+      data-vehicle-status={tracking.vehicleStatus}
+      data-value={tracking.value}
     >
       <WhatsappIcon size={16} aria-hidden="true" />
       {label}

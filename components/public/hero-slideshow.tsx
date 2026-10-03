@@ -133,6 +133,7 @@ export function HeroSlideshow({
               {...slide}
               priority={i === 0}
               whatsappHref={whatsappHref}
+              heroSlideIndex={i}
               textClassName={i === safeIndex ? textInClass : textOutClass}
             />
           </div>

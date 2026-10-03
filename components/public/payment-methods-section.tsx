@@ -71,6 +71,7 @@ export function PaymentMethodsSection({
             label="Tanyakan Mekanisme Pembayaran"
             variant="secondary"
             className="h-auto min-h-13 whitespace-normal py-3 text-center"
+            tracking={{ location: "payment_section", context: "payment" }}
           />
         </div>
       )}

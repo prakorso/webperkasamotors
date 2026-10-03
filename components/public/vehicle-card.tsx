@@ -4,6 +4,7 @@ import type { Vehicle, VehicleMedia } from "@/lib/types";
 import { formatIDR, formatMileage, vehicleMediaAlt, vehicleTitle } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/badge";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
+import { vehicleTrackingFields, type ListContext } from "@/lib/measurement/events";
 import {
   vehicleWhatsAppUrl,
   genericVehicleWhatsAppUrl,
@@ -22,6 +23,8 @@ interface VehicleCardProps {
   primaryMedia?: VehicleMedia;
   /** When provided, the card shows a direct WhatsApp CTA built from live vehicle data ("Saya Tertarik" for AVAILABLE, generic "Tanya Unit Lain" for RESERVED). SOLD cards never show a WhatsApp CTA. Omit to render a link-only card. */
   whatsapp?: VehicleWhatsAppConfig;
+  /** Which list this card is rendered in — carried on the card's whatsapp_click as list_context (section 24: optional context). */
+  listContext?: ListContext;
 }
 
 /**
@@ -31,7 +34,7 @@ interface VehicleCardProps {
  * the outer wrapper so the image hover-zoom / border still respond across
  * the whole card.
  */
-export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProps) {
+export function VehicleCard({ vehicle, primaryMedia, whatsapp, listContext }: VehicleCardProps) {
   const basePath = vehicle.vehicleType === "CAR" ? "/cars" : "/motorcycles";
   const detailHref = `${basePath}/${vehicle.slug}`;
   // AVAILABLE = acquisition state → the normal per-vehicle CTA. RESERVED
@@ -151,6 +154,12 @@ export function VehicleCard({ vehicle, primaryMedia, whatsapp }: VehicleCardProp
               isAvailable
                 ? `Tanya ${vehicleTitle(vehicle)} lewat WhatsApp`
                 : "Tanya unit lain yang tersedia lewat WhatsApp"
+            }
+            tracking={
+              isAvailable
+                ? { location: "vehicle_card", context: "vehicle", listContext, ...vehicleTrackingFields(vehicle) }
+                // RESERVED: a generic "ask about other units" message, never tied to this exact unit (section 29) — no item identity sent.
+                : { location: "vehicle_card", context: "generic", listContext, vehicleStatus: vehicle.status }
             }
           />
         </div>

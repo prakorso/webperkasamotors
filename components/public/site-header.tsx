@@ -103,6 +103,8 @@ export async function SiteHeader() {
                 href={ctaWhatsAppHref}
                 target="_blank"
                 rel="noopener noreferrer"
+                data-wa-location="header"
+                data-wa-context="generic"
                 className="flex h-11 items-center gap-2 rounded-[12px] border border-primary bg-primary px-6 font-body text-label font-semibold uppercase tracking-[0.06em] text-primary-ink shadow-[0_10px_24px_rgba(215,25,32,0.16)] transition-[background-color,border-color,box-shadow,transform] duration-200 hover:border-primary-hover hover:bg-primary-hover hover:shadow-[0_14px_30px_rgba(169,15,21,0.2)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary active:translate-y-px"
               >
                 <WhatsappIcon size={14} aria-hidden="true" />

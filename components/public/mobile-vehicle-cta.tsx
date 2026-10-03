@@ -2,17 +2,21 @@
 
 import { useEffect, useRef } from "react";
 import { WhatsAppCta } from "./whatsapp-cta";
+import { vehicleTrackingFields } from "@/lib/measurement/events";
+import type { Vehicle } from "@/lib/types";
 
 interface MobileVehicleCtaProps {
   href: string;
   price: string;
   vehicleTitle: string;
+  vehicle: Vehicle;
 }
 
 export function MobileVehicleCta({
   href,
   price,
   vehicleTitle,
+  vehicle,
 }: MobileVehicleCtaProps) {
   const ctaRef = useRef<HTMLElement>(null);
 
@@ -90,6 +94,7 @@ export function MobileVehicleCta({
           size="md"
           className="min-h-11 min-w-0 flex-1 px-4 text-center"
           ariaLabel={`Tanya ${vehicleTitle} lewat WhatsApp`}
+          tracking={{ location: "detail_sticky", context: "vehicle", ...vehicleTrackingFields(vehicle) }}
         />
       </div>
     </aside>

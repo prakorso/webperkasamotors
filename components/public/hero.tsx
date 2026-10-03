@@ -72,11 +72,14 @@ export function Hero({
   priority = true,
   textClassName,
   whatsappHref,
+  heroSlideIndex,
 }: HeroContent & {
   priority?: boolean;
   textClassName?: string;
   /** Optional secondary "Tanya via WhatsApp" action (generic message). Omitted when no usable WhatsApp number is configured. */
   whatsappHref?: string | null;
+  /** Set only by HeroSlideshow (2–3 slides) — carried on the CTA as hero_slide_index. Omitted for the single-hero/DEFAULT_HERO case, where it doesn't apply. */
+  heroSlideIndex?: number;
 }) {
   const headlineLines = headline.split("\n").filter(Boolean);
 
@@ -134,6 +137,9 @@ export function Hero({
                 href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
+                data-wa-location="hero"
+                data-wa-context="generic"
+                data-wa-hero-slide-index={heroSlideIndex}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "lg" }),
                   // Secondary action (outlined, restrained, never as dominant as
