@@ -49,6 +49,8 @@ export function MeasurementLoader() {
 
     const unsubscribe = subscribeToConsent(() => {
       gtag("consent", "update", googleConsentState(getConsentStatus()));
+      // GTM does not re-run an All Pages tag that was blocked by consent; this event lets consent-gated tags (Meta - Base) start after acceptance.
+      window.dataLayer!.push({ event: "perkasa_consent_update" });
     });
 
     function onClick(event: MouseEvent) {
