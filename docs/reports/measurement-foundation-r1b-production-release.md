@@ -1,9 +1,9 @@
 # Perkasa Motors — Measurement Foundation R1B: Production Release Report
 
-Final commit: `bdcec88` on `main` (base `73386ed`). GTM container published as "Perkasa Motors Measurement Foundation R1" (Version 2). Status: **PARTIAL — production behavior verified, three items open (see AH, AJ).**
+Production code commit: `87d0645` on `main` (base `73386ed`); no code changed during the final asynchronous verification. GTM container published as "Perkasa Motors Measurement Foundation R1" (Version 2). Status: **PASS — all externally verifiable gates verified; two paths are code-verified only (see U, AH, AJ).**
 
 ## A. Executive summary
-GTM, GA4, Meta Pixel and Search Console are configured and live on perkasamotors.id. Consent Mode v2 (default denied) gates GA4 and Meta. `view_item` and `whatsapp_click` are verified end to end in production. Open items: `whatsapp_click` is not yet marked as a GA4 key event (GA4 has not processed the event into its list), Meta dataset Overview showed no activity yet (up to 30 minutes), and RESERVED / empty-catalogue / responsive viewports were not verified live.
+GTM, GA4, Meta Pixel and Search Console are configured and live on perkasamotors.id. Consent Mode v2 (default denied) gates GA4 and Meta. `view_item` and `whatsapp_click` are verified end to end in production. In the final verification GA4 listed `whatsapp_click` and it was marked as a key event (confirmed after reload), Meta Events Manager showed PageView, Contact and View content active with no Lead or Purchase, ACCEPT→REJECT was verified in production, and responsive smoke QA passed at 1440, 768 and 390. `detail_reserved` and `catalogue_empty_state` remain code-verified because live data does not expose them.
 
 ## B. macOS environment
 macOS (Darwin 25.6.0), Chrome driven by browser automation; Owner signed in only (Google, Meta, Netlify, Hostinger).
@@ -51,7 +51,7 @@ Verified live in production with payload audit; intent only, no Lead/Purchase ev
 `select_item` and `vehicle_gallery_open` deferred.
 
 ## Q. GA4 key event
-**Not done.** The GA4 Events list is empty until events are processed (up to 24h), and a key event cannot be created by name in the current UI. Only Google's default `purchase` key event exists. Action: after GA4 lists `whatsapp_click`, star it in Admin → Events. DebugView already shows `whatsapp_click`.
+**PASS.** After GA4 processed the events, Admin → Events → Recent events listed `first_visit`, `page_view`, `scroll`, `session_start`, `user_engagement`, `view_item`, `whatsapp_click` for the `perkasamotors.id` stream. `whatsapp_click` was starred (confirmation toast shown) and the Key events tab, after a full reload, lists `whatsapp_click` (with stream data) plus Google's default `purchase` ("No stream data detected"). No custom event was created and no tag or trigger was changed. Only `whatsapp_click` was marked.
 
 ## R. Meta PageView
 Verified by wrapping `fbq` on the published container: PageView on load and on each route change, only after consent.
@@ -69,15 +69,15 @@ Fired once per `whatsapp_click` with cta params and vehicle content; no phone nu
 | mobile_menu | verified live (menu opened via DOM; viewport not resized) |
 | hero | verified live (`hero_slide_index` present) |
 | vehicle_card | verified live (`home_available`, `related`) |
-| catalogue_empty_state | code only — no empty catalogue on live data |
+| catalogue_empty_state | CODE VERIFIED (`vehicle-catalogue.tsx`, `app/(public)/page.tsx`) — live catalogue does not expose it; not manufactured |
 | payment_section | verified live |
 | detail_inline | verified live |
 | detail_sticky | verified live |
-| detail_reserved | code only — no RESERVED unit on live data |
+| detail_reserved | CODE VERIFIED (`vehicle-detail.tsx`) — no RESERVED unit exists; not manufactured |
 | footer | verified live |
 
 ## V. Consent QA
-Verified in production: NO CHOICE (no `fbq`, no `fbevents.js`); REJECT (consent update denied, no `fbq`); ACCEPT (`fbq` defined, Meta - Base fires once); REJECT→ACCEPT (Meta loads); persisted choice restored after reload. Bugs found and fixed during QA: gtag array vs `arguments`; consent default emitted too late; blocked All Pages tag not re-run after acceptance (`perkasa_consent_update`). ACCEPT→REJECT was verified in the earlier local pass only. Note: GTM caches `gtm.js` briefly, so a tab opened right after publishing can run the previous container for a short time.
+Verified in production: NO CHOICE (no `fbq`, no `fbevents.js`); REJECT (consent update denied, no `fbq`); ACCEPT (`fbq` defined, Meta - Base fires once); REJECT→ACCEPT (Meta loads); persisted choice restored after reload. Bugs found and fixed during QA: gtag array vs `arguments`; consent default emitted too late; blocked All Pages tag not re-run after acceptance (`perkasa_consent_update`). ACCEPT→REJECT verified in production in the final pass: while accepted, a WhatsApp click produced one `fbq('track','Contact')`; after choosing "Tolak" (stored status `rejected`), route changes, a `view_item` and a WhatsApp click still reached the dataLayer but produced **zero** `fbq` calls. Note: GTM caches `gtm.js` briefly, so a tab opened right after publishing can run the previous container for a short time.
 
 ## W. Tag Assistant QA
 Connected to production in preview mode. Confirmed tags fired: GA4 Google tag, GA4 view_item, GA4 whatsapp_click, Meta Base, Meta PageView (SPA), Meta ViewContent, Meta Contact; no tag unexpectedly fired in NO CHOICE.
@@ -86,7 +86,7 @@ Connected to production in preview mode. Confirmed tags fired: GA4 Google tag, G
 DebugView showed `whatsapp_click`, `page_view`, `view_item`, `first_visit`, `session_start`, `user_engagement` from production; realtime showed an active user in Indonesia.
 
 ## Y. Meta Test Events QA
-The Test events website flow did not display a live feed in this session, and the dataset Overview showed no activity yet. Instead the `fbq` calls were recorded from the page (see R/S/T): PageView, ViewContent (AVAILABLE only) and Contact, with no Lead and no Purchase. Events Manager receipt is therefore **not yet confirmed**; recheck the dataset Overview after processing.
+**PASS.** The Test events live feed did not display in this session, so Events Manager receipt was verified from the dataset Overview instead: PageView (21, Active), Contact (7, Active), View content (6, Active), all via the Meta pixel; no other events (no Lead, no Purchase) are listed. View content shows parameters (value, currency and others). Events Manager does not break View content down by vehicle status; AVAILABLE-only is established by the client-side `fbq` log (ViewContent for AVAILABLE, none for the SOLD page) and the GTM trigger guard `vehicle_status === 'AVAILABLE'`.
 
 ## Z. Search Console verification
 Verified via DNS TXT.
@@ -98,7 +98,7 @@ Submitted as `https://perkasamotors.id/sitemap.xml` (the relative path was rejec
 Audited dataLayer pushes and `fbq` calls: no plate number, phone number, WhatsApp text, staff or auth identity. The `/privacy` page states that WhatsApp clicks are intent only.
 
 ## AC. Responsive QA
-**Not verified.** The browser automation could not change the viewport (it stayed at 1470px). The change adds only data attributes, a non-rendering component and the existing consent bar.
+**PASS at 1440, 768 and 390 (smoke).** The automation browser window cannot change its viewport, so each width was tested with a same-origin iframe of that exact width on a local production build of `87d0645` (`next start`, localhost, tracking host-gated off). Not a real-device or production-host test; the code is identical to production. Results for home and a vehicle detail page: no horizontal overflow at any width; consent banner visible and pinned to the bottom. At 390 (and 360) the mobile sticky CTA is hidden while the decision area is visible, fixed to the bottom once it scrolls away, docked above the footer, hidden at the page bottom, and sits directly above the open consent banner with no overlap. At 768 and above the sticky CTA is intentionally not shown (`md:hidden`). Hero, vehicle card, payment and footer WhatsApp CTAs are present in the layouts. No visual screenshot review was performed.
 
 ## AD. Security audit
 `npm audit --omit=dev`: 0 vulnerabilities. `npm audit`: 6 existing highs in the dev tooling chain; not fixed, per instruction. No `npm audit fix`, no Next/eslint-config-next downgrade.
@@ -113,10 +113,10 @@ Project `webperkasamotors`, branch main. `b287af8` showed Published; the `bdcec8
 See M–Y for evidence. `/privacy` now says the services are active after consent and that Google Consent Mode may send cookieless signals when consent is denied; the cookieless claim is supported by a `g/collect` request seen with no choice, but cookie contents could not be read by the tool.
 
 ## AH. Deferred items
-`select_item`, `vehicle_gallery_open`; GA4 internal-traffic filter (needs office IPs); GA4 key event for `whatsapp_click`; Meta Events Manager receipt check; RESERVED, empty-catalogue and 1440/768/390 live checks.
+`select_item`, `vehicle_gallery_open`; GA4 internal-traffic filter (needs office IPs). `detail_reserved` and `catalogue_empty_state` stay code-verified until the live data exposes them.
 
 ## AI. Future R2 / OS measurement
 CRM-side events (`conversation_started`, `lead_created`, `qualified_lead`, `site_visit`, `booking_created`, `vehicle_sold`) belong to the future Perkasa OS, not the browser.
 
 ## AJ. Final verdict
-**PARTIAL.** Container published, consent gating and the core events verified in production. Not claimed as PASS because the GA4 key event, Events Manager receipt, RESERVED/empty-state and responsive checks are still open.
+**PASS.** Container published; consent gating (NO CHOICE, REJECT, ACCEPT, REJECT→ACCEPT, ACCEPT→REJECT) and the core events verified in production; GA4 key event set and confirmed; Meta Events Manager received only PageView, Contact and ViewContent; responsive smoke QA passed. Caveats: responsive QA used iframe viewports on a local build; ViewContent AVAILABLE-only is proven client-side rather than by an Events Manager breakdown; two CTA paths are code-verified by design.
