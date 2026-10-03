@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState, useSyncExternalStore } from "react";
+import { ChevronDown } from "lucide-react";
 import { WhatsappIcon } from "@/components/icons/social-icons";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -32,7 +33,17 @@ function useCurrentYear(): number | null {
 }
 
 const selectClass =
-  "h-11 w-full rounded-[12px] border border-border bg-surface px-3 font-body text-body text-ink shadow-[0_1px_0_rgba(17,19,21,0.02)] transition-[border-color,box-shadow] duration-200 focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+  "h-11 w-full min-w-0 appearance-none rounded-[12px] border border-border bg-surface pl-4 pr-10 font-body text-body text-ink shadow-[0_1px_0_rgba(17,19,21,0.02)] transition-[border-color,box-shadow] duration-200 focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
+/** Native <select> whose chevron is drawn inside its own wrapper, so the arrow can never drift outside the control the way the browser-drawn one can on narrow screens. */
+function SelectShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative min-w-0">
+      {children}
+      <ChevronDown size={16} aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted" />
+    </div>
+  );
+}
 
 function FieldLabel({ htmlFor, children, optional }: { htmlFor: string; children: React.ReactNode; optional?: boolean }) {
   return (
@@ -112,11 +123,11 @@ export function SellVehicleForm({ whatsappNumber, companyName }: SellVehicleForm
       onSubmit={handleSubmit}
       noValidate
       aria-label="Formulir penawaran kendaraan"
-      className="space-y-6 rounded-[20px] border border-border bg-surface p-5 shadow-[0_18px_50px_rgba(17,19,21,0.06)] md:p-8"
+      className="space-y-6 rounded-[20px] border border-border bg-surface p-4 shadow-[0_18px_50px_rgba(17,19,21,0.06)] sm:p-6 md:p-8"
     >
       <fieldset aria-describedby={errorFor("vehicleType") ? id("type-msg") : undefined}>
         <legend className="mb-2 font-body text-[13px] font-semibold text-ink">Jenis Kendaraan</legend>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
           {(
             [
               ["CAR", "Mobil"],
@@ -144,7 +155,7 @@ export function SellVehicleForm({ whatsappNumber, companyName }: SellVehicleForm
         <FieldMessage id={id("type-msg")} error={errorFor("vehicleType")} />
       </fieldset>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
           <FieldLabel htmlFor={id("brand")}>Merek</FieldLabel>
           <Input
@@ -226,7 +237,8 @@ export function SellVehicleForm({ whatsappNumber, companyName }: SellVehicleForm
       ).map(([field, label, monthKey, yearKey]) => (
         <fieldset key={field} aria-describedby={errorFor(field) ? id(`${field}-msg`) : undefined}>
           <legend className="mb-2 font-body text-[13px] font-semibold text-ink">{label}</legend>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+            <SelectShell>
             <select
               aria-label={`${label}: bulan`}
               name={monthKey}
@@ -243,6 +255,8 @@ export function SellVehicleForm({ whatsappNumber, companyName }: SellVehicleForm
                 </option>
               ))}
             </select>
+            </SelectShell>
+            <SelectShell>
             <select
               aria-label={`${label}: tahun`}
               name={yearKey}
@@ -259,6 +273,7 @@ export function SellVehicleForm({ whatsappNumber, companyName }: SellVehicleForm
                 </option>
               ))}
             </select>
+            </SelectShell>
           </div>
           <FieldMessage id={id(`${field}-msg`)} error={errorFor(field)} />
         </fieldset>
@@ -307,22 +322,22 @@ export function SellVehicleForm({ whatsappNumber, companyName }: SellVehicleForm
           aria-invalid={errorFor("notes") ? true : undefined}
           aria-describedby={`${id("notes-msg")} ${id("notes-count")}`}
         />
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <FieldMessage
             id={id("notes-msg")}
             error={errorFor("notes")}
             hint="Tuliskan kondisi tambahan atau minus kendaraan jika ada, misalnya lecet, bekas perbaikan, modifikasi, kondisi interior, atau hal lain yang perlu diketahui."
           />
-          <p id={id("notes-count")} className="mt-2 shrink-0 font-body text-[13px] tabular-nums text-muted">
+          <p id={id("notes-count")} className="mt-1 shrink-0 self-end font-body text-[13px] tabular-nums text-muted sm:mt-2 sm:self-auto">
             {cleanText(values.notes).length}/{SELL_LIMITS.maxNotesLength}
           </p>
         </div>
       </div>
 
       <div className="border-t border-border pt-6">
-        <Button type="submit" size="lg" className="h-auto min-h-[3.25rem] w-full whitespace-normal px-5 py-3 text-center sm:w-auto sm:whitespace-nowrap sm:px-8" disabled={!canSubmit} aria-describedby={id("cta-hint")}>
+        <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={!canSubmit} aria-describedby={id("cta-hint")}>
           <WhatsappIcon size={16} aria-hidden="true" />
-          Tawarkan Kendaraan via WhatsApp
+          Tawarkan Kendaraan
         </Button>
         <p id={id("cta-hint")} className="mt-3 font-body text-[13px] leading-snug text-muted">
           {!hasDestination

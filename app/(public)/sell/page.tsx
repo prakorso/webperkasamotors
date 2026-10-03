@@ -42,7 +42,7 @@ export default async function SellPage() {
       <section aria-labelledby="sell-heading" className="px-6 pb-10 pt-12 md:px-8 lg:px-margin lg:pb-14 lg:pt-16">
         <div className="mx-auto max-w-3xl">
           <p className="mb-3 font-body text-label uppercase tracking-[0.06em] text-primary">Jual Kendaraan</p>
-          <h1 id="sell-heading" className="font-display text-headline-lg text-ink lg:text-display-sm">
+          <h1 id="sell-heading" className="text-balance font-display text-headline-lg text-ink lg:text-display-sm">
             Mau Jual Mobil atau Motor?
           </h1>
           <p className="mt-4 font-body text-body-lg text-muted">
