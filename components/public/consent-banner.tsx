@@ -101,9 +101,9 @@ export function ConsentBanner() {
             Privasi Anda
           </p>
           <p className="font-body text-[13px] leading-relaxed text-muted lg:mt-1">
-            Kami memakai cookie analitik dan iklan (Google dan Meta)
-            <span className="hidden md:inline"> untuk memahami penggunaan situs dan mengukur iklan</span>{" "}
-            hanya jika Anda memilih Terima.{" "}
+            Kami menggunakan cookie untuk membantu website bekerja lebih baik, memahami cara pengunjung
+            menggunakan situs, dan meningkatkan kenyamanan pengalaman Anda. Data tambahan hanya digunakan
+            jika Anda memilih “Terima”.{" "}
             <Link href="/privacy" className="font-medium text-ink underline underline-offset-2 hover:text-primary">
               Kebijakan Privasi
             </Link>
