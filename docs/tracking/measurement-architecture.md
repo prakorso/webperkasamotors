@@ -71,7 +71,7 @@ Source audits: `docs/reports/measurement-foundation-r0-audit.md` (event taxonomy
 |---|---|---|---|---|
 | `page_view` | Every public page (GA4 Enhanced measurement history-based; Meta via History Change tag — zero app code, see loader contract above) | Automatic | `PageView` | No |
 | `view_item` | Vehicle detail render, once per path (`components/public/view-item-tracker.tsx`) | Recommended | `ViewContent` (**AVAILABLE only** — configure the GTM trigger to require `vehicle_status = AVAILABLE`) | No |
-| `whatsapp_click` | Click on any `wa.me` CTA (10 canonical locations: `header`, `mobile_menu`, `hero`, `vehicle_card`, `catalogue_empty_state`, `payment_section`, `detail_inline`, `detail_sticky`, `detail_reserved`, `footer` — one delegated listener in `measurement-loader.tsx`) | Custom | `Contact` | **Yes** |
+| `whatsapp_click` | Click on any `wa.me` CTA, or a valid `/sell` form submit (11 canonical locations: `header`, `mobile_menu`, `hero`, `vehicle_card`, `catalogue_empty_state`, `payment_section`, `detail_inline`, `detail_sticky`, `detail_reserved`, `sell_form`, `footer` — one delegated listener in `measurement-loader.tsx`; `sell_form` is fired from the form submit handler, see event-taxonomy.md) | Custom | `Contact` | **Yes** |
 | `select_item` | Vehicle card click | **Deferred** — not implemented in R1B (section 35: defer when it would complicate the release; core events took priority) | — | No |
 | `vehicle_gallery_open` | Lightbox open | **Deferred** — not implemented in R1B (section 36, same reasoning) | — | No |
 

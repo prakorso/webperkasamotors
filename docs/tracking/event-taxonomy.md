@@ -39,7 +39,7 @@ Deduped: the same `cta_location` + `href` within 1 second is treated as one acci
 
 | Param | Always present | Source |
 |---|---|---|
-| `cta_location` | yes | one of the 10 canonical locations below |
+| `cta_location` | yes | one of the 11 canonical locations below |
 | `cta_context` | yes | `generic` \| `vehicle` \| `payment` \| `sell_vehicle` |
 | `page_type` | yes | derived from `window.location.pathname` **at click time** (`inferPageType`), never a static prop |
 | `hero_slide_index` | hero, 2–3 slide case only | `HeroSlideshow`'s `activeIndex` at render |
@@ -50,7 +50,7 @@ Deduped: the same `cta_location` + `href` within 1 second is treated as one acci
 
 **Never sent:** destination phone number, full `wa.me` URL, prefilled message text, plate number, staff/auth identity.
 
-### CTA location matrix (all 10 canonical locations)
+### CTA location matrix (all 11 canonical locations)
 
 | `cta_location` | `cta_context` | Component | Vehicle fields? | Notes |
 |---|---|---|---|---|
@@ -63,7 +63,7 @@ Deduped: the same `cta_location` + `href` within 1 second is treated as one acci
 | `detail_inline` | `vehicle` | `vehicle-detail.tsx` via `WhatsAppCta` | yes | AVAILABLE only (RESERVED/SOLD render different blocks) |
 | `detail_sticky` | `vehicle` | `mobile-vehicle-cta.tsx` via `WhatsAppCta` | yes | Mobile-only, AVAILABLE only |
 | `detail_reserved` | `generic` | `vehicle-detail.tsx` via `WhatsAppCta` | no (status only) | "Tanya Unit Lain" — same generic-message rule as the RESERVED card |
-| `sell_form` | `sell_vehicle` | `sell-vehicle-form.tsx` (submit handler → `trackWhatsAppClick`, then `window.open`) | no | `/sell` "Tawarkan Kendaraan via WhatsApp". Fired only after the form validates. Not an `<a>`: the generated wa.me URL (which contains the visitor's entries) is never placed in a link, so automatic outbound-click measurement cannot read it. Sends only `cta_location`, `cta_context`, `page_type` — no form value, message or URL. Maps to the existing `whatsapp_click` → Meta `Contact`; no Lead/Purchase. |
+| `sell_form` | `sell_vehicle` | `sell-vehicle-form.tsx` (submit handler → `trackWhatsAppClick`, then `window.open`) | no | `/sell` "Tawarkan Kendaraan". Fired only after the form validates. Not an `<a>`: the generated wa.me URL (which contains the visitor's entries) is never placed in a link, so automatic outbound-click measurement cannot read it. Sends only `cta_location`, `cta_context`, `page_type` — no form value, message or URL. Maps to the existing `whatsapp_click` → Meta `Contact`; no Lead/Purchase. |
 | `footer` | `generic` | `site-footer.tsx` (raw `<a>`) | no | |
 
 ### `page_type` vocabulary
