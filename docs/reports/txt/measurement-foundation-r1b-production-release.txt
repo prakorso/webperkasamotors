@@ -1,134 +1,122 @@
-# Perkasa Motors — Measurement Foundation R1B: Production Release Report
+Perkasa Motors — Measurement Foundation R1B: Production Release Report
 
-**Result: PARTIAL.** Code implementation is complete, tested, and ready: the GTM/consent loader, the `view_item` and `whatsapp_click` data-layer events, and instrumentation of all 10 canonical WhatsApp CTA locations are in place on `feature/measurement-foundation-r1b`, built from exact `origin/main` HEAD `73386ed78cbf86a336fd8e651e6999341e4acf25`. `lint`, `tsc --noEmit`, `next build` and `npm audit --omit=dev` all pass clean. **No live third-party asset exists yet** — GTM container, GA4 property, Meta dataset/pixel and the Search Console domain property have not been created or discovered, because that requires the Owner's sign-in/2FA in each service, which has not yet happened in this session. Nothing has been merged or deployed. No database, CMS or DNS write occurred.
+Final commit: bdcec88 on main (base 73386ed). GTM container published as "Perkasa Motors Measurement Foundation R1" (Version 2). Status: **PARTIAL — production behavior verified, three items open (see AH, AJ).**
 
----
+A. Executive summary
+GTM, GA4, Meta Pixel and Search Console are configured and live on perkasamotors.id. Consent Mode v2 (default denied) gates GA4 and Meta. view_item and whatsapp_click are verified end to end in production. Open items: whatsapp_click is not yet marked as a GA4 key event (GA4 has not processed the event into its list), Meta dataset Overview showed no activity yet (up to 30 minutes), and RESERVED / empty-catalogue / responsive viewports were not verified live.
 
-## A. Executive summary
-R1B's application-code scope — the GTM/consent loader, the two in-scope data-layer events (`view_item`, `whatsapp_click`), and CTA instrumentation across the whole public site — is done, locally verified (lint/typecheck/build/audit all pass, plus a live consent-flow and host-gate browser pass), and committed to a feature branch. The two optional events (`select_item`, `vehicle_gallery_open`) were deliberately deferred per the task's own instruction to prioritize a clean core release. The live-account phase (GTM/GA4/Meta/Search Console creation or discovery, DNS TXT, GTM tag configuration, GTM Preview/GA4 DebugView/Meta Test Events QA, production go-live) has not started — it requires your sign-in in each service, which I cannot do without you.
+B. macOS environment
+macOS (Darwin 25.6.0), Chrome driven by browser automation; Owner signed in only (Google, Meta, Netlify, Hostinger).
 
-## B. macOS environment
-Darwin, zsh, `npm` toolchain. Worktree: `.claude/worktrees/measurement-foundation-r1b`, branch `feature/measurement-foundation-r1b`.
+C. Base/main SHA
+Base 73386ed. Main did not move during the work. Final bdcec88 pushed by fast-forward.
 
-## C. Base/main SHA
-`origin/main` HEAD at start and throughout: `73386ed78cbf86a336fd8e651e6999341e4acf25` (matches the known R1A baseline). Working tree was clean before branching.
+D. Assets discovered
+Meta business portfolio "Perkasa Group" (1077754063409145) with ad account "Perkasa Motors" (3655740518078857) and Facebook page "Perkasa Motors Group". Netlify project webperkasamotors (custom domain perkasamotors.id). Hostinger DNS for the domain.
 
-## D. Assets discovered
-None yet — third-party account discovery (GTM, GA4, Meta Business Portfolio, Search Console) requires browser sign-in that has not happened this session.
+E. Assets created/reused
+Created: GTM account "Perkasa Motors" (6380342885) and container GTM-5B2CG228 (265978212); GA4 account 410474557, property 557215091, stream 15991036236; Meta dataset "Perkasa Motors" 2546559625844473 (connected to the existing ad account); Search Console domain property. Reused: Meta portfolio, ad account, page.
 
-## E. Assets created/reused
-None yet, for the same reason. The codebase's own measurement foundation from R1A (`lib/measurement/consent.ts`, `lib/measurement/host.ts`, `components/public/consent-banner.tsx`) was reused as-is, exactly as instructed — no reimplementation, only wiring.
+F. GTM configuration
+Tags: GA4 - Configuration / Google Tag (Initialization), GA4 - Event - view_item, GA4 - Event - whatsapp_click, Meta - Base (All Pages + perkasa_consent_update, idempotent via window.__pkInit), Meta - PageView (SPA) (History Change), Meta - ViewContent (fires only when vehicle_status === 'AVAILABLE'), Meta - Contact. All Meta tags require ad_storage. Triggers: Custom Event view_item, Custom Event whatsapp_click, Custom Event perkasa_consent_update, History Change. 15 Data Layer Variables. Published as Version 2; the live gtm.js contains the GA4 and Meta IDs and no Lead/Purchase.
 
-## F. GTM configuration
-Not yet built (requires the live container). The app side is ready for it: `components/public/measurement-loader.tsx` injects the GTM container script via `next/script` (`afterInteractive`), gated on `NEXT_PUBLIC_GTM_ID` being set *and* `window.location.hostname === "perkasamotors.id"` (checked both in the effect and inside the injected snippet itself). With no `NEXT_PUBLIC_GTM_ID`, the component renders nothing — confirmed: zero `googletagmanager.com` references in the built homepage HTML.
+G. GA4 property/stream
+Property 557215091, stream 15991036236, Measurement ID G-XLBH4NP844; Asia/Jakarta, IDR. Enhanced measurement: page views, scrolls, outbound clicks on; site search, forms, video, file downloads off.
 
-## G. GA4 property/stream
-Not yet created. Recommended values (Asia/Jakarta timezone, IDR currency, stream `https://perkasamotors.id`) are documented in `docs/tracking/measurement-architecture.md` §5, unchanged from the R1A plan.
+H. Meta Dataset/Pixel
+Dataset/Pixel 2546559625844473 ("Perkasa Motors").
 
-## H. Meta Dataset/Pixel
-Not yet created. Per the task's own architecture rule, GTM is the only tag-loading layer — Meta Pixel will be a GTM tag (Custom HTML or the Meta template) with a consent-gated trigger, not app code. Nothing to implement here beyond what's already in the loader.
+I. Search Console
+Domain property perkasamotors.id, verified with one DNS TXT record added at Hostinger; no other DNS record changed.
 
-## I. Search Console
-Not yet started. DNS TXT verification requires Hostinger access, not yet attempted in this session.
+J. Consent integration
+First-party consent (perkasa_cookie_consent, version 1). Default denied and stored-"accepted" replay are emitted by the same inline script that injects gtm.js; later changes push consent update and perkasa_consent_update.
 
-## J. Consent integration
-Fully implemented, reusing the R1A `lib/measurement/consent.ts` and `consent-banner.tsx` unchanged. `MeasurementLoader`'s effect, in order: establish `window.dataLayer`, push Google Consent Mode v2 `default` (all four signals denied, `wait_for_update: 500`), replay the stored choice as a `consent update` if one exists, subscribe to future changes (`subscribeToConsent`) and push `consent update` on each — before the GTM script is ever injected.
+K. Loader architecture
+components/public/measurement-loader.tsx, mounted only from app/(public)/layout.tsx. GTM is the only tag layer. Details: docs/tracking/measurement-architecture.md.
 
-## K. Loader architecture
-Single mount point, `components/public/measurement-loader.tsx`, rendered once as the last child of `app/(public)/layout.tsx`. One effect does consent/dataLayer setup and runs the one delegated `whatsapp_click` listener; one conditionally-rendered `<Script>` loads GTM. No direct `gtag()`/`fbq()` calls anywhere in app code — GA4 and Meta are entirely GTM-side configuration once the container exists.
+L. Host/admin exclusion
+Loader and script are gated to perkasamotors.id; localhost, previews and netlify.app produce no dataLayer activity; /admin has no consent bar or data-wa markup. (localhost and /admin verified in the earlier local pass; the netlify.app/preview gate is code-level, not separately exercised in production.)
 
-## L. Host/admin exclusion
-Triple-checked: (1) `MeasurementLoader`'s effect returns immediately if `!isMeasurementHost(hostname)`, so dataLayer/consent setup never runs off-host; (2) the injected GTM snippet re-checks the hostname itself; (3) `pushDataLayerEvent` (`lib/measurement/events.ts`) checks a third time, so `view_item`/`whatsapp_click` can never reach `dataLayer` even if called directly. `/admin` never mounts `MeasurementLoader` at all (separate route group) — verified live: `/admin/login` renders zero `data-wa-*` attributes and no consent banner.
+M. page_view architecture
+GA4: Google tag plus Enhanced measurement history-based page views. Meta: Meta - PageView (SPA) on History Change. Verified: one Meta PageView per route change (4 PageViews across 4 route changes in the wrapped-fbq test).
 
-## M. page_view architecture
-Zero app code. Per the task's own SPA-safety rule (exactly one mechanism), `page_view` is GTM's History Change trigger + a GA4 event tag, to be configured once the container exists — Next.js App Router's client navigation uses the native History API, which GTM's trigger patches automatically. The GA4 Configuration tag's own automatic page_view must be disabled when that tag is built, documented in `docs/tracking/measurement-architecture.md` §2.7.
+N. view_item
+Verified live: AVAILABLE and SOLD detail pages push one view_item each with a clean payload (item_id, name, brand, category, variant, price, currency IDR, vehicle_status, vehicle_year).
 
-## N. view_item
-`components/public/view-item-tracker.tsx`, mounted once inside `VehicleDetail` (covers both `/cars/[slug]` and `/motorcycles/[slug]`). Fires once per mount via a `useRef` guard inside `useEffect` (survives React Strict Mode's dev-only double-invoke; a real navigation to a different vehicle remounts the component). Fires for AVAILABLE, RESERVED and SOLD alike, per the task's instruction that GA4 is used for behavioral analysis across all statuses. Parameters match §18 of the request exactly: `currency=IDR`, `value`, `vehicle_status`, `vehicle_year`, and an `items[]` array with `item_id` = `stockNumber`, `item_name`, `item_brand`, `item_category`, `item_variant`, `price`.
+O. whatsapp_click
+Verified live in production with payload audit; intent only, no Lead/Purchase events.
 
-## O. whatsapp_click
-One delegated `click` listener in `MeasurementLoader`, matching `a[data-wa-location]` anywhere in the document — never `preventDefault`, so WhatsApp navigation is untouched. All 10 canonical CTA locations are instrumented (full matrix in §U below and in `docs/tracking/event-taxonomy.md`). Same-CTA-same-href clicks within 1 second are deduplicated without blocking navigation. `page_type` is computed from `window.location.pathname` at click time (not a static prop), since the header/footer never remount across client-side navigations in this App Router layout — a prop would have gone stale.
+P. Optional events
+select_item and vehicle_gallery_open deferred.
 
-## P. Optional events
-`select_item` and `vehicle_gallery_open` — **deferred**, not implemented, per the task's own §35/§36 instruction to prioritize a clean core release over optional scope. `list_context` values are already wired into `whatsapp_click`'s `vehicle_card` events using the exact vocabulary a future `select_item` would reuse (`home_available`, `home_sold`, `catalogue_available`, `catalogue_sold`, `related`).
+Q. GA4 key event
+**Not done.** The GA4 Events list is empty until events are processed (up to 24h), and a key event cannot be created by name in the current UI. Only Google's default purchase key event exists. Action: after GA4 lists whatsapp_click, star it in Admin → Events. DebugView already shows whatsapp_click.
 
-## Q. GA4 key event
-Code-side: nothing marks a dataLayer event as a GA4 Key Event — that's GA4 account configuration, to be done once the property exists. Documented as a required step (`docs/tracking/measurement-architecture.md` §5.3): `whatsapp_click` must be marked a Key Event in GA4; `view_item` must not.
+R. Meta PageView
+Verified by wrapping fbq on the published container: PageView on load and on each route change, only after consent.
 
-## R. Meta PageView
-Not yet configured (GTM-side, pending the container/dataset). Architecturally: a GTM tag firing on the same History Change trigger as GA4's page_view, consent-gated on `ad_storage`/`ad_user_data` granted.
+S. Meta ViewContent
+Fired for AVAILABLE only (CAR-0001); not fired for the SOLD page.
 
-## S. Meta ViewContent
-Not yet configured (GTM-side). Documented requirement: fire only when `vehicle_status === "AVAILABLE"` (the `view_item` dataLayer push already carries `vehicle_status`, so the GTM trigger condition is a direct field match — no app-code change needed to support this).
+T. Meta Contact
+Fired once per whatsapp_click with cta params and vehicle content; no phone number or WhatsApp text.
 
-## T. Meta Contact
-Not yet configured (GTM-side). Maps 1:1 from every `whatsapp_click` push; no separate app-side work needed.
+U. Full WhatsApp CTA matrix
+| Location | Status |
+|---|---|
+| header | verified live |
+| mobile_menu | verified live (menu opened via DOM; viewport not resized) |
+| hero | verified live (hero_slide_index present) |
+| vehicle_card | verified live (home_available, related) |
+| catalogue_empty_state | code only — no empty catalogue on live data |
+| payment_section | verified live |
+| detail_inline | verified live |
+| detail_sticky | verified live |
+| detail_reserved | code only — no RESERVED unit on live data |
+| footer | verified live |
 
-## U. Full WhatsApp CTA matrix (10/10 instrumented)
-| `cta_location` | `cta_context` | File | Vehicle fields |
-|---|---|---|---|
-| `header` | `generic` | `components/public/site-header.tsx` | no |
-| `mobile_menu` | `generic` | `components/public/mobile-nav.tsx` | no |
-| `hero` | `generic` | `components/public/hero.tsx` (+ `hero_slide_index` from `hero-slideshow.tsx`) | no |
-| `vehicle_card` | `vehicle` (AVAILABLE) / `generic` (RESERVED) | `components/public/vehicle-card.tsx` | AVAILABLE only |
-| `catalogue_empty_state` | `generic` | `vehicle-catalogue.tsx` + homepage empty state | no |
-| `payment_section` | `payment` | `components/public/payment-methods-section.tsx` | no |
-| `detail_inline` | `vehicle` | `components/public/vehicle-detail.tsx` | yes |
-| `detail_sticky` | `vehicle` | `components/public/mobile-vehicle-cta.tsx` | yes |
-| `detail_reserved` | `generic` | `components/public/vehicle-detail.tsx` | no |
-| `footer` | `generic` | `components/public/site-footer.tsx` | no |
+V. Consent QA
+Verified in production: NO CHOICE (no fbq, no fbevents.js); REJECT (consent update denied, no fbq); ACCEPT (fbq defined, Meta - Base fires once); REJECT→ACCEPT (Meta loads); persisted choice restored after reload. Bugs found and fixed during QA: gtag array vs arguments; consent default emitted too late; blocked All Pages tag not re-run after acceptance (perkasa_consent_update). ACCEPT→REJECT was verified in the earlier local pass only. Note: GTM caches gtm.js briefly, so a tab opened right after publishing can run the previous container for a short time.
 
-Verified by inspecting rendered SSR HTML (`npm run build && npm run start`, `curl`) on the homepage and a live vehicle detail page: correct `data-wa-*`/`data-item-*` attributes at every location, no PII, no destination number or message text in any attribute.
+W. Tag Assistant QA
+Connected to production in preview mode. Confirmed tags fired: GA4 Google tag, GA4 view_item, GA4 whatsapp_click, Meta Base, Meta PageView (SPA), Meta ViewContent, Meta Contact; no tag unexpectedly fired in NO CHOICE.
 
-## V. Consent QA
-Live browser pass (production build, local server, Chrome automation):
-- **NO CHOICE:** `localStorage.perkasa_cookie_consent` is `null` on first load; banner visible with Tolak/Terima equal weight. PASS.
-- **ACCEPT:** clicking Terima writes `{"status":"accepted","version":1,...}`; banner closes. PASS.
-- **ACCEPT → REJECT:** reopening via "Pengaturan Privasi" and clicking Tolak flips the stored value to `{"status":"rejected",...}`. PASS.
-- **REJECT (persists)** and **REJECT → ACCEPT** were not separately re-exercised as distinct browser passes in this session — they run through the identical `setConsentStatus`/`subscribeToConsent` code path already exercised by the two transitions above, so I treat them as implied passes, not independently observed ones. Flagging this distinction rather than claiming a verification that didn't happen.
-- Since `NEXT_PUBLIC_GTM_ID` is unset, there is no live Google/Meta tag to observe network/cookie behavior against yet — that QA (§13/§33 of the request) happens once the container exists.
+X. GA4 DebugView QA
+DebugView showed whatsapp_click, page_view, view_item, first_visit, session_start, user_engagement from production; realtime showed an active user in Indonesia.
 
-## W. Tag Assistant QA
-Not run — no live GTM container exists yet.
+Y. Meta Test Events QA
+The Test events website flow did not display a live feed in this session, and the dataset Overview showed no activity yet. Instead the fbq calls were recorded from the page (see R/S/T): PageView, ViewContent (AVAILABLE only) and Contact, with no Lead and no Purchase. Events Manager receipt is therefore **not yet confirmed**; recheck the dataset Overview after processing.
 
-## X. GA4 DebugView QA
-Not run — no live GA4 property exists yet. Code-level equivalent verified instead: on localhost, `window.dataLayer` stayed `undefined` after clicking a WhatsApp CTA (confirming the host gate suppresses the push, exactly as required for non-production hosts) and no console errors occurred.
+Z. Search Console verification
+Verified via DNS TXT.
 
-## Y. Meta Test Events QA
-Not run — no live Meta dataset/pixel exists yet.
+AA. Sitemap submission
+Submitted as https://perkasamotors.id/sitemap.xml (the relative path was rejected).
 
-## Z. Search Console verification
-Not started.
+AB. PII/payload audit
+Audited dataLayer pushes and fbq calls: no plate number, phone number, WhatsApp text, staff or auth identity. The /privacy page states that WhatsApp clicks are intent only.
 
-## AA. Sitemap submission
-Not started (depends on Z).
+AC. Responsive QA
+**Not verified.** The browser automation could not change the viewport (it stayed at 1470px). The change adds only data attributes, a non-rendering component and the existing consent bar.
 
-## AB. PII/payload audit
-Every `tracking`/`data-wa-*` call site was inspected: only `stockNumber`, `brand`, `model`, `variant`, `price`, `status`, `vehicleType` ever flow into tracking attributes (via `vehicleTrackingFields()`), matching the `VehicleTrackingFields` type exactly — no field for plate number, visitor identity, WhatsApp number, message text, or any Supabase/admin identifier exists on that type, so none can leak. Confirmed in rendered HTML: CTA `href` values (the existing `wa.me` links, unchanged by this work) still carry the prefilled message as before — R1B's own dataLayer parameters never duplicate that text.
+AD. Security audit
+npm audit --omit=dev: 0 vulnerabilities. npm audit: 6 existing highs in the dev tooling chain; not fixed, per instruction. No npm audit fix, no Next/eslint-config-next downgrade.
 
-## AC. Responsive QA
-**Not fully verified.** Desktop viewport (browser default) was checked live with no console errors and correct consent/CTA behavior. Attempts to force the browser to 390/768 widths via the automation tool's resize call did not actually change `window.innerWidth` in this session (environment limitation, not a code issue) — I did not get a real mobile-viewport screenshot this round. Risk assessment: every R1B change is either a `data-*`/`aria`-invisible attribute or a new prop on an existing component with no rendering effect (`vehicle` on `MobileVehicleCta`, `heroSlideIndex` on `Hero`) — no new DOM element, no new CSS class, no layout change anywhere in the diff. I'm not claiming this QA passed; I'm reporting that I could not run it and explaining why I don't expect a regression.
+AE. Git / merge
+Commits: f6d90a6, 17bd81b, 5e6390e, 9be9268, b287af8, bdcec88. Fast-forward pushes only; no rebase/squash/force push. Main was unchanged at the final divergence check. lint, tsc --noEmit and next build pass on bdcec88.
 
-## AD. Security audit
-`npm audit --omit=dev`: **0 vulnerabilities**. Full `npm audit`: **6 high**, all in the pre-existing dev-only chain (`brace-expansion` → `braces` → `micromatch` → `fast-glob` → `@next/eslint-plugin-next` → `eslint-config-next`), unchanged by this work, not fixed (per explicit instruction not to run `npm audit fix`/`--force` or downgrade Next.js/eslint-config-next).
+AF. Netlify deploy
+Project webperkasamotors, branch main. b287af8 showed Published; the bdcec88 deploy is confirmed by the new /privacy copy being served from perkasamotors.id.
 
-## AE. Git / merge
-Branch `feature/measurement-foundation-r1b` created from exact `origin/main` HEAD `73386ed`, in worktree `.claude/worktrees/measurement-foundation-r1b`. Not yet committed as of this report (see §AJ) — commit happens immediately after this report is written, per the task's own sequencing (§57 commit, before §59 pre-merge `git fetch` + reconciliation check). **Not merged.**
+AG. Production QA
+See M–Y for evidence. /privacy now says the services are active after consent and that Google Consent Mode may send cookieless signals when consent is denied; the cookieless claim is supported by a g/collect request seen with no choice, but cookie contents could not be read by the tool.
 
-## AF. Netlify deploy
-Not attempted — nothing has been merged to `main`.
+AH. Deferred items
+select_item, vehicle_gallery_open; GA4 internal-traffic filter (needs office IPs); GA4 key event for whatsapp_click; Meta Events Manager receipt check; RESERVED, empty-catalogue and 1440/768/390 live checks.
 
-## AG. Production QA
-Not attempted — nothing is deployed.
+AI. Future R2 / OS measurement
+CRM-side events (conversation_started, lead_created, qualified_lead, site_visit, booking_created, vehicle_sold) belong to the future Perkasa OS, not the browser.
 
-## AH. Deferred items
-- `select_item`, `vehicle_gallery_open` — optional, deferred per the task's own instruction (§P above).
-- GA4 internal-traffic IP filter — deferred, no stable office IP supplied.
-- Full responsive QA at 390/768 — not completable in this session (automation limitation); risk assessed as low (§AC).
-- Everything in §D–I, §Q–AA, §Z–AG — the entire live-account phase, blocked on your sign-in to Google Tag Manager, Google Analytics, Meta Business, Google Search Console, and (if DNS access is needed) Hostinger.
-
-## AI. Future R2 / OS measurement
-Unchanged from the architecture doc: `conversation_started`, `lead_created`, `qualified_lead`, `site_visit`, `booking_created`, `vehicle_sold` belong to a future Perkasa OS/CRM, never to browser tracking. Nothing in this release implements or approximates them.
-
-## AJ. Final verdict
-**PARTIAL.** The application code for R1B is complete, locally verified, and ready to merge once you're comfortable with it — but I'm holding the actual merge/production-deploy step, and everything that requires live third-party credentials, until you've had a chance to look at this. The next action is yours to unblock: either confirm you want me to proceed into the live-account phase (at which point I'll need you to sign in to GTM/GA4/Meta/Search Console as each comes up — I'll never ask for your password or OTP), or review the branch first.
+AJ. Final verdict
+**PARTIAL.** Container published, consent gating and the core events verified in production. Not claimed as PASS because the GA4 key event, Events Manager receipt, RESERVED/empty-state and responsive checks are still open.
