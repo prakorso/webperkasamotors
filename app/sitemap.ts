@@ -1,38 +1,29 @@
 import type { MetadataRoute } from "next";
-import { getVehiclesByType } from "@/lib/data/vehicles";
-import { getAllPublishedArticleSlugs } from "@/lib/data/articles";
+import { getSitemapVehicles } from "@/lib/data/vehicles";
+import { getSitemapArticles } from "@/lib/data/articles";
+import { absoluteUrl } from "@/lib/site-url";
 
-// See app/layout.tsx for why this fallback is the production URL, not localhost.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://webperkasamotors.netlify.app";
-
+/**
+ * lastModified is only emitted where a truthful timestamp exists: each
+ * vehicle's and article's trigger-maintained updated_at. Listing pages and
+ * the privacy notice have no such timestamp, so they omit it rather than
+ * claiming "modified now" on every request.
+ */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [cars, motorcycles, articleSlugs] = await Promise.all([
-    getVehiclesByType("CAR"),
-    getVehiclesByType("MOTORCYCLE"),
-    getAllPublishedArticleSlugs(),
-  ]);
+  const [vehicles, articles] = await Promise.all([getSitemapVehicles(), getSitemapArticles()]);
 
-  const staticRoutes = [
-    "",
-    "/cars",
-    "/motorcycles",
-    "/articles",
-  ].map((path) => ({
-    url: `${siteUrl}${path}`,
-    lastModified: new Date(),
+  const staticRoutes = ["/", "/cars", "/motorcycles", "/articles", "/privacy"].map((path) => ({
+    url: absoluteUrl(path),
   }));
 
-  const vehicleRoutes = [
-    ...cars.map((v) => ({ url: `${siteUrl}/cars/${v.slug}`, lastModified: new Date() })),
-    ...motorcycles.map((v) => ({
-      url: `${siteUrl}/motorcycles/${v.slug}`,
-      lastModified: new Date(),
-    })),
-  ];
+  const vehicleRoutes = vehicles.map((v) => ({
+    url: absoluteUrl(`${v.vehicleType === "CAR" ? "/cars" : "/motorcycles"}/${v.slug}`),
+    lastModified: v.updatedAt,
+  }));
 
-  const articleRoutes = articleSlugs.map((slug) => ({
-    url: `${siteUrl}/articles/${slug}`,
-    lastModified: new Date(),
+  const articleRoutes = articles.map((a) => ({
+    url: absoluteUrl(`/articles/${a.slug}`),
+    lastModified: a.updatedAt,
   }));
 
   return [...staticRoutes, ...vehicleRoutes, ...articleRoutes];

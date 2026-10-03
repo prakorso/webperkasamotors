@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { PrivacySettingsButton } from "@/components/public/privacy-settings-button";
 import { getFooterSettings } from "@/lib/data/footer";
 import { applyPublicNavRules, getPublicNavRules, withCoreLinks } from "@/lib/data/public-nav";
 import {
@@ -217,22 +218,28 @@ export async function SiteFooter() {
 
         <div className="mt-6 flex flex-col gap-3 font-body text-[12px] text-paper/60 sm:flex-row sm:items-center sm:justify-between">
           <p>{copyrightStatement(footer.companyName, footer.copyrightText)}</p>
-          {footer.legalLinks.length > 0 && (
-            <ul className="flex flex-wrap gap-x-5 gap-y-2">
-              {footer.legalLinks.map((link) => (
-                <li key={link.id}>
-                  <Link
-                    href={link.href}
-                    target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "noopener noreferrer" : undefined}
-                    className="inline-flex min-h-10 items-center transition-colors hover:text-primary"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="flex flex-wrap gap-x-5 gap-y-2">
+            {footer.legalLinks.map((link) => (
+              <li key={link.id}>
+                <Link
+                  href={link.href}
+                  target={link.isExternal ? "_blank" : undefined}
+                  rel={link.isExternal ? "noopener noreferrer" : undefined}
+                  className="inline-flex min-h-10 items-center transition-colors hover:text-primary"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link href="/privacy" className="inline-flex min-h-10 items-center transition-colors hover:text-primary">
+                Kebijakan Privasi
+              </Link>
+            </li>
+            <li>
+              <PrivacySettingsButton className="inline-flex min-h-10 cursor-pointer items-center transition-colors hover:text-primary" />
+            </li>
+          </ul>
         </div>
       </div>
     </footer>

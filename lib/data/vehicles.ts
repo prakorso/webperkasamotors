@@ -11,7 +11,7 @@ import { getStoragePublicUrl } from "@/lib/storage/provider";
  * plain "server-only" reads (same reason as lib/actions/site-settings.ts
  * in Batch 2).
  *
- * The public functions (getFeaturedVehicles, getVehiclesByType,
+ * The public functions (getFeaturedVehicles, getSitemapVehicles,
  * getVehicleBySlug, getVehicleMedia, getRelatedVehicles) read via the
  * anon/publishable client — RLS (supabase/migrations/*_rls_policies.sql)
  * is what actually restricts what they can see.
@@ -209,18 +209,24 @@ export async function getHomepageSoldVehicles(limit = HOMEPAGE_SOLD_LIMIT): Prom
   return (data as unknown as VehicleRow[]).map(mapVehicleRow);
 }
 
-/** Every vehicle of a type, unpaginated — used by app/sitemap.ts, which needs full coverage, not one page. */
-export async function getVehiclesByType(type: VehicleType): Promise<Vehicle[]> {
+/** Every publicly visible vehicle (RLS-filtered), unpaginated, with its real last-edit time — used by app/sitemap.ts. */
+export async function getSitemapVehicles(): Promise<
+  Array<{ slug: string; vehicleType: VehicleType; updatedAt: string }>
+> {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("vehicles")
-    .select(VEHICLE_COLUMNS)
-    .eq("vehicle_type", type)
+    .select("slug, vehicle_type, updated_at")
+    .order("vehicle_type", { ascending: true })
     .order("updated_at", { ascending: false })
     .order("id", { ascending: true });
 
-  if (error) throw new Error(`getVehiclesByType: ${error.message}`);
-  return (data as unknown as VehicleRow[]).map(mapVehicleRow);
+  if (error) throw new Error(`getSitemapVehicles: ${error.message}`);
+  return (data as unknown as Array<{ slug: string; vehicle_type: VehicleType; updated_at: string }>).map((r) => ({
+    slug: r.slug,
+    vehicleType: r.vehicle_type,
+    updatedAt: r.updated_at,
+  }));
 }
 
 export const VEHICLES_PER_PAGE = 10;

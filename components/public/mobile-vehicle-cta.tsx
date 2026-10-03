@@ -73,7 +73,7 @@ export function MobileVehicleCta({
       ref={ctaRef}
       hidden
       aria-label={`Kontak untuk ${vehicleTitle}`}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/90 bg-paper/95 shadow-[0_-10px_30px_rgba(17,19,21,0.1)] backdrop-blur-sm md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 [&.fixed]:bottom-[var(--consent-offset,0px)] border-t border-border/90 bg-paper/95 shadow-[0_-10px_30px_rgba(17,19,21,0.1)] backdrop-blur-sm md:hidden"
     >
       <div className="mx-auto flex max-w-[var(--container-max)] items-center gap-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
         <div className="min-w-0 shrink-0">

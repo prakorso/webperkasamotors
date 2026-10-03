@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/site-url";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArticleContent } from "@/components/public/article-content";
 import { getArticleBySlug, getArticleRedirectSlug } from "@/lib/data/articles";
-
-// See app/layout.tsx for why this fallback is the production URL, not localhost.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://webperkasamotors.netlify.app";
 
 function formatPublishedDate(iso: string | null): string | null {
   if (!iso) return null;
@@ -26,7 +24,7 @@ export async function generateMetadata(
 
   const title = article.seoTitle ?? article.title;
   const description = article.seoDescription ?? article.excerpt ?? undefined;
-  const canonicalUrl = `${siteUrl}/articles/${article.slug}`;
+  const canonicalUrl = absoluteUrl(`/articles/${article.slug}`);
 
   return {
     title,

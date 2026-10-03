@@ -25,7 +25,13 @@ import {
   vehicleWhatsAppConfig,
 } from "@/lib/utils/whatsapp";
 import { cn } from "@/lib/utils/cn";
+import type { Metadata } from "next";
 import type { HeroSlideSettings, Vehicle } from "@/lib/types";
+import { absoluteUrl } from "@/lib/site-url";
+
+export const metadata: Metadata = {
+  alternates: { canonical: absoluteUrl("/") },
+};
 
 /**
  * Unit Tersedia grid columns, keyed by how many units there actually are.

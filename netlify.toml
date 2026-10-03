@@ -1,0 +1,18 @@
+# Build settings stay in the Netlify UI (Next.js runtime auto-detected);
+# this file only adds the canonical-host redirect.
+#
+# https://perkasamotors.id is the only public host. The Netlify subdomain
+# permanently redirects there, keeping the path (:splat) and the query
+# string. Deploy previews and branch deploys use different hostnames
+# (deploy-preview-N--webperkasamotors.netlify.app) and are not matched.
+[[redirects]]
+  from = "https://webperkasamotors.netlify.app/*"
+  to = "https://perkasamotors.id/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://webperkasamotors.netlify.app/*"
+  to = "https://perkasamotors.id/:splat"
+  status = 301
+  force = true

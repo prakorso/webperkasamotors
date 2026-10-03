@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/site-url";
 import { notFound, permanentRedirect } from "next/navigation";
 import { VehicleDetail } from "@/components/public/vehicle-detail";
 import {
@@ -10,9 +11,6 @@ import {
 import { getWebsiteSettings } from "@/lib/data/site-settings";
 import { vehicleWhatsAppConfig } from "@/lib/utils/whatsapp";
 import { vehicleTitle, formatIDR } from "@/lib/utils/format";
-
-// See app/layout.tsx for why this fallback is the production URL, not localhost.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://webperkasamotors.netlify.app";
 
 /**
  * Automatic by default, per vehicle — seoTitle/seoDescription (existing
@@ -33,7 +31,7 @@ export async function generateMetadata(
   const title = vehicle.seoTitle ?? `${vehicleTitle(vehicle)} (${vehicle.year})`;
   const description =
     vehicle.seoDescription ?? `${vehicleTitle(vehicle)} (${vehicle.year}) — ${formatIDR(vehicle.price)} di Perkasa Motors.`;
-  const canonicalUrl = `${siteUrl}/cars/${vehicle.slug}`;
+  const canonicalUrl = absoluteUrl(`/cars/${vehicle.slug}`);
   const media = await getVehicleMedia(vehicle.id);
   const ogImage = media.find((m) => m.isPrimary)?.url ?? media[0]?.url;
 

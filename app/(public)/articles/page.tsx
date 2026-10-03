@@ -1,18 +1,27 @@
 import type { Metadata } from "next";
+import { cache } from "react";
+import { paginatedCanonical } from "@/lib/site-url";
 import { ArticleCard } from "@/components/public/article-card";
 import { Pagination } from "@/components/public/pagination";
 import { getPublishedArticles } from "@/lib/data/articles";
 
-export const metadata: Metadata = {
-  title: "Artikel",
-  description: "Artikel dari Perkasa Motors.",
-};
+// Shared by generateMetadata and the page; an out-of-range ?page= canonicalizes to the last real page.
+const loadArticles = cache((page: number) => getPublishedArticles(page));
+
+export async function generateMetadata(props: PageProps<"/articles">): Promise<Metadata> {
+  const { page, totalPages } = await loadArticles(Number((await props.searchParams)?.page) || 1);
+  return {
+    title: "Artikel",
+    description: "Artikel dari Perkasa Motors.",
+    alternates: { canonical: paginatedCanonical("/articles", Math.min(page, totalPages)) },
+  };
+}
 
 export default async function ArticlesPage(props: PageProps<"/articles">) {
   const searchParams = await props.searchParams;
   const requestedPage = Number(searchParams?.page) || 1;
 
-  const { articles, page, totalPages } = await getPublishedArticles(requestedPage);
+  const { articles, page, totalPages } = await loadArticles(requestedPage);
 
   return (
     <div className="mx-auto max-w-container px-6 py-12 md:px-8 lg:px-margin lg:py-16">

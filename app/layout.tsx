@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import { getWebsiteSettings } from "@/lib/data/site-settings";
+import { SITE_URL } from "@/lib/site-url";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -17,12 +18,6 @@ const inter = Inter({
   display: "swap",
 });
 
-// Falls back to the live Netlify URL (not localhost) so production metadata
-// is correct even if NEXT_PUBLIC_SITE_URL isn't set in the deploy environment.
-// Update this fallback — and set the env var in Netlify — if a custom domain
-// is adopted later.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://webperkasamotors.netlify.app";
-
 /**
  * PHASE 2C: title/description/OG/favicon are database-driven (Website
  * Settings General screen, via lib/data/site-settings.ts). Converted from
@@ -37,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = settings.seoDescription ?? undefined;
 
   return {
-    metadataBase: new URL(siteUrl),
+    metadataBase: new URL(SITE_URL),
     title: {
       default: title,
       template: `%s — ${settings.companyName}`,

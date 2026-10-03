@@ -119,11 +119,15 @@ export async function getPublishedArticleCount(): Promise<number> {
   return count ?? 0;
 }
 
-export async function getAllPublishedArticleSlugs(): Promise<string[]> {
+/** Published article slugs with their real last-edit time — used by app/sitemap.ts. */
+export async function getSitemapArticles(): Promise<Array<{ slug: string; updatedAt: string }>> {
   const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase.from("articles").select("slug").eq("status", "PUBLISHED");
-  if (error) throw new Error(`getAllPublishedArticleSlugs: ${error.message}`);
-  return (data as unknown as { slug: string }[]).map((r) => r.slug);
+  const { data, error } = await supabase.from("articles").select("slug, updated_at").eq("status", "PUBLISHED");
+  if (error) throw new Error(`getSitemapArticles: ${error.message}`);
+  return (data as unknown as { slug: string; updated_at: string }[]).map((r) => ({
+    slug: r.slug,
+    updatedAt: r.updated_at,
+  }));
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
