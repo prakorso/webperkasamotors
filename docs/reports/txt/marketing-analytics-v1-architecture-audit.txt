@@ -1,0 +1,139 @@
+Perkasa Motors — Marketing Analytics V1: Phase 0 Architecture & Feasibility Audit
+
+Audit only. No application code, database, GA4, GTM, Meta, Search Console, Netlify or production change was made. Canonical design: docs/analytics/marketing-analytics-v1-blueprint.md.
+
+A. Executive summary
+A read-only Marketing Analytics module is feasible with the existing stack and needs no Supabase tables and no raw-event storage. The cleanest design is live, server-side calls to the GA4 Data API and Search Console API through one read-only Google service account, behind the existing admin shell, with a short server cache. Three things must happen before the UI is built: register two GA4 custom dimensions (cta_location, item_id), provision the service account and prove the queries with real API calls (not possible in this audit, no credentials exist), and wait for Search Console to finish processing (it reported no data yet). Everything else needed already exists. The audit is therefore PARTIAL on live API proof and READY for implementation Phase 1.
+
+B. Current main SHA
+origin/main = 683fba1ef6ae40470e6bf686698fd5355679ae56 (audit branch audit/marketing-analytics-v1 is docs only).
+
+C. Current admin architecture
+- Routes under app/(admin)/admin/(shell)/: dashboard, inventory, website (sub-pages), articles, plus unlinked leads/content/media/settings. Login is outside the shell group.
+- Shell: layout.tsx (server) requires an active profiles row, renders a fixed 256px Sidebar (client; off-canvas below lg) and Topbar. Content is p-4 lg:p-8.
+- Sidebar items come from components/admin/nav-items.tsx: Ringkasan, Inventory, Website, Artikel; a flat list, no groups. The conceptual OPERASIONAL/GROWTH/PENGATURAN grouping does not exist yet, and Finance is a separate Supabase project ("Perkasa Motors Finance"), not part of this admin.
+- Patterns: server components fetch through lib/data (server-only); PageHeader and StatCard exist; there is no chart library and no Google SDK in package.json.
+- Next.js 16.3.7 / React 19.2.8; Netlify deploys from main with the Next runtime (netlify.toml only holds redirects).
+
+D. Current auth / RBAC
+proxy.ts redirects signed-out requests to /admin/login; the shell layout is the real boundary (valid session and an active profile). Roles OWNER|ADMIN|STAFF exist in profiles.role and are shown in the topbar, but no page or action enforces them (database RLS uses only is_active_staff()). Recommendation: V1 follows the existing rule (any active staff). The role is already on AdminProfile if the Owner wants OWNER/ADMIN-only later; no new RBAC is needed.
+
+E. GA4 property / data source
+Verified in the GA4 UI: property 557215091 ("Perkasa Motors"), stream perkasamotors.id, reporting time zone Jakarta (GMT+07:00), currency IDR, industry Auto & Vehicles. Recent events on the stream: first_visit, page_view, scroll, session_start, user_engagement, view_item, whatsapp_click. Key events: whatsapp_click (starred) and Google's default purchase (no data). Reports show pages, sessions by channel group, source/medium, and key events by platform with data. Attribution is already thin: sessions appear as "Unassigned" and source/medium as "(data not available)" for part of the traffic.
+
+F. GA4 query feasibility
+The Data API was **not executed**: there are no credentials, and granting a new OAuth grant or creating credentials is outside this phase. Evidence available instead is the GA4 UI (same data), the live event payloads verified in the Sell tracking closeout (view_item carries an items array with item_id; whatsapp_click carries cta_location, cta_context, page_type and, for vehicle CTAs, item_*), and GA4's documented dimension/metric compatibility (expected, not tested): activeUsers/sessions/screenPageViews/eventCount with eventName, date, pagePath, sessionSourceMedium, sessionCampaignName, landingPage; itemsViewed with itemId, itemName (item scope).
+
+G. Custom dimension status
+Admin → Custom definitions shows **0 custom dimensions, 0 custom metrics**. Consequences:
+| Parameter | Queryable today? | Plan |
+|---|---|---|
+| page_type | no | Do not register: pagePath (standard, event-compatible) answers every question, including /sell. |
+| cta_location | no | **Register** (event-scoped); required for the CTA table. |
+| cta_context | no | Do not register; it adds nothing the table needs. |
+| vehicle_status, list_context | no | Do not register. |
+| item_id on whatsapp_click (event parameter) | no | **Register** (event-scoped) for WA clicks per vehicle. |
+| item_id inside view_item.items | yes via standard itemId/itemsViewed | none |
+Registration is not retroactive; data accrues from the registration day. No GTM change is needed: the parameters are already sent.
+
+H. Search Console feasibility
+Property sc-domain:perkasamotors.id (domain property, verified by DNS TXT). Sitemap https://perkasamotors.id/sitemap.xml submitted 3 Oct 2026, last read 3 Oct 2026, status Success, 23 discovered pages. Performance report currently says "Processing data, please check again in a day or so" and shows no data. Search Analytics API (clicks, impressions, CTR, position; dimensions query, page, date) is the supported source, with a 2–3 day delay and Pacific Time dates. The API was not called (no credentials). Do not promise real-time search data; the Search tab must handle "no data".
+
+I. Inventory join strategy
+Verified read-only against the live database (project "Perkasa Motors Website"): vehicles.stock_number is NOT NULL UNIQUE; 18 rows, 18 distinct; 16 follow CAR-NNNN/MOT-NNNN, 2 are QA-PAGN-01/02 test rows. The join item_id → stock_number works. Risk: deleting a DRAFT/AVAILABLE/ARCHIVED vehicle releases its number to stock_number_pool (13 rows today) and a new vehicle can reuse it; SOLD/RESERVED numbers are locked. Mitigation (blueprint section 6): query per vehicle with the date dimension and ignore rows dated before the vehicle's created_at. external_id is reserved for a future Operating System and slug can change (URL history table exists), so neither is used.
+Also found: the two QA- rows are live and published (one AVAILABLE, one SOLD), i.e. test data on the public site and in any inventory metric.
+
+J. Sell Vehicle analytics
+Feasible without new dimensions: /sell page views (screenPageViews, pagePath=/sell), sell-form clicks (eventCount, eventName=whatsapp_click, pagePath=/sell), session rate, and traffic source for /sell sessions. Not available and intentionally not built: any form value (brand, model, price, notes, mileage, tax dates).
+
+K. CTA analytics
+Code and docs agree on 11 canonical locations: header, mobile_menu, hero, vehicle_card, catalogue_empty_state, payment_section, detail_inline, detail_sticky, detail_reserved, sell_form, footer. The CTA table needs the registered cta_location dimension (shares of total clicks only). A per-CTA conversion rate is rejected: there is no per-CTA impression denominator.
+
+L. Acquisition model
+Table: Source/Medium, Campaign, Users, Sessions, WA Sessions, WA Conversion Rate. Session-scoped dimensions with sessions/activeUsers are compatible in one request; WA sessions need a second request with the eventName filter and are joined in code. Expect "(direct) / (none)" and "(data not available)" rows because denied-consent visits are cookieless.
+
+M. KPI definitions
+See blueprint section 3 (Users = activeUsers; Vehicle Views = itemsViewed; WhatsApp Clicks = eventCount of whatsapp_click; Top source = sessionSourceMedium; Most viewed vehicle = top itemsViewed by itemId).
+
+N. WA Conversion Rate definition
+Canonical: sessions with whatsapp_click ÷ sessions (bounded 0–100%, counts a visit once however many times they click, independent of other key events). Rejected alternatives: clicks ÷ sessions (can exceed 100%), clicks ÷ users, clicks ÷ vehicle views (ignores non-vehicle visits). Per vehicle the Inventory tab shows a separately labelled "Klik WA ÷ tayangan".
+
+O. Date range model
+7D, 30D, 90D, ending yesterday in Jakarta time, inclusive. GA4 supports any range; Search Console needs end ≤ today−3 and uses Pacific Time dates (state this in the UI); data retention is 16 months there. Custom range and previous-period comparison are deferred: the traffic is tiny, so deltas would be noise and the extra UI adds risk.
+
+P. Data access architecture options
+- A: live API on every request. Simplest; adds ~8–10 small parallel calls per view; quotas are far above need; latency 0.5–2 s per call.
+- B: scheduled sync into Supabase aggregates. Needs a scheduler, tables, idempotency, backfill; only justified by quota, latency or reliability problems that do not exist at 18 vehicles and low traffic.
+- C: hybrid. Extra moving parts without a driver.
+
+Q. Recommended architecture
+Option A, plus a 30-minute server-side cache and a manual refresh, one read-only service account, a server-only Google client module, per-section Suspense and error isolation. Rejected explicitly: copying GA4 hits to Supabase, raw clickstream storage, custom sessionization.
+
+R. Cache decision
+No Supabase cache tables in V1 (analytics_daily_summary / search_console_daily stay as documented future options only if a real quota, latency or reliability problem appears; they would be keyed by date plus dimensions, hold only aggregates, be refreshed idempotently by upsert and have no raw hits). Use the framework cache; check the exact Next 16 API in node_modules/next/dist/docs/ first.
+
+S. Proposed routes / navigation
+Route /admin/analytics (existing admin path style: inventory, articles, website), tabs via ?tab=, range via ?range=. Nav: a flat item "Marketing Analytics" between Inventory and Website (no group headers until the sidebar is grouped).
+
+T. Overview wireframe description
+Header with range selector (7D/30D/90D) and "Diperbarui" time. Row of six StatCards: Users, Sessions, Page Views, Vehicle Views, WhatsApp Clicks, WA Conversion Rate. Below: a WhatsApp-clicks-per-day trend (one small chart or sparkline) and three insight cards: Most Viewed Vehicle, Top Traffic Source, Sell Vehicle Intent (page views, clicks, session rate). The Sell insight sits here, not in its own tab.
+
+U. Acquisition blueprint
+One table (Source/Medium, Campaign, Users, Sessions, WA Sessions, WA Conversion Rate), sorted by sessions, top 20, with the attribution caveat note.
+
+V. Inventory blueprint
+Vehicle, Stock Number, Status, Views, WA Clicks, Klik WA ÷ tayangan; optional Tersedia/Terjual filter; QA- rows excluded; orphan item ids shown as "Unit tidak ditemukan". **Days Listed is excluded**: vehicles has no publication timestamp; created_at is creation, sold_at is truthful for only 3 of 16 SOLD rows (the rest pre-date the column), and vehicle_status_history covers only 5 of 18 vehicles (the main AVAILABLE unit has no history).
+
+W. CTA blueprint
+CTA Location, Clicks, Share of WA Clicks, descending; no CTA conversion rate.
+
+X. Search blueprint
+Four KPI cards (Clicks, Impressions, CTR, Average Position), Top Queries and Top Pages tables, a latency/time-zone note, and a proper "no data yet" state (the property is processing today).
+
+Y. Loading/error states
+Skeletons per section; per-source error cards ("Data GA4 tidak dapat dimuat", "Data Search Console tidak dapat dimuat") so one failure never collapses the page; "Belum dikonfigurasi" when env is missing; "Belum ada data" for empty ranges.
+
+Z. Security model
+Service account (client email and private key only, in Netlify env as GOOGLE_SA_CLIENT_EMAIL, GOOGLE_SA_PRIVATE_KEY, plus GA4_PROPERTY_ID, GSC_SITE_URL); never in the repo, client bundle or logs; calls only from server-only code inside the authenticated admin shell; no public analytics endpoint. Storing only email + key keeps the environment small (Netlify's total environment size limit is a known constraint; confirm at implementation). Rejected: browser OAuth and access tokens in the client; a user refresh token (expires or breaks with consent-screen/testing status and ties the dashboard to one person's account).
+
+AA. Privacy constraints
+Aggregates only. Never display visitor identity, IP, WhatsApp number, message text or /sell form values. Analytics already carries none of them (verified in the Sell closeout).
+
+AB. Platform limitations
+GA4 processing delay (about 24–48h for some data), possible thresholding on tiny counts, registration of custom dimensions is not retroactive and takes time to populate, event count ≠ session/user counts, source attribution nuance (denied-consent visits are cookieless: "(data not available)", "Unassigned"), the property includes my and staff test traffic (no internal-traffic filter yet), Search Console 2–3 day lag and Pacific Time dates.
+
+AC. API feasibility matrix
+| Query | Result |
+|---|---|
+| A. users / sessions / pageViews, 7 days | **BLOCKED** for the API (no credentials). UI confirms data exists (Home card: 7-day active users 3, event count 44; sessions by channel group present). |
+| B. whatsapp_click event count | **BLOCKED** (API). UI/Realtime confirm the event and key-event counts. |
+| C. source / medium | **BLOCKED** (API). UI shows source/medium with "(data not available)" rows. |
+| D. page path /sell | **BLOCKED** (API). UI/Realtime show /sell views; standard pagePath dimension is documented as available. |
+| E. vehicle detail views (itemId) | **BLOCKED** (API, not run); payload verified to include items[].item_id. |
+| F. CTA location | **BLOCKED**, and independently **NEEDS CUSTOM DIMENSION** (0 registered). |
+| G. Search Console clicks/impressions/query/page | **BLOCKED** (API) and no data processed yet (UI: "Processing data"). Property and sitemap verified. |
+No production configuration was changed to force a test. These are Phase 1 gates.
+
+AD. Implementation prerequisites
+1. Register cta_location and item_id custom dimensions in GA4.
+2. Google Cloud project, Analytics Data API and Search Console API enabled, service account and key created, access granted in GA4 (Viewer) and Search Console, Netlify env set (Owner signs in; AI configures).
+3. Real API proof of the query catalogue.
+4. Owner decisions: remove or keep QA-PAGN-01/02; whether to add a GA4 internal-traffic filter (needs office IPs); OWNER/ADMIN-only vs all staff.
+
+AE. Recommended implementation phases
+P1 access and proof; P2 route, nav, Overview; P3 Acquisition and CTA; P4 Inventory with the join guard; P5 Search (after data exists). Deferred: custom range, comparison, Days Listed, chart library, role gating, cache tables.
+
+AF. Final verdict
+**PARTIAL audit, READY for Phase 1.** Architecture, definitions, join key, blueprint and risks are settled; live API proof is outstanding by design (credentials do not exist yet) and Search Console has no data yet.
+
+Required decisions
+1. Admin route: /admin/analytics.
+2. Navigation: flat "Marketing Analytics" item between Inventory and Website.
+3. Live API vs cached: live API with a 30-minute server cache.
+4. GA4 custom dimensions: cta_location, item_id (event-scoped) only.
+5. Search Console access model: read-only service account added to the property.
+6. Inventory join key: GA4 itemId/item_id → vehicles.stock_number, discarding rows dated before the vehicle's created_at.
+7. WA Conversion Rate: sessions with whatsapp_click ÷ sessions.
+8. Date filters: 7D, 30D, 90D.
+9. Comparison period: defer.
+10. Supabase cache tables: not needed in V1.
