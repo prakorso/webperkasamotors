@@ -2,7 +2,13 @@
 
 import { useEffect } from "react";
 import Script from "next/script";
-import { getConsentStatus, googleConsentState, subscribeToConsent } from "@/lib/measurement/consent";
+import {
+  CONSENT_STORAGE_KEY,
+  CONSENT_VERSION,
+  getConsentStatus,
+  googleConsentState,
+  subscribeToConsent,
+} from "@/lib/measurement/consent";
 import { isMeasurementHost, MEASUREMENT_HOSTNAME } from "@/lib/measurement/host";
 import { trackWhatsAppClick, type WhatsAppClickDataset } from "@/lib/measurement/events";
 
@@ -21,16 +27,13 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
  * /admin). GTM is the only tag-loading layer: GA4 and Meta Pixel are
  * configured as GTM tags (container-side), not loaded here directly.
  *
- * Responsibilities, strictly in this order (docs/tracking/
- * measurement-architecture.md §2 "R1B loader contract"):
- *  1. Initialize window.dataLayer and set the Google Consent Mode v2
- *     default (denied unless the visitor already accepted) BEFORE the
- *     GTM container can load.
- *  2. Replay the visitor's stored choice as a consent update, if any.
- *  3. Load the GTM container script, gated to the production host.
- *  4. Push a consent update on every later preference change.
- *  5. Run the one delegated click listener for every WhatsApp CTA
- *     (data-wa-location) on the page — see lib/measurement/events.ts.
+ * Order matters: GTM reads Consent Mode state when the container starts,
+ * so the default (denied) and the replay of a stored "accepted" choice are
+ * emitted by the SAME inline script that then injects gtm.js (a React
+ * effect runs too late — Tag Assistant showed tags firing before it).
+ * This component's effect only handles what happens after load: consent
+ * updates on later preference changes and the one delegated
+ * whatsapp_click listener (data-wa-location, lib/measurement/events.ts).
  */
 export function MeasurementLoader() {
   useEffect(() => {
@@ -43,10 +46,6 @@ export function MeasurementLoader() {
       // eslint-disable-next-line prefer-rest-params
       window.dataLayer!.push(arguments);
     }
-    gtag("consent", "default", { ...googleConsentState(null), wait_for_update: 500 });
-
-    const initialStatus = getConsentStatus();
-    if (initialStatus) gtag("consent", "update", googleConsentState(initialStatus));
 
     const unsubscribe = subscribeToConsent(() => {
       gtag("consent", "update", googleConsentState(getConsentStatus()));
@@ -72,6 +71,13 @@ export function MeasurementLoader() {
     <Script id="gtm-loader" strategy="afterInteractive">
       {`
         if (window.location.hostname === ${JSON.stringify(MEASUREMENT_HOSTNAME)}) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('consent','default',Object.assign(${JSON.stringify(googleConsentState(null))},{wait_for_update:500}));
+          try {
+            var r = JSON.parse(window.localStorage.getItem(${JSON.stringify(CONSENT_STORAGE_KEY)}));
+            if (r && r.version === ${CONSENT_VERSION} && r.status === 'accepted') gtag('consent','update',${JSON.stringify(googleConsentState("accepted"))});
+          } catch (e) {}
           (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
           var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
           j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
