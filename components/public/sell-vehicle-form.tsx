@@ -63,6 +63,7 @@ export function SellVehicleForm({ whatsappNumber, companyName }: SellVehicleForm
   const id = (name: string) => `${uid}-${name}`;
   const currentYear = useCurrentYear();
   const formRef = useRef<HTMLFormElement>(null);
+  const lastOpenAt = useRef(0);
 
   const [values, setValues] = useState<SellVehicleValues>(EMPTY_SELL_VALUES);
   const [touched, setTouched] = useState<Partial<Record<SellField, boolean>>>({});
@@ -95,6 +96,9 @@ export function SellVehicleForm({ whatsappNumber, companyName }: SellVehicleForm
     }
     const url = sellVehicleWhatsAppUrl(values, whatsappNumber, companyName);
     if (!url) return;
+    // A fast double click / double Enter must open one WhatsApp tab, not two.
+    if (Date.now() - lastOpenAt.current < 1000) return;
+    lastOpenAt.current = Date.now();
 
     // One whatsapp_click through the existing measurement contract. Only the CTA identity is sent — never form values, the message or the URL.
     trackWhatsAppClick({ waLocation: "sell_form", waContext: "sell_vehicle" }, "sell_form", window.location.pathname);
