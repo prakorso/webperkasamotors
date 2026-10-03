@@ -14,6 +14,9 @@ const CORE_LINKS = [
   { href: "/motorcycles", label: "Beli Motor" },
 ] as const;
 
+/** Public sell-vehicle entry (/sell). Placed directly after the catalogue links, before CMS extras such as Artikel. */
+const SELL_LINK = { href: "/sell", label: "Jual Kendaraan" } as const;
+
 /**
  * Public presentation rules applied on top of the CMS-driven navigation
  * (navigation_items), without writing to the CMS:
@@ -41,20 +44,30 @@ export function applyPublicNavRules(
   return items.filter((item) => !isRetiredPublicHref(item.href) && (rules.showArticles || !isArticlesHref(item.href)));
 }
 
-/** Guarantees Beli Mobil / Beli Motor are present (in that order, first) even if the CMS rows were removed. */
+/** Guarantees Beli Mobil / Beli Motor / Jual Kendaraan are present (in that order, ahead of other links) even if the CMS rows were removed. */
 export function withCoreLinks(items: NavigationItem[], placement: NavigationItem["placement"], groupLabel: string | null): NavigationItem[] {
-  const missing = CORE_LINKS.filter((core) => !items.some((item) => item.href === core.href)).map(
-    (core, i): NavigationItem => ({
-      id: `core-${core.href}`,
-      placement,
-      groupLabel,
-      label: core.label,
-      href: core.href,
-      sortOrder: -10 + i,
-      isVisible: true,
-      isExternal: false,
-      isCta: false,
-    })
+  const toItem = (core: { href: string; label: string }, sortOrder: number): NavigationItem => ({
+    id: `core-${core.href}`,
+    placement,
+    groupLabel,
+    label: core.label,
+    href: core.href,
+    sortOrder,
+    isVisible: true,
+    isExternal: false,
+    isCta: false,
+  });
+  const missing = CORE_LINKS.filter((core) => !items.some((item) => item.href === core.href)).map((core, i) =>
+    toItem(core, -10 + i)
   );
-  return [...missing, ...items];
+  const withCatalogue = [...missing, ...items];
+  if (withCatalogue.some((item) => item.href === SELL_LINK.href)) return withCatalogue;
+
+  // Insert after the last catalogue link so the order stays Beli Mobil, Beli Motor, Jual Kendaraan, then the rest.
+  const lastCatalogue = withCatalogue.reduce(
+    (last, item, i) => (CORE_LINKS.some((core) => core.href === item.href) ? i : last),
+    -1
+  );
+  const sell = toItem(SELL_LINK, -8);
+  return [...withCatalogue.slice(0, lastCatalogue + 1), sell, ...withCatalogue.slice(lastCatalogue + 1)];
 }

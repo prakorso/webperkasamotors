@@ -12,7 +12,7 @@ import { absoluteUrl } from "@/lib/site-url";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [vehicles, articles] = await Promise.all([getSitemapVehicles(), getSitemapArticles()]);
 
-  const staticRoutes = ["/", "/cars", "/motorcycles", "/articles", "/privacy"].map((path) => ({
+  const staticRoutes = ["/", "/cars", "/motorcycles", "/sell", "/articles", "/privacy"].map((path) => ({
     url: absoluteUrl(path),
   }));
 

@@ -22,9 +22,10 @@ export type CtaLocation =
   | "detail_inline"
   | "detail_sticky"
   | "detail_reserved"
+  | "sell_form"
   | "footer";
 
-export type CtaContext = "generic" | "vehicle" | "payment";
+export type CtaContext = "generic" | "vehicle" | "payment" | "sell_vehicle";
 
 /** Canonical page_type vocabulary — derived from the URL at click time, never a stale prop. */
 export type PageType =
@@ -34,6 +35,7 @@ export type PageType =
   | "detail_car"
   | "detail_motorcycle"
   | "privacy"
+  | "sell_vehicle"
   | "article"
   | "other";
 
@@ -133,6 +135,7 @@ export function inferPageType(pathname: string): PageType {
   if (pathname.startsWith("/cars/")) return "detail_car";
   if (pathname.startsWith("/motorcycles/")) return "detail_motorcycle";
   if (pathname === "/privacy") return "privacy";
+  if (pathname === "/sell") return "sell_vehicle";
   if (pathname.startsWith("/articles")) return "article";
   return "other";
 }

@@ -40,7 +40,7 @@ Deduped: the same `cta_location` + `href` within 1 second is treated as one acci
 | Param | Always present | Source |
 |---|---|---|
 | `cta_location` | yes | one of the 10 canonical locations below |
-| `cta_context` | yes | `generic` \| `vehicle` \| `payment` |
+| `cta_context` | yes | `generic` \| `vehicle` \| `payment` \| `sell_vehicle` |
 | `page_type` | yes | derived from `window.location.pathname` **at click time** (`inferPageType`), never a static prop |
 | `hero_slide_index` | hero, 2–3 slide case only | `HeroSlideshow`'s `activeIndex` at render |
 | `list_context` | `vehicle_card` only | `home_available` \| `home_sold` \| `catalogue_available` \| `catalogue_sold` \| `related` |
@@ -63,11 +63,12 @@ Deduped: the same `cta_location` + `href` within 1 second is treated as one acci
 | `detail_inline` | `vehicle` | `vehicle-detail.tsx` via `WhatsAppCta` | yes | AVAILABLE only (RESERVED/SOLD render different blocks) |
 | `detail_sticky` | `vehicle` | `mobile-vehicle-cta.tsx` via `WhatsAppCta` | yes | Mobile-only, AVAILABLE only |
 | `detail_reserved` | `generic` | `vehicle-detail.tsx` via `WhatsAppCta` | no (status only) | "Tanya Unit Lain" — same generic-message rule as the RESERVED card |
+| `sell_form` | `sell_vehicle` | `sell-vehicle-form.tsx` (submit handler → `trackWhatsAppClick`, then `window.open`) | no | `/sell` "Tawarkan Kendaraan via WhatsApp". Fired only after the form validates. Not an `<a>`: the generated wa.me URL (which contains the visitor's entries) is never placed in a link, so automatic outbound-click measurement cannot read it. Sends only `cta_location`, `cta_context`, `page_type` — no form value, message or URL. Maps to the existing `whatsapp_click` → Meta `Contact`; no Lead/Purchase. |
 | `footer` | `generic` | `site-footer.tsx` (raw `<a>`) | no | |
 
 ### `page_type` vocabulary
 
-Derived centrally (`inferPageType`, `lib/measurement/events.ts`) from the pathname, never passed as a prop: `home`, `catalogue_car`, `catalogue_motorcycle`, `detail_car`, `detail_motorcycle`, `privacy`, `article`, `other`. `article` and `other` exist because `header`/`footer`/`mobile_menu` are global and reachable from every route (including the dormant Articles section), not because those routes have their own WhatsApp CTAs.
+Derived centrally (`inferPageType`, `lib/measurement/events.ts`) from the pathname, never passed as a prop: `home`, `catalogue_car`, `catalogue_motorcycle`, `detail_car`, `detail_motorcycle`, `privacy`, `sell_vehicle` (`/sell`), `article`, `other`. `article` and `other` exist because `header`/`footer`/`mobile_menu` are global and reachable from every route (including the dormant Articles section), not because those routes have their own WhatsApp CTAs.
 
 ## 3. `select_item` and `vehicle_gallery_open` — deferred
 
