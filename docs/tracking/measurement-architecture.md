@@ -1,6 +1,24 @@
 # Perkasa Motors — Measurement Architecture
 
-Status: R1B code-complete and merged. The loader, consent wiring, data-layer events and every CTA instrumentation point described below are live in the codebase. **No tag actually fires yet**: `NEXT_PUBLIC_GTM_ID` is unset in Netlify, and the GTM container/GA4 property/Meta dataset have not been created. See `docs/reports/measurement-foundation-r1b-production-release.md` for exactly what is and isn't live, and `docs/tracking/event-taxonomy.md` for the full parameter contract.
+Status: R1B code merged; external accounts created. The GTM container is built but **published only after QA** (see `docs/reports/measurement-foundation-r1b-production-release.md` for what is live).
+
+## Account identifiers (non-secret)
+
+| Asset | ID |
+|---|---|
+| GTM account / container | "Perkasa Motors" (6380342885) / `GTM-5B2CG228` (web, `perkasamotors.id`) |
+| GA4 account / property | "Perkasa Motors" (410474557) / property `557215091` |
+| GA4 stream / Measurement ID | stream `15991036236` / `G-XLBH4NP844` (Asia/Jakarta, IDR, Enhanced measurement: page views, scrolls, outbound clicks only) |
+| Meta business portfolio / dataset (pixel) | "Perkasa Group" (1077754063409145) / "Perkasa Motors" `2546559625844473` |
+| Search Console | Domain property `perkasamotors.id`, verified via DNS TXT at Hostinger; sitemap `https://perkasamotors.id/sitemap.xml` submitted |
+| Netlify env | `NEXT_PUBLIC_GTM_ID=GTM-5B2CG228` (GTM is the only ID the app knows) |
+
+## GTM container contents
+
+Tags: `GA4 - Configuration / Google Tag` (Google tag, Initialization, built-in analytics consent), `GA4 - Event - view_item`, `GA4 - Event - whatsapp_click`, `Meta - Base` (Custom HTML, All Pages, requires `ad_storage`), `Meta - PageView (SPA)` (History Change, requires `ad_storage`), `Meta - ViewContent` (view_item, fires fbq only when `vehicle_status === "AVAILABLE"`, requires `ad_storage`), `Meta - Contact` (whatsapp_click, requires `ad_storage`).
+Triggers: `Custom Event - view_item`, `Custom Event - whatsapp_click`, `History Change - All Pages`.
+Variables: Data Layer Variables `DLV - <key>` for cta_location, cta_context, page_type, hero_slide_index, list_context, item_id, item_name, item_brand, item_category, item_variant, vehicle_status, vehicle_year, value, currency, items.
+page_view on SPA navigation: the Google tag plus GA4 Enhanced measurement "Page views" (history-based) is the single GA4 mechanism; Meta uses the History Change tag.
 
 Source audits: `docs/reports/measurement-foundation-r0-audit.md` (event taxonomy) and `docs/reports/measurement-foundation-r1a-production-release.md` (this foundation).
 
