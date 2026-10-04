@@ -102,7 +102,7 @@ function DeleteAction({ vehicle }: { vehicle: Vehicle }) {
   async function handleDelete() {
     if (
       !confirm(
-        `Hapus permanen ${vehicleTitle(vehicle)} (${vehicle.stockNumber})? Foto ikut terhapus dan tidak bisa dikembalikan. Nomor stoknya bisa dipakai lagi.`
+        `Hapus permanen ${vehicleTitle(vehicle)} (${vehicle.stockNumber})? Foto ikut terhapus dan tidak bisa dikembalikan. Nomor stoknya dipensiunkan permanen dan tidak akan dipakai lagi.`
       )
     ) {
       return;

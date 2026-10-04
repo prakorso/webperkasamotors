@@ -146,7 +146,7 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
     if (!vehicle) return;
     if (
       !confirm(
-        `Hapus permanen ${form.brand} ${form.model} (${vehicle.stockNumber})? Foto ikut terhapus dan tidak bisa dikembalikan. Nomor stoknya bisa dipakai lagi.`
+        `Hapus permanen ${form.brand} ${form.model} (${vehicle.stockNumber})? Foto ikut terhapus dan tidak bisa dikembalikan. Nomor stoknya dipensiunkan permanen dan tidak akan dipakai lagi.`
       )
     ) {
       return;

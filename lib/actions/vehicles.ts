@@ -432,7 +432,8 @@ async function hasCommercialHistory(
  *      applied), so it holds on any path, not only this action. A refusal
  *      from the trigger (errcode 23514) is mapped to the same friendly
  *      message instead of the raw database text.
- * Otherwise the stock number is released into stock_number_pool for reuse
+ * Otherwise the stock number is permanently retired (never reused: the
+ * pool was retired in migration 20261004010000_retire_stock_number_reuse)
  * and vehicle_media / vehicle_url_history / status history cascade-delete
  * with the vehicle. Storage objects for photos are not removed (pre-existing gap).
  */
@@ -483,7 +484,7 @@ const ALLOWED_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
   AVAILABLE: ["RESERVED", "SOLD", "DRAFT"],
   RESERVED: ["AVAILABLE", "SOLD"],
   // SOLD is final from the owner UI: moving it back to AVAILABLE would make the
-  // unit deletable again and let its permanently-reserved stock number be reused.
+  // unit deletable again, bypassing the SOLD lock on its permanently-reserved stock number.
   SOLD: [],
   ARCHIVED: ["DRAFT", "AVAILABLE"],
 };
