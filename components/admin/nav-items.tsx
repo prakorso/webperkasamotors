@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, Car, FileText, Globe } from "lucide-react";
+import { LayoutDashboard, Car, FileText, Globe, BarChart3 } from "lucide-react";
 
 export interface AdminNavItem {
   href: string;
@@ -22,6 +22,7 @@ export interface AdminNavItem {
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin/dashboard", label: "Ringkasan", icon: LayoutDashboard },
   { href: "/admin/inventory", label: "Inventory", icon: Car },
+  { href: "/admin/analytics", label: "Marketing Analytics", icon: BarChart3 },
   { href: "/admin/website", label: "Website", icon: Globe },
   { href: "/admin/articles", label: "Artikel", icon: FileText },
 ];
