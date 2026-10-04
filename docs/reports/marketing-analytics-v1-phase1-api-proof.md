@@ -1,0 +1,109 @@
+# Perkasa Motors — Marketing Analytics V1, Phase 1: Google API Access and Query Proof
+
+Date: 2026-10-04 (Asia/Jakarta). No dashboard UI and no application code were built. One database effect: none (the QA rows were NOT deleted, see Z). Credentials appear nowhere in this report or the repository.
+
+## A. Executive summary
+Server-side Google access is provisioned and proven. A read-only service account can query the GA4 Data API (property 557215091) and the Search Console API (`sc-domain:perkasamotors.id`). Both approved GA4 custom dimensions are registered. The core metric contracts were proven with real queries, including the session-based WhatsApp conversion method. Two things are not yet populated and are reported as such: the new custom dimensions have no data until Google processes post-registration events, and Search Console has no rows yet (ACCESS PASS, DATA NOT READY). Three production findings need Owner decisions, none of which block the dashboard: the QA-PAGN rows could not be safely removed, the stock-number reuse pool will hand `QA-PAGN-03` to the next car, and the Finance project has six backup tables with RLS disabled.
+
+## B. Main SHA
+`origin/main` = `71955fd` at the start of the phase (this work adds a docs-only commit).
+
+## C. Google Cloud project
+New project `perkasa-motors-analytics` ("Perkasa Motors Analytics"), no organization. The existing projects in the account (Catatan Keuangan, Gemini, My First Project, etc.) are unrelated, so none was reused.
+
+## D. APIs enabled
+Only: Google Analytics Data API (`analyticsdata.googleapis.com`) and Google Search Console API (`searchconsole.googleapis.com`).
+
+## E. Service account architecture
+`perkasa-motors-marketing-analy@perkasa-motors-analytics.iam.gserviceaccount.com` ("Perkasa Motors Marketing Analytics"), created with no project IAM roles. One JSON key (id prefix `0f193ef2`) was generated. Access is granted per product: GA4 property 557215091 as Viewer (notification email off) and Search Console as Restricted. The key file was moved out of Downloads to `~/.perkasa-secrets/marketing-analytics-sa.json` (directory 700, file 600, outside any repository) and is used only for local proof. Its contents were never printed.
+
+## F. Netlify env names
+Production context only, set through the Netlify API (site `webperkasamotors`, not the finance site): `GOOGLE_ANALYTICS_PROPERTY_ID`, `GOOGLE_SEARCH_CONSOLE_SITE_URL`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`. No `NEXT_PUBLIC_` prefix; total environment ~2.2 KB. Limitation: this plan rejects scope restrictions and rejects the secret flag together with the default `post_processing` scope, so the private key is a regular server variable (visible to Netlify team members, available to builds). Accepted because it is read-only and never bundled into client code; mark it secret or rotate it if the plan or team changes.
+
+## G. GA4 access
+**PASS.** `runReport` on property 557215091 returns HTTP 200 for the service account (Viewer role only).
+
+## H. Search Console access
+**ACCESS PASS, DATA NOT READY.** `sites.list` returns `sc-domain:perkasamotors.id` with `siteRestrictedUser`. `searchAnalytics.query` returns 200 with 0 rows for total, `query`, `page` and `date` (also with `dataState=all`). The UI still says "Processing data, please check again in a day or so".
+
+## I. GA4 custom dimensions
+Audited first: 0 existed. Registered on 2026-10-04, both Event scope: `CTA Location` (parameter `cta_location`) and `Vehicle Item ID` (parameter `item_id`). `item_id` was checked against the standard item dimension first: `itemId × eventCount` is rejected by the API (HTTP 400), so standard `itemId` cannot answer "WhatsApp clicks per vehicle"; the event-level parameter is not a duplicate. Not registered, by decision: `cta_context`, `page_type`, `vehicle_status`, `list_context` (`/sell` clicks work without them via `pagePath`).
+
+## J. Propagation status
+Both appear in the Data API metadata (`customEvent:cta_location`, `customEvent:item_id`) and queries return 200, but all historical events show `(not set)` (11 `whatsapp_click` events). A fresh vehicle `whatsapp_click` (`CAR-0001`, `detail_inline`, consent accepted) was sent after registration; it did not yet appear in the standard report (the realtime API does not support custom dimensions). Status: **CONFIGURED — PROCESSING.** Data starts at the registration date; there is no backfill. Re-check after up to ~24h (Phase 2 gate for the CTA table and per-vehicle clicks).
+
+## K. GA4 summary query (last 7 completed days, 27 Sep–3 Oct)
+`activeUsers` 3, `sessions` 8, `screenPageViews` 17. **PASS.** (Includes my and staff test traffic.)
+
+## L. WhatsApp event query
+`eventCount` with `eventName == whatsapp_click`: 11. **PASS.**
+
+## M. Source/medium query
+`sessionSource`/`sessionMedium` × `sessions, activeUsers`: `(not set)` 6, `tagassistant.google.com / referral` 3, `(data not available)` 2, `l.instagram.com / referral` 2. **PASS** (the query works; attribution is thin because consent-denied visits are cookieless).
+
+## N. Campaign query
+`sessionCampaignName` × `sessions`: `(not set)` 6, `(referral)` 5, `(cross-network)` 2. **PASS.**
+
+## O. Sell page query
+`pagePath == /sell`: 1 page view; `whatsapp_click` on `/sell` (event + `pagePath` filters, no custom dimension): 1 event, 1 session. **PASS.**
+
+## P. Vehicle query
+`itemsViewed` by `itemId, itemName`: `CAR-0001` 3, `MOT-0012` 1, `QA-PAGN-02` 1. **PASS** for views. WhatsApp clicks per vehicle: **CONFIGURED — PROCESSING** (needs `customEvent:item_id`).
+
+## Q. CTA query
+`customEvent:cta_location` × `eventCount` (`whatsapp_click`): query valid, currently `(not set)` 11. **CONFIGURED — PROCESSING**, not a failure.
+
+## R. WA conversion formula proof
+Method: two requests. `sessions` with `dimensionFilter eventName == whatsapp_click` returns **4**; total `sessions` is **8**; rate = 4/8 = 50% on this (test-heavy) window, while the same window has 11 `whatsapp_click` events, proving it counts distinct sessions, not events. Cross-check: `sessions` by `eventName` returned `whatsapp_click` 4 sessions / 11 events, `page_view` 8 / 17. Rejected: `sessionKeyEventRate` (25%, wrong) because key events are only counted since the event was marked (2026-10-04) and not retroactively; `eventCount / sessions`. The formula is unchanged: sessions containing `whatsapp_click` ÷ sessions.
+
+## S. Inventory join proof
+Live data: 18 vehicles, 18 distinct `stock_number`, none also in the reuse pool. The three analytics items joined 3/3 to current rows (`CAR-0001` created 2026-08-18; `MOT-0012` and `QA-PAGN-02` created 2026-10-03 Jakarta), 0 orphans, 0 dropped by the guard.
+
+## T. Stock-number reuse safeguard
+Rule: keep an analytics row only if `date >= (created_at at time zone 'Asia/Jakarta')::date` (inclusive). Logic verified: `vehicles_before_delete` pools the number of any deleted DRAFT/AVAILABLE/ARCHIVED vehicle and `generate_stock_number` reissues pooled numbers alphabetically; SOLD/RESERVED (or ever SOLD/RESERVED) vehicles cannot be deleted. The guard was exercised on the live rows (all kept, since each analytics date is on or after creation); no reuse collision exists today. Architecture debt recorded: a future immutable, never-reused vehicle id in the Perkasa OS.
+
+## U. Search Console query proof
+Four calls (total, `query`, `page`, `date`) all HTTP 200, 0 rows: ACCESS PASS — PROCESSING / EMPTY. Metrics available from the API: clicks, impressions, ctr, position. Expected freshness: about 2–3 days.
+
+## V. Date normalization
+GA4 property timezone Asia/Jakarta, same as the dashboard: use Jakarta dates, windows 7D/30D/90D ending yesterday (today is 2026-10-04, so the latest window ends 2026-10-03), inclusive. Search Console: documented as Pacific Time dates with a 2–3 day delay; since there are no rows yet this could not be confirmed empirically. Server layer rule: Search ranges end at `today − 3` (Jakarta) and are labelled "tanggal Pacific Time"; do not shift raw values. Re-verify with real rows in Phase 2.
+
+## W. Cache approach
+Server query → `unstable_cache(fn, keyParts, { revalidate: 1800, tags: ['marketing-analytics'] })` → admin Server Component → client. Chosen because this project does not enable Cache Components (Next 16.3.7; the docs say `use cache` replaces `unstable_cache` only with Cache Components), it needs no table, and Netlify persists the data cache. "Muat ulang" uses `revalidateTag`. Cookies/auth are read outside the cached function. No Supabase cache tables. Measured: ~0.7 s per request, 8 parallel 90-day requests 0.6 s, 1 quota token each (200,000/day, 40,000/hour available).
+
+## X. API compatibility matrix
+| Metric | Source | API dimension | API metric | Filter | Status |
+|---|---|---|---|---|---|
+| Users | GA4 | — | `activeUsers` | — | PASS |
+| Sessions | GA4 | — | `sessions` | — | PASS |
+| Page Views | GA4 | — | `screenPageViews` | — | PASS |
+| Vehicle Views | GA4 | `itemId`, `itemName` | `itemsViewed` | — | PASS |
+| WhatsApp Clicks | GA4 | (`date`) | `eventCount` | `eventName=whatsapp_click` | PASS |
+| Sessions with WA Click | GA4 | (`date`) | `sessions` | `eventName=whatsapp_click` | PASS |
+| WA Conversion Rate | GA4 | — | two requests: filtered `sessions` ÷ `sessions` | as left | PASS |
+| Top Source | GA4 | `sessionSourceMedium` | `sessions` | — | PASS |
+| Top Campaign | GA4 | `sessionCampaignName` | `sessions` | — | PASS |
+| Top Vehicle | GA4 | `itemId` | `itemsViewed` | — | PASS |
+| CTA Clicks | GA4 | `customEvent:cta_location` | `eventCount` | `eventName=whatsapp_click` | CONFIGURED — PROCESSING |
+| Vehicle WA Clicks | GA4 | `customEvent:item_id` | `eventCount` | `eventName=whatsapp_click` | CONFIGURED — PROCESSING |
+| /sell Views | GA4 | `pagePath` | `screenPageViews` | `pagePath=/sell` | PASS |
+| /sell WA Clicks | GA4 | `pagePath` | `eventCount` / `sessions` | `eventName=whatsapp_click` AND `pagePath=/sell` | PASS |
+| Search Clicks | Search Console | `date`/`query`/`page` | `clicks` | — | ACCESS PASS — DATA NOT READY |
+| Search Impressions | Search Console | same | `impressions` | — | ACCESS PASS — DATA NOT READY |
+| Search CTR | Search Console | same | `ctr` | — | ACCESS PASS — DATA NOT READY |
+| Search Position | Search Console | same | `position` | — | ACCESS PASS — DATA NOT READY |
+Query combinations tested for Overview (date × users/sessions/views; date × clicks; date × WA sessions), Acquisition (source/medium ± campaign × sessions/users, and the same with the WA filter, landing page), Inventory (item × date × itemsViewed; custom item × date × clicks), CTA, Sell: all valid. Incompatible or misleading combinations are listed in blueprint section 4 (`itemId × eventCount` → 400; `itemsViewed × sessionSourceMedium` → 200 but `(not set)`; `itemId × sessions` not a view count; split totals can exceed the unsplit total; realtime lacks custom dimensions).
+
+## Y. Security verification
+Private key and email exist only in the Netlify production environment and in the local mode-600 file outside the repository; no `NEXT_PUBLIC_` variable; Google calls will live in a `server-only` module; no secret printed in the terminal, report or docs (repository scan below). The key is not secret-flagged on Netlify because of plan limits (section F), the one known weakness.
+Repository scan result: see the final line of section AB.
+
+## Z. QA-PAGN handling — RETAINED_WITH_REASON
+Identified: `QA-PAGN-01` (`68416972-dab5-40b0-8ca9-e0788373098e`, SOLD, published, featured) and `QA-PAGN-02` (`a10b1591-3b51-4530-9b35-b5ffccb32328`, AVAILABLE, published). Relationships: no leads, no content, no URL history; each has 1 status-history row; 10 and 15 exterior photos; filled plate numbers; `QA-PAGN-01` has a real location. Reasons not deleted: (1) both are published, customer-facing, with realistic data, so I cannot prove they are test-only; (2) `QA-PAGN-01` is SOLD and the database trigger permanently forbids deleting a vehicle that is or was SOLD or RESERVED, which I will not bypass; (3) deleting `QA-PAGN-02` would insert `QA-PAGN-02` into the reuse pool and a future car could be assigned it. Finance (separate project) has no `stock_number` column, so a link there could not be checked by stock number. Per the instruction (uncertain → stop and report), nothing was changed. Related findings: the pool already holds 13 non-standard numbers (`QA-T1-*`, `QA-PAGN-03/04/05`, `TEST-PAGN-*`, all CAR) and `generate_stock_number` takes them first, so the next car created in the admin will be numbered `QA-PAGN-03`. The Finance project also reports six backup tables with RLS disabled (`*_bak_20260818`, `app_config_bak_phasec`); not touched, flagged for the Owner.
+
+## AA. Deferred items
+GA4 internal-traffic filter; Search Console date-semantics check with real rows; re-check of custom-dimension values; stock-number pool cleanup and an immutable vehicle id (Perkasa OS); Netlify secret flag/plan; QA row decision; Finance backup-table RLS; dashboard UI (Phase 2); comparison period, custom range, Days Listed.
+
+## AB. Final verdict
+**PARTIAL on data, READY for Phase 2.** Access, queries and contracts are proven; custom-dimension values and Search Console rows are pending Google processing, and Phase 2 can begin with Overview, Acquisition and Inventory views while those fill in.
+Repository scan: no private key, client_email value or key id found in tracked files.
