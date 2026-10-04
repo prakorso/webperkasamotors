@@ -139,6 +139,8 @@ export interface VehicleRef {
   status: string;
   /** Jakarta calendar date (YYYY-MM-DD) the vehicle row was created. */
   createdDate: string;
+  /** Public cover (primary) photo URL; null when the vehicle has none. */
+  imageUrl?: string | null;
 }
 
 export interface ItemDayRow {

@@ -1,6 +1,6 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { getAllVehiclesForAdmin, getVehicleActivityForAdmin } from "@/lib/data/vehicles";
+import { getAllVehicleMediaForAdmin, getAllVehiclesForAdmin, getVehicleActivityForAdmin } from "@/lib/data/vehicles";
 import type { Vehicle } from "@/lib/types";
 import { vehicleTitle } from "@/lib/utils/format";
 import { runGa4Report, type Ga4RequestBody } from "./ga4";
@@ -165,7 +165,14 @@ const TRACKED_STATUSES = new Set<Vehicle["status"]>(["AVAILABLE", "RESERVED", "S
 
 export async function loadVehicleRefs(): Promise<VehicleRef[]> {
   try {
-    const [vehicles, activity] = await Promise.all([getAllVehiclesForAdmin(), getVehicleActivityForAdmin()]);
+    const [vehicles, activity, media] = await Promise.all([
+      getAllVehiclesForAdmin(),
+      getVehicleActivityForAdmin(),
+      // Thumbnails are cosmetic: a media failure must never fail the Inventory table.
+      getAllVehicleMediaForAdmin().catch(() => []),
+    ]);
+    // Same definition of "cover" as the public catalogue: the vehicle's isPrimary media.
+    const cover = new Map(media.filter((m) => m.isPrimary).map((m) => [m.vehicleId, m.url]));
     return vehicles
       .filter((v) => TRACKED_STATUSES.has(v.status) && activity[v.id])
       .map((v) => ({
@@ -173,6 +180,7 @@ export async function loadVehicleRefs(): Promise<VehicleRef[]> {
         label: `${vehicleTitle(v)} ${v.year}`,
         status: v.status,
         createdDate: jakartaDate(new Date(activity[v.id].createdAt)),
+        imageUrl: cover.get(v.id) ?? null,
       }));
   } catch {
     throw new AnalyticsError("API", "Data unit tidak dapat dimuat dari database.");

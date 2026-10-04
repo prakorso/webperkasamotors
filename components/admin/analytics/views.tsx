@@ -10,6 +10,7 @@ import { DataTable, type Column } from "./data-table";
 import { InsightCard, Kpi } from "./kpi";
 import { DATA_CAVEAT, SectionFooter, SectionNotice } from "./states";
 import { TrendChart } from "./trend-chart";
+import { VehicleThumb } from "./vehicle-thumb";
 
 /** Shared handling of the non-data states; returns a node when the section has nothing to table. */
 function sectionProblem<T>(section: SectionState<T>, source: string, emptyText = "Belum ada data untuk periode ini."): React.ReactNode | null {
@@ -127,6 +128,7 @@ export function AcquisitionView({ section }: { section: SectionState<Acquisition
 // ---------------------------------------------------------------------------
 
 const INVENTORY_COLUMNS: Column<VehiclePerformance>[] = [
+  { header: "Foto", cell: (r) => <VehicleThumb src={r.imageUrl} /> },
   {
     header: "Unit",
     cell: (r) => (
