@@ -129,7 +129,7 @@ Read-only comparison of 18 Website vehicles vs 51 Finance units. No exact or pla
 ## N. Vehicle Lifecycle
 
 - Website `vehicle_status`: DRAFT, AVAILABLE, RESERVED, SOLD, ARCHIVED (observed: AVAILABLE 2, SOLD 16). Trigger records history and `sold_at`; deletion blocked for RESERVED/SOLD history.
-- Finance `units.status`: `aktif` / `terjual` (+ `archived_at` soft archive); `settlement_status`: `pending`, `legacy_recorded`, `transition_recorded`, `engine_settled` (and NULL for 12 units, incl. 7 sold); `unit_settlement.status`: `settled` / `reversed`; `model_class` `legacy`/`current`; `funding_model` `legacy`/`perkasa`.
+- Finance `units.status`: `aktif` / `terjual` (+ `archived_at` soft archive); `settlement_status`: `pending`, `legacy_recorded`, `transition_recorded`, `engine_settled` (and NULL for 9 units, incl. 7 sold); `unit_settlement.status`: `settled` / `reversed`; `model_class` `legacy`/`current`; `funding_model` `legacy`/`perkasa`.
 - Conflicts: Finance has no RESERVED/DRAFT; SOLD is set by settlement RPC on Finance and manually in the CMS on Website → duplicate state. `pm_unit_settle_reverse` silently moves Finance back to `aktif` (not irreversible), with no Website equivalent.
 
 ## O. Publication Lifecycle
@@ -140,7 +140,7 @@ Public visibility = `is_published = true AND status IN (AVAILABLE, RESERVED, SOL
 
 | Item | Website | Finance | Owner today |
 |---|---|---|---|
-| Purchase / acquisition cost | none | `unit_cost_entries` category Purchase (7 rows) and `units.harga_beli` (0 on every row) | FINANCE (but `harga_beli` is dead) |
+| Purchase / acquisition cost | none | `unit_cost_entries` category Purchase (7 rows) and `units.harga_beli` (0 on 50 of 51 rows) | FINANCE (but `harga_beli` is dead) |
 | Listing price | `vehicles.price` | `units.target_jual` | BOTH (duplicate) |
 | Selling price | none (price remains the list price on SOLD) | `units.harga_jual` + `unit_settlement.selling_price` | FINANCE |
 | Final negotiated price | none | same | FINANCE |
@@ -181,7 +181,7 @@ Debts 1 (active, principal Rp 74.7M, 6 payments), payroll 1 person, `kas_keluar`
 
 Recomputed/compared where the data allows:
 - Settled snapshots: true profit Rp 15.25M, Perkasa retained Rp 14.719M (difference Rp 531k = partner fees; consistent with formula).
-- `units` stored: sum `keuntungan_bersih` Rp 140.6M over sold units, sum sale Rp 1.1375B (legacy rows carry stored values, no recomputable cost: 47 of 51 units have `harga_beli` 0 and no cost entries, so legacy profit cannot be independently recomputed — **FAIL to verify, not a proven error**).
+- `units` stored: sum `keuntungan_bersih` Rp 140.6M over sold units, sum sale Rp 1.1375B (legacy rows carry stored values, no recomputable cost: 50 of 51 units have `harga_beli` 0 and only 7 units have Purchase cost entries, so legacy profit cannot be independently recomputed — **FAIL to verify, not a proven error**).
 - Reserve: view closing Rp 3.3M = retentions 1.7M + perkasa_reserve 1.6M (matches ledger; formula inconsistency in S).
 - Capital: accounts funded Rp 847.5M vs allocations active Rp 98M (+ returned Rp 749.5M); `v_capital_reconcile` shows 0 `available` and 0 `unfunded_commitment` for all six accounts; no unreconciled variance surfaced there. `settlement_variances` has 1 unresolved row.
 Overall: **PARTIAL** — new-model figures reconcile; legacy figures are taken as recorded.
@@ -226,11 +226,11 @@ Website: Supabase Auth (3 users) + `profiles` roles; session-based RLS. Finance:
 
 ## AB. Data Quality Findings
 
-Finance: 0 duplicate plates, 34 blank plates, 0 orphan cost entries, 0 negative costs, 0 sold-before-acquired, 0 sold without date, 47 units with zero purchase cost recorded, 7 sold units with NULL settlement_status, 1 archived unit with malformed year (`20120`), duplicate partner account names, 1 unresolved settlement variance. Website: 16 sold with 13 missing `sold_at`, unused `external_id`, placeholder plates, 1 storage object without media row.
+Finance: 0 duplicate plates, 34 blank plates, 0 orphan cost entries, 0 negative costs, 0 sold-before-acquired, 0 sold without date, 50 units with `harga_beli` = 0 (purchase cost entries exist for only 7), 7 sold units with NULL settlement_status, 1 archived unit with malformed year (`20120`), duplicate partner account names, 1 unresolved settlement variance. Website: 16 sold with 13 missing `sold_at`, unused `external_id`, placeholder plates, 1 storage object without media row.
 
 ## AC. Legacy Data
 
-Finance: `model_class='legacy'` 46 units (incl. 36 `legacy_recorded`, 2 pending, 7 NULL-settlement, 1 archived), `current` 3 (`transition_recorded`); `funding_model='legacy'` for the first ~42 units, `perkasa` for 8 later units. Legacy economics must not be re-derived with modern policy (per business rules). Website QA-PAGN-01/02 left untouched; no clear Finance counterpart (QA-PAGN-02 resembles Finance 79 at LOW confidence), classification **uncertain** — Owner decision.
+Finance: `model_class='legacy'` 48 units (incl. 36 `legacy_recorded`, 3 pending, 9 NULL-settlement; 1 of the pending is archived), `current` 3 (`transition_recorded`); `funding_model='legacy'` for 44 units, `perkasa` for 7 later units. Legacy economics must not be re-derived with modern policy (per business rules). Website QA-PAGN-01/02 left untouched; no clear Finance counterpart (QA-PAGN-02 resembles Finance 79 at LOW confidence), classification **uncertain** — Owner decision.
 
 ## AD. Dependency Graph (actual schema)
 
